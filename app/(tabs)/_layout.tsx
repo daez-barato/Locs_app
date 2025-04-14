@@ -1,45 +1,101 @@
-import { Tabs } from 'expo-router';
-import React from 'react';
-import { Platform } from 'react-native';
+import { Tabs, useRouter} from "expo-router";
 
-import { HapticTab } from '@/components/HapticTab';
-import { IconSymbol } from '@/components/ui/IconSymbol';
-import TabBarBackground from '@/components/ui/TabBarBackground';
-import { Colors } from '@/constants/Colors';
-import { useColorScheme } from '@/hooks/useColorScheme';
+import FontAwesome from "@expo/vector-icons/FontAwesome";
+import { useThemeConfig } from "@/components/ui/use-theme-config";
 
-export default function TabLayout() {
-  const colorScheme = useColorScheme();
 
-  return (
-    <Tabs
-      screenOptions={{
-        tabBarActiveTintColor: Colors[colorScheme ?? 'light'].tint,
-        headerShown: false,
-        tabBarButton: HapticTab,
-        tabBarBackground: TabBarBackground,
-        tabBarStyle: Platform.select({
-          ios: {
-            // Use a transparent background on iOS to show the blur effect
-            position: 'absolute',
-          },
-          default: {},
-        }),
-      }}>
-      <Tabs.Screen
-        name="index"
-        options={{
-          title: 'Home',
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="house.fill" color={color} />,
-        }}
-      />
-      <Tabs.Screen
-        name="explore"
-        options={{
-          title: 'Explore',
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="paperplane.fill" color={color} />,
-        }}
-      />
-    </Tabs>
-  );
+export default function TabLayout(){
+    const { colors } = useThemeConfig();
+    const router = useRouter();
+
+    return (
+        <Tabs>
+            <Tabs.Screen 
+                name= "index" 
+                
+                options = {{
+                    title: "Home",
+                    tabBarIcon: ({ focused }: { focused: boolean }) => (
+                        <FontAwesome 
+                            size={28} 
+                            name="home" 
+                            color={focused? colors.primary : colors.text} 
+                        />
+                    ),
+                    tabBarStyle: { backgroundColor: colors.background },
+                    tabBarLabel: ({ focused }: {focused: boolean}) => (
+                        <FontAwesome style={{ color: focused ? colors.primary : colors.text }}>
+                            Home
+                        </FontAwesome>
+                    ),
+                    headerShown: false,
+                }}
+            />
+            <Tabs.Screen
+                name="studio"
+
+                options = {{
+                    title:"Studio",
+                    tabBarIcon: ({ focused }: {focused: boolean}) => (
+                        <FontAwesome 
+                            size={28} 
+                            name="plus" 
+                            color={focused? colors.primary : colors.text} 
+                        />
+                    ),
+
+                    animation: "shift",
+                    tabBarStyle: { backgroundColor: colors.background, display: "none" },
+                    tabBarLabel: ({ focused }: {focused: boolean}) => (
+                        <FontAwesome style={{ color: focused ? colors.primary : colors.text }}>
+                            Studio
+                        </FontAwesome>
+                    ),
+                    headerShown: false,
+                }}
+            />
+            <Tabs.Screen
+                name="profile"
+                options = {{
+                    title:"Profile",
+                    tabBarIcon: ({ focused }: {focused: boolean}) => (
+                        <FontAwesome 
+                            size={28} 
+                            name="user" 
+                            color={focused? colors.primary : colors.text} 
+                        />
+                    ),
+                    tabBarStyle: { backgroundColor: colors.background },
+                    tabBarLabel: ({ focused }: {focused: boolean}) => (
+                        <FontAwesome style={{ color: focused ? colors.primary : colors.text }}>
+                            Profile
+                        </FontAwesome>
+                    ),
+                    
+                    headerShown: false,
+                }}
+            />
+            <Tabs.Screen
+                name="test"
+                options = {{
+                    title:"Test",
+                    tabBarIcon: ({ focused }: {focused: boolean}) => (
+                        <FontAwesome 
+                            size={28} 
+                            name="circle" 
+                            color={focused? colors.primary : colors.text} 
+                        />
+                    ),
+                    tabBarStyle: { backgroundColor: colors.background },
+                    tabBarLabel: ({ focused }: {focused: boolean}) => (
+                        <FontAwesome style={{ color: focused ? colors.primary : colors.text }}>
+                            Test
+                        </FontAwesome>
+                    ),
+                    
+                    headerShown: false,
+                }}
+            />
+        </Tabs>
+    )
 }
