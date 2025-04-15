@@ -4,31 +4,41 @@ import { useCallback } from 'react';
 
 import { View } from 'react-native';
 import { StyleSheet } from 'react-native';
+import { Dimensions } from 'react-native';
 
 
+const {width, height} = Dimensions.get("window");
 
 type Props = {
   videoSource: string;
+  shouldPlay: boolean;
 }
 
-export default function VideoViewer( {videoSource} : Props) {
+export default function VideoViewer( {videoSource, shouldPlay} : Props) {
 
   const player = useVideoPlayer(videoSource, player => {
     player.loop = true;
-    player.play();
+    if (shouldPlay) {
+      player.play();
+    } else {
+      player.pause();
+    }
   });
 
   // Pause the video when the tab is unfocused
   useFocusEffect(
     useCallback(() => {
       // When the screen is focused, play the video
-      player.play();
-
+      if (shouldPlay){
+        player.play();
+      } else {
+        player.pause();
+      }
       return () => {
         // When the screen is unfocused, pause the video
         player.pause();
       };
-    }, [player])
+    }, [player, shouldPlay])
   );
 
   return (
@@ -43,8 +53,8 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    height: '100%',
-    width: '100%',
+    height: height,
+    width: width,
   },
   video: {
     height: '100%',
