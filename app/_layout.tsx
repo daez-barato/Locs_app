@@ -2,26 +2,31 @@ import { Stack } from "expo-router";
 import React from "react";
 import { StatusBar } from "expo-status-bar";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
-
-import { useThemeConfig } from "@/components/ui/use-theme-config";
+import { AuthProvider } from "@/api/context/AuthContext";
+import { CoinProvider } from "@/api/context/coinContext";
 
 
 export default function RootLayout() {
+
   return (
     <Providers>
-      <StatusBar style="auto" />
-      <Stack>
-        <Stack.Screen name="(tabs)" options={{ headerShown: false }}/>
-      </Stack>
+      <StatusBar style="auto"/>
+        <Stack>
+            <Stack.Screen name="(auth)" options={{ headerShown: false }}/>
+            <Stack.Screen name="(tabs)" options={{ headerShown: false }}/>
+        </Stack>
     </Providers>
   );
 }
 
 function Providers({ children }: {children: React.ReactNode}){
-  const theme = useThemeConfig();
   return (
-    <GestureHandlerRootView style={{flex:1}}>
-        {children}
-    </GestureHandlerRootView>
+    <AuthProvider>
+      <CoinProvider>
+        <GestureHandlerRootView style={{flex:1}}>
+          {children}
+        </GestureHandlerRootView>
+      </CoinProvider>
+    </AuthProvider>
   );
 }

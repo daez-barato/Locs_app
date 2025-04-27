@@ -1,20 +1,30 @@
-import { Tabs, useRouter} from "expo-router";
+import { router, Tabs, useFocusEffect} from "expo-router";
 
 import FontAwesome from "@expo/vector-icons/FontAwesome";
 import { useThemeConfig } from "@/components/ui/use-theme-config";
+import { useAuth } from "@/api/context/AuthContext";
+import { useCallback } from "react";
 
 
 export default function TabLayout(){
     const { colors } = useThemeConfig();
-    const router = useRouter();
+
+    const { authState } = useAuth();
+
+    useFocusEffect(
+        useCallback( () => {
+            if (!authState?.authenticated) {
+                router.replace('/(auth)');
+            }
+        }, [authState?.authenticated])
+    ); 
 
     return (
         <Tabs>
             <Tabs.Screen 
                 name= "index" 
-                
                 options = {{
-                    title: "Home",
+                    title: "home",
                     tabBarIcon: ({ focused }: { focused: boolean }) => (
                         <FontAwesome 
                             size={28} 
@@ -26,6 +36,26 @@ export default function TabLayout(){
                     tabBarLabel: ({ focused }: {focused: boolean}) => (
                         <FontAwesome style={{ color: focused ? colors.primary : colors.text }}>
                             Home
+                        </FontAwesome>
+                    ),
+                    headerShown: false,
+                }}
+            />
+            <Tabs.Screen 
+                name= "explore"
+                options = {{
+                    title: "Explore",
+                    tabBarIcon: ({ focused }: { focused: boolean }) => (
+                        <FontAwesome 
+                            size={28} 
+                            name="search" 
+                            color={focused? colors.primary : colors.text} 
+                        />
+                    ),
+                    tabBarStyle: { backgroundColor: colors.background },
+                    tabBarLabel: ({ focused }: {focused: boolean}) => (
+                        <FontAwesome style={{ color: focused ? colors.primary : colors.text }}>
+                            Explore
                         </FontAwesome>
                     ),
                     headerShown: false,
@@ -54,6 +84,26 @@ export default function TabLayout(){
                     headerShown: false,
                 }}
             />
+            <Tabs.Screen 
+                name= "parleys" 
+                options = {{
+                    title: "parleys",
+                    tabBarIcon: ({ focused }: { focused: boolean }) => (
+                        <FontAwesome 
+                            size={28} 
+                            name="list" 
+                            color={focused? colors.primary : colors.text} 
+                        />
+                    ),
+                    tabBarStyle: { backgroundColor: colors.background },
+                    tabBarLabel: ({ focused }: {focused: boolean}) => (
+                        <FontAwesome style={{ color: focused ? colors.primary : colors.text }}>
+                            Parleys
+                        </FontAwesome>
+                    ),
+                    headerShown: false,
+                }}
+            />
             <Tabs.Screen
                 name="profile"
                 options = {{
@@ -69,27 +119,6 @@ export default function TabLayout(){
                     tabBarLabel: ({ focused }: {focused: boolean}) => (
                         <FontAwesome style={{ color: focused ? colors.primary : colors.text }}>
                             Profile
-                        </FontAwesome>
-                    ),
-                    
-                    headerShown: false,
-                }}
-            />
-            <Tabs.Screen
-                name="test"
-                options = {{
-                    title:"Test",
-                    tabBarIcon: ({ focused }: {focused: boolean}) => (
-                        <FontAwesome 
-                            size={28} 
-                            name="circle" 
-                            color={focused? colors.primary : colors.text} 
-                        />
-                    ),
-                    tabBarStyle: { backgroundColor: colors.background },
-                    tabBarLabel: ({ focused }: {focused: boolean}) => (
-                        <FontAwesome style={{ color: focused ? colors.primary : colors.text }}>
-                            Test
                         </FontAwesome>
                     ),
                     

@@ -8,11 +8,11 @@ import { useRef, useState } from "react";
 import { SafeAreaView } from "react-native-safe-area-context";
 import CustomButton from "@/components/custom-button";
 import { useFocusEffect } from "expo-router";
-import { Dimensions } from "react-native";
 import VideoViewer from "@/components/video-viewer";
+import { useCoins } from "@/api/context/coinContext";
 
 
-const {width, height} = Dimensions.get("window");
+
 
 // define stream object
 interface streamItem {
@@ -68,10 +68,7 @@ const serverStreams = [
 export default function Index() {
   const { colors } = useThemeConfig();
   const [ streamList, setStreamList ] = useState<streamItem[]>([]);
-
-
-
-
+  const {coins, fetchCoins} = useCoins();
   const renderItem = ({ item }: { item: streamItem }) => {
     return (
       <VideoViewer
@@ -97,7 +94,8 @@ export default function Index() {
   useFocusEffect(
     useCallback( () => {
       setStreamList([serverStreams[0], serverStreams[1]]);
-    },[])
+      fetchCoins();
+    },[coins])
   );
 
   return (
@@ -124,7 +122,7 @@ export default function Index() {
       <View style={[styles.currencyDisplay, {backgroundColor: colors.background}]}>
         <Text
           style={styles.currencyText}
-        > 90 $$
+        > {coins} $$
         </Text>
       </View>
     </SafeAreaView>  

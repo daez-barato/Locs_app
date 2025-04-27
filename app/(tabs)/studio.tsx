@@ -1,5 +1,5 @@
 import CameraViewer from "@/components/camera-viewer"
-import { SafeAreaView, StyleSheet, View } from "react-native"
+import { SafeAreaView, StyleSheet } from "react-native"
 
 import { useThemeConfig } from "@/components/ui/use-theme-config"
 
