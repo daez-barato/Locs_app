@@ -40,3 +40,6 @@ app-example
 
 #sensitive data
 .env
+
+/android
+/ios

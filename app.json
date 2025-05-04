@@ -7,7 +7,7 @@
     "icon": "./assets/images/icon.png",
     "scheme": "myapp",
     "userInterfaceStyle": "automatic",
-    "newArchEnabled": true,
+    "newArchEnabled": false,
     "ios": {
       "supportsTablet": true,
       "bitcode": false,
@@ -50,7 +50,7 @@
         "expo-video"
       ],
       [
-        "@config-plugins/react-native-webrtc"
+        "@livekit/react-native-expo-plugin", "@config-plugins/react-native-webrtc"
       ],
       [ 
         "expo-secure-store"
