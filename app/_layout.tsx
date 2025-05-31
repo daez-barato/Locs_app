@@ -14,6 +14,7 @@ export default function RootLayout() {
         <Stack>
             <Stack.Screen name="(auth)" options={{ headerShown: false }}/>
             <Stack.Screen name="(tabs)" options={{ headerShown: false }}/>
+            <Stack.Screen name="event/[eventId]" options={{ headerShown: false }}/>
         </Stack>
     </Providers>
   );

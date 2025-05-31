@@ -4,7 +4,7 @@ import { useAuth } from "@/api/context/AuthContext";
 import { useThemeConfig } from "@/components/ui/use-theme-config";
 
 export default function SignIn() {
-    const { colors } = useThemeConfig();
+    const colors = useThemeConfig();
     const { onLogin, onRegister } = useAuth();
 
     const [isRegistering, setIsRegistering] = useState(false); // Toggle between login and register

@@ -5,9 +5,10 @@
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "myapp",
+    "scheme": "locs",
+    "deepLinking": true,
     "userInterfaceStyle": "automatic",
-    "newArchEnabled": false,
+    "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
       "bitcode": false,
@@ -49,8 +50,6 @@
       [
         "expo-video"
       ],
-      "@livekit/react-native-expo-plugin",
-      "@config-plugins/react-native-webrtc",
       [ 
         "expo-secure-store"
       ]

@@ -32,7 +32,7 @@ export default function CustomButton({
     textStyle,
     layout = "side-by-side", // Default layout is side-by-side
 }: Props) {
-    const { colors } = useThemeConfig();
+    const colors  = useThemeConfig();
 
     const isPill = shape === "pill";
     const bgColor = {

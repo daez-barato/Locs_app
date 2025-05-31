@@ -1,12 +1,13 @@
 import { useThemeConfig } from "@/components/ui/use-theme-config";
-import { Text, View } from "react-native";
+import { Text} from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function Parleys() {
     //Simple screen with a text
-    const { colors } = useThemeConfig();
+    const theme = useThemeConfig();
     return (
-        <View style={{ flex: 1, backgroundColor: colors.background }}>
+        <SafeAreaView style={{ flex: 1, backgroundColor: theme.background }}>
             <Text>Parleys</Text>
-        </View>
+        </SafeAreaView>
     );
 }

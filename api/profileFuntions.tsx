@@ -17,6 +17,7 @@ export const userInfo = async () => {
 export const getFollowerCount = async () => {
   try {
     const result = await axiosInstance.get(`${SERVER_PORT}/followers/userFollowerCount`);
+    
     return result.data.followers; // Return the follower count
   } catch (err) {
     return { error: true, msg: (err as AxiosError).message }

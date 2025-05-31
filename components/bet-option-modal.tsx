@@ -29,7 +29,7 @@ const BetOptionModal: React.FC<BetOptionModalProps> = ({
     betName,
     setBetName,
 }) => {
-    const { colors } = useThemeConfig();
+    const  colors  = useThemeConfig();
 
     return (
         <Modal

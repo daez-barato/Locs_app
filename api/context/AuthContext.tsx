@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useState } from "react";
-import { AxiosError } from 'axios';
+import axios, { AxiosError } from 'axios';
 import  * as SecureStore from 'expo-secure-store';
 import { SERVER_PORT } from "../config";
 import axiosInstance from "../utils/axiosInstance";
@@ -32,27 +32,25 @@ export const AuthProvider = ({children}: any) => {
         email: "",
     });
 
-    /* useEffect(() => {
+    useEffect(() => {
         const loadToken = async () => {
-            console.log("Stored token:", authState.token);
             const token = await SecureStore.getItemAsync("auth_token");
             const username = await SecureStore.getItemAsync("user_name");
             const email = await SecureStore.getItemAsync("email");
 
             if (token) {
 
-                axios.defaults.headers.common["Authorization"] = `Bearer ${token}`;
-                console.log("Stored token:", token);
+                axios.defaults.headers.common["Authorization"] = `Bearer ${token}`
                 setAuthState({
                     token: token,
                     authenticated: true,
-                    userName: username,
-                    email: email,
+                    userName: username as string,
+                    email: email as string,
                 });
             }
         }
         loadToken();
-    }, []); */
+    }, []);
 
     const register = async (username: string, email: string, password: string) => {
         try {

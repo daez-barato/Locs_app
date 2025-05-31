@@ -4,34 +4,35 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import React, { useCallback, useState } from "react";
 import { useCoins } from "@/api/context/coinContext";
 import { useAuth } from "@/api/context/AuthContext";
-import { useFocusEffect } from "expo-router";
+import { useFocusEffect, useLocalSearchParams } from "expo-router";
 import { getFollowerCount, getFollowingCount } from "@/api/profileFuntions";
 
 const placeholderImage = "https://upload.wikimedia.org/wikipedia/commons/thumb/6/62/Vector_WikiAnswers_Orange_Avatar_Lady_Incognito.svg/960px-Vector_WikiAnswers_Orange_Avatar_Lady_Incognito.svg.png?20241130025355"; // Placeholder image URL
 
 export default function Profile() {
-    const { colors } = useThemeConfig();
+    const colors = useThemeConfig();
     const { authState } = useAuth();
     const profileImage = "";
     const [activeList, setActiveList] = useState<"created" | "participated">("created");
     const { coins, fetchCoins } = useCoins();
     const [followers, setFollowers] = useState<number>();
     const [following, setFollowing] = useState<number>();
-    const [username, setUsername] = useState<string | null>();
+    const { user } = useLocalSearchParams();
+    const  [owner, setOwner] = useState<boolean>(false);
 
     // Fetch data when the screen comes into focus
     useFocusEffect(
         useCallback(() => {
             const fetchData = async () => {
                 try {
-                    setUsername(authState?.userName);
-                    fetchCoins(); // Make sure you await this too
-    
-                    const followerCount = await getFollowerCount(); // <-- Add await here
-                    const followingCount = await getFollowingCount();
-                    setFollowers(followerCount);
-                    setFollowing(followingCount);
-
+                    if (user === authState?.userName){
+                        setOwner(true);
+                        fetchCoins(); // Make sure you await this too
+                        const followerCount = await getFollowerCount(); // <-- Add await here
+                        const followingCount = await getFollowingCount();
+                        setFollowers(followerCount);
+                        setFollowing(followingCount);
+                    }
                 } catch (err) {
                     console.error("Error fetching data:", err);
                 }
@@ -78,7 +79,7 @@ export default function Profile() {
                         marginTop: 10,
                     }}
                 >
-                    {authState?.userName}
+                    {user}
                 </Text>
 
                 {/* Follower and Following Counts */}

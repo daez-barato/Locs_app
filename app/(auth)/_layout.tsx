@@ -1,9 +1,10 @@
 import { useAuth } from "@/api/context/AuthContext";
-import { router, Stack, useFocusEffect } from "expo-router";
+import { Stack, useFocusEffect, useRouter } from "expo-router";
 import React, { useCallback } from "react";
 
 export default function AuthLayout() {
     const { authState } = useAuth();
+    const router = useRouter();
 
     useFocusEffect(
         useCallback( () => {

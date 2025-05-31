@@ -1,4 +1,4 @@
-import { router, Tabs, useFocusEffect} from "expo-router";
+import { Tabs, useFocusEffect, useRouter} from "expo-router";
 
 import FontAwesome from "@expo/vector-icons/FontAwesome";
 import { useThemeConfig } from "@/components/ui/use-theme-config";
@@ -7,8 +7,8 @@ import { useCallback } from "react";
 
 
 export default function TabLayout(){
-    const { colors } = useThemeConfig();
-
+    const theme = useThemeConfig();
+    const router = useRouter();
     const { authState } = useAuth();
 
     useFocusEffect(
@@ -29,12 +29,12 @@ export default function TabLayout(){
                         <FontAwesome 
                             size={28} 
                             name="home" 
-                            color={focused? colors.primary : colors.text} 
+                            color={focused? theme.primary : theme.text} 
                         />
                     ),
-                    tabBarStyle: { backgroundColor: colors.background },
+                    tabBarStyle: { backgroundColor: theme.background },
                     tabBarLabel: ({ focused }: {focused: boolean}) => (
-                        <FontAwesome style={{ color: focused ? colors.primary : colors.text }}>
+                        <FontAwesome style={{ color: focused ? theme.primary : theme.text }}>
                             Home
                         </FontAwesome>
                     ),
@@ -49,12 +49,12 @@ export default function TabLayout(){
                         <FontAwesome 
                             size={28} 
                             name="search" 
-                            color={focused? colors.primary : colors.text} 
+                            color={focused? theme.primary : theme.text} 
                         />
                     ),
-                    tabBarStyle: { backgroundColor: colors.background },
+                    tabBarStyle: { backgroundColor: theme.background },
                     tabBarLabel: ({ focused }: {focused: boolean}) => (
-                        <FontAwesome style={{ color: focused ? colors.primary : colors.text }}>
+                        <FontAwesome style={{ color: focused ? theme.primary : theme.text }}>
                             Explore
                         </FontAwesome>
                     ),
@@ -70,14 +70,14 @@ export default function TabLayout(){
                         <FontAwesome 
                             size={28} 
                             name="plus" 
-                            color={focused? colors.primary : colors.text} 
+                            color={focused? theme.primary : theme.text} 
                         />
                     ),
 
                     animation: "shift",
-                    tabBarStyle: { backgroundColor: colors.background, display: "none" },
+                    tabBarStyle: { backgroundColor: theme.background, display: "none" },
                     tabBarLabel: ({ focused }: {focused: boolean}) => (
-                        <FontAwesome style={{ color: focused ? colors.primary : colors.text }}>
+                        <FontAwesome style={{ color: focused ? theme.primary : theme.text }}>
                             Studio
                         </FontAwesome>
                     ),
@@ -92,12 +92,12 @@ export default function TabLayout(){
                         <FontAwesome 
                             size={28} 
                             name="list" 
-                            color={focused? colors.primary : colors.text} 
+                            color={focused? theme.primary : theme.text} 
                         />
                     ),
-                    tabBarStyle: { backgroundColor: colors.background },
+                    tabBarStyle: { backgroundColor: theme.background },
                     tabBarLabel: ({ focused }: {focused: boolean}) => (
-                        <FontAwesome style={{ color: focused ? colors.primary : colors.text }}>
+                        <FontAwesome style={{ color: focused ? theme.primary : theme.text }}>
                             Parleys
                         </FontAwesome>
                     ),
@@ -105,22 +105,28 @@ export default function TabLayout(){
                 }}
             />
             <Tabs.Screen
-                name="profile"
+                name="user/[user]"
                 options = {{
                     title:"Profile",
                     tabBarIcon: ({ focused }: {focused: boolean}) => (
                         <FontAwesome 
                             size={28} 
                             name="user" 
-                            color={focused? colors.primary : colors.text} 
+                            color={focused? theme.primary : theme.text} 
                         />
                     ),
-                    tabBarStyle: { backgroundColor: colors.background },
+                    tabBarStyle: { backgroundColor: theme.background },
                     tabBarLabel: ({ focused }: {focused: boolean}) => (
-                        <FontAwesome style={{ color: focused ? colors.primary : colors.text }}>
+                        <FontAwesome style={{ color: focused ? theme.primary : theme.text }}>
                             Profile
                         </FontAwesome>
                     ),
+                    href: {
+                        pathname: 'user/[user]',
+                        params: {
+                            user: authState?.userName,
+                        }
+                    },
                     
                     headerShown: false,
                 }}

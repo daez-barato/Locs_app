@@ -1,7 +1,6 @@
 import React, { useEffect, useRef, useCallback, useMemo, useState } from "react";
 import { View, StyleSheet, Text, Button } from "react-native"
 import { useThemeConfig } from "./ui/use-theme-config";
-import { RTCView } from "react-native-webrtc";
 import CustomButton from "./custom-button";
 import { useFocusEffect } from "expo-router";
 import { useRouter } from "expo-router";
