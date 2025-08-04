@@ -14,6 +14,8 @@ export interface Theme{
     destructiveText: string,
     cardBackground: string,
     cardBorder: string,
+    card: string,
+    border: string,
 };
 
 

@@ -15,8 +15,8 @@ export default function Home(){
   useEffect( () =>{
     async function fetchData(){
       try {
-        const recommendations = await userRecommendations();
-        updateRecommendationList(recommendations);
+        //const recommendations = await userRecommendations();
+        //updateRecommendationList(recommendations);
       } catch(err){
         console.error('Failed to fetch data', err);
       }
@@ -26,8 +26,6 @@ export default function Home(){
 
   }, [refresh])
   
-
-
   return (
     <SafeAreaView style={styles(theme).backgroundContainer}>
     <FlatList style={styles(theme).betList}

@@ -1,7 +1,7 @@
-
 import  * as SecureStore from 'expo-secure-store';
 import axios from "axios";
 import { SERVER_PORT } from "../config"; // adjust path if needed
+import { Platform } from 'react-native';
 
 const axiosInstance = axios.create({
   baseURL: SERVER_PORT,
@@ -10,10 +10,21 @@ const axiosInstance = axios.create({
 // Add a request interceptor to attach token automatically
 axiosInstance.interceptors.request.use(
   async (config) => {
-    const token = await SecureStore.getItemAsync("auth_token");
+
+
+    let token: string | null = null;
+
+    if (Platform.OS === 'web') {
+      token = localStorage.getItem("auth_token");
+    } else {
+      token = await SecureStore.getItemAsync("auth_token");
+    }
+
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
-    }
+    } 
+
+    
     return config;
   },
   (error) => {

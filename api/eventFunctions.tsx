@@ -1,17 +1,90 @@
 import axiosInstance from "./utils/axiosInstance";
 
 
-export type BetInfo = {
-  id: string;
-  title: string;
-  description: string;
-  expire_date: string;
-  decided: boolean;
-  locked: boolean;
-  // Add any other fields your API returns
+export const eventInformation = async (eventId: string) => {
+  try {
+    const result = await axiosInstance.get(`/event/getEvent/${eventId}`);
+
+    if (result.status !== 200) {
+      throw new Error("Failed to fetch event information");
+    }
+
+    return result.data;
+    
+  } catch (err: any) {
+    console.error("Error fetching event information:", err);
+    return { error: true, msg:  err.response.data.error };
+  }
 };
 
-export const eventInformation = async (eventId: string): Promise<BetInfo> => {
-  const response = await axiosInstance.get(`/event/${eventId}`);
-  return response.data;
+export const fetchEventBets = async (eventId: string) => {
+
+  try {
+    const bets = await axiosInstance.get(`/event/getEventBets/${eventId}`);
+
+    if (bets.status !== 200) {
+      throw new Error("Failed to fetch event bets");
+    };
+
+    return bets.data;
+    
+  } catch (err: any) {
+    console.error("Error fetching event bets:", err);
+    return { error: true, msg: err.response.data.error };
+  }
+}
+
+export const placeBet = async (eventId: string, question: string, option: string, amount: number) => {
+  try {
+    const response = await axiosInstance.post(`/event/placeBet/${eventId}`, {
+      question,
+      option,
+      amount
+    });
+
+    if (response.status !== 201 || !response.data.success) {
+      throw new Error("Failed to place bet");
+    };
+
+    return response.data;
+    
+  } catch (err: any) {
+    console.error("Error placing bet:", err);
+    const msg = err?.response?.data?.error || err.message || 'Unknown error';
+    return { error: true, msg };
+  }
+};
+
+
+export const lockEvent = async (eventId: string) => {
+  try {
+    const result = await axiosInstance.patch(`/event/lockEvent/${eventId}`);
+
+    if (result.status !== 200) {
+      throw new Error("Failed to lock event");
+    }
+
+    return result.data;
+    
+  } catch (err: any) {
+    console.error("Error locking event:", err);
+    return { error: true, msg:  err.response.data.error };
+  }
+};
+
+
+export const endEvent = async (eventId: string, winningOptions: Record<string, string>) => {
+  try {
+    const result = await axiosInstance.post(`/event/endEvent/${eventId}`, {winningOptions: winningOptions});
+
+    if (result.status !== 200) {
+      throw new Error("Failed to end event");
+    }
+
+    return result.data;
+    
+  } catch (err: any) {
+    console.error("Error ending event:", err);
+    return { error: true, msg:  err.response.data.error };
+  }
 };

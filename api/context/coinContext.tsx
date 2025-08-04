@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState } from "react";
+import React, { createContext, useContext, useEffect, useState } from "react";
 import { SERVER_PORT } from "../config";
 import axiosInstance from "../utils/axiosInstance";
 
@@ -20,7 +20,7 @@ export const CoinProvider = ({ children }: { children: React.ReactNode }) => {
 
     const tradeCoins = async (amount: number) => {
         try {
-            const result = await axiosInstance.post(`${SERVER_PORT}/coins/createCoinTransaction`, {amount});
+            const result = await axiosInstance.post(`/coins/createCoinTransaction`, {amount});
             setCoins(result.data.coins);
         } catch(err){
             console.error("Failed transaction: ", err);
@@ -29,12 +29,20 @@ export const CoinProvider = ({ children }: { children: React.ReactNode }) => {
 
     const fetchCoins = async () => {
         try {
-            const result = await axiosInstance.get(`${SERVER_PORT}/coins/getUserCoins`);
+            const result = await axiosInstance.get(`/coins/getUserCoins`);
+
+            if (!(result.status === 200 && result.data?.coins !== undefined)) {
+                throw new Error("Error fetching coins")
+            }
             setCoins(result.data.coins);
         } catch (err) {
             console.error("Failed to fetch coins:", err);
         }
     };
+
+    useEffect(() => {
+      fetchCoins();
+    }, []);
 
     return (
         <CoinContext.Provider value={{ coins, tradeCoins, fetchCoins }}>

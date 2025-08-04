@@ -10,12 +10,12 @@ export default function RootLayout() {
 
   return (
     <Providers>
-      <StatusBar style="auto"/>
-        <Stack>
-            <Stack.Screen name="(auth)" options={{ headerShown: false }}/>
-            <Stack.Screen name="(tabs)" options={{ headerShown: false }}/>
-            <Stack.Screen name="event/[eventId]" options={{ headerShown: false }}/>
-        </Stack>
+        <StatusBar style="auto"/>
+          <Stack>
+              <Stack.Screen name="(auth)" options={{ headerShown: false }}/>
+              <Stack.Screen name="(tabs)" options={{ headerShown: false }}/>
+              <Stack.Screen name="event/[eventId]" options={{ headerShown: false }}/>
+          </Stack>
     </Providers>
   );
 }

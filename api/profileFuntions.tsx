@@ -5,7 +5,7 @@ import axiosInstance from "./utils/axiosInstance";
 
 export const userInfo = async () => {
     try {
-        const result = await axiosInstance.get(`${SERVER_PORT}/users/user`);
+        const result = await axiosInstance.get(`/users/user`);
 
         return result.data;
 
@@ -16,7 +16,7 @@ export const userInfo = async () => {
 
 export const getFollowerCount = async () => {
   try {
-    const result = await axiosInstance.get(`${SERVER_PORT}/followers/userFollowerCount`);
+    const result = await axiosInstance.get(`/followers/userFollowerCount`);
     
     return result.data.followers; // Return the follower count
   } catch (err) {
@@ -26,9 +26,25 @@ export const getFollowerCount = async () => {
 
 export const getFollowingCount = async () => {
   try {
-    const result = await axiosInstance.get(`${SERVER_PORT}/followers/userFollowingCount`);
+    const result = await axiosInstance.get(`/followers/userFollowingCount`);
     return result.data.following; // Return the following count
   } catch (err) {
     return { error: true, msg: (err as AxiosError).message };
   }
 };
+
+export const fetchUserData = async (user: string) => {
+
+  try {
+    const result = await axiosInstance.get(`/users/user/${user}`);
+    if (result.status !== 200) {
+        throw new Error("Failed to fetch user data");
+    }
+
+    return result.data;
+
+  } catch (err: any){
+    console.error('Error fetching user data:', err.message);
+    return []       
+  }
+}

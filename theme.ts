@@ -13,6 +13,8 @@ export const lightTheme: Theme = {
     destructiveText: "#ffffff",
     cardBackground: "#ffffff",
     cardBorder: "#7d7d7c",
+    card: '#f0f0f0',
+    border: '#dcdcdc',
 };
 
 export const darkTheme: Theme = {
@@ -27,5 +29,7 @@ export const darkTheme: Theme = {
     destructive: "#ac3239",
     destructiveText: "#ffffff",
     cardBackground: "#ffffff",
-    cardBorder: "#7d7d7c"
+    cardBorder: "#7d7d7c",
+    card: '#641e7d',
+    border: '#33CCA3',
 };
