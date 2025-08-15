@@ -1,13 +1,17 @@
 import { SafeAreaView } from "react-native-safe-area-context"
-import { Button, FlatList, Image, KeyboardAvoidingView, Modal, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View, Platform } from "react-native"
+import { KeyboardAvoidingView, Modal, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View, Platform } from "react-native"
 
 import { useThemeConfig, Theme } from "@/components/ui/use-theme-config"
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import FontAwesome from "@expo/vector-icons/FontAwesome";
-import { useRouter } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import StudioConfirm from "@/components/studioConfirm";
+import { fetchTemplate } from "@/api/studioFunctions";
 
 export default function Studio(){
+    const params = useLocalSearchParams();
+    const studio = (params.studio && params.studio !== "create") ? params.studio as string : undefined;
+    const isTemplate = Boolean(studio);
     const theme = useThemeConfig();
     const [question, setQuestion] = useState("+");
     const [questionMenu, expandQuestionMenu] = useState(false);
@@ -23,10 +27,47 @@ export default function Studio(){
     const [currentInputValue, setCurrentInputValue] = useState<string>("");
     const [inputType, setInputType] = useState<string>("");
     const [tempInputValue, setTempInputValue] = useState<string>("");
-
+    const [questions, setQuestionList] = useState(["+"]);
     const router = useRouter();
 
-    const [questions, setQuestionList] = useState(["+"])
+    useEffect(() => {
+      
+      if (studio && studio.trim() !== "" && studio !== "create") {
+        const fetchData = async () => {
+          try {
+            const templateInfo = await fetchTemplate(studio);
+            // Podes agora usar os dados recebidos para atualizar os estados
+
+            if (templateInfo.error) {
+              throw new Error(templateInfo.msg);
+            }
+
+            setTitle(templateInfo.template.title || "");
+            setDescription(templateInfo.template.description || "");
+            setOptionsDict(templateInfo.questions || {});
+            setQuestion(templateInfo.questions ? Object.keys(templateInfo.questions)[0] || "+" : "+");
+            setNewQuestion("");
+            setNewOption("");
+            setQuestionList(Object.keys(templateInfo.questions));
+
+            setQuestion(Object.keys(templateInfo.questions)[0] || "+");
+
+          } catch (err: any) {
+            console.error("Erro ao buscar template:", err.message);
+          }
+        };
+        fetchData();
+      }
+      else {
+        setTitle("");
+        setDescription("");
+        setOptionsDict({});
+        setQuestion("+");
+        setNewQuestion("");
+        setNewOption("");
+        setQuestionList(["+"]);
+      }
+    }, [studio]);
 
     const selectQuestion = (question: string) => {
       setQuestion(question);
@@ -34,15 +75,15 @@ export default function Studio(){
     }
 
     const handleNextPress = () => {
-      if (questions.length <= 1) {
+      if (questions.length <= 1 && !isTemplate) {
         alert("Please add at least one question before proceeding.");
         return;
-      } else if (title.trim() === "") {
+      } else if (title.trim() === "" && !isTemplate) {
         alert("Please enter a title for your event.");
         return;
       };
       for (const key in optionsDict) {
-        if (optionsDict[key].length <= 2) {
+        if (optionsDict[key].length <= 2 && !isTemplate) {
           alert(`Please add at least two options for the question: ${key}`);
           return;
         };
@@ -97,7 +138,7 @@ export default function Studio(){
                   value={tempInputValue}
                   onChangeText={setTempInputValue}
                   placeholder={inputType === "title" ? "Enter title..." : "Enter description..."}
-                  placeholderTextColor="rgba(0,0,0,0.5)"
+                  placeholderTextColor={theme.cardText}
                   multiline={inputType === "description"}
                   numberOfLines={inputType === "description" ? 4 : 1}
                   maxLength={inputType === "title" ? 50 : 200}
@@ -161,7 +202,7 @@ export default function Studio(){
                 
                 <TouchableOpacity 
                   style={styles(theme).titleContainer}
-                  onPress={() => handleInputFocus("title", title)}
+                  onPress={() => !isTemplate ? handleInputFocus("title", title) : null}
                 >
                   <Text style={[
                     styles(theme).titleText,
@@ -173,7 +214,7 @@ export default function Studio(){
                 
                 <TouchableOpacity 
                   style={styles(theme).descriptionContainer}
-                  onPress={() => handleInputFocus("description", description)}
+                  onPress={() => !isTemplate ? handleInputFocus("description", description) : null}
                 >
                   <Text style={[
                     styles(theme).descriptionText,
@@ -191,7 +232,7 @@ export default function Studio(){
                 <TouchableOpacity 
                   style={styles(theme).questionButton}
                   onPress={() => {
-                    if (questions.length === 1) setQuestionModal(true);
+                    if (questions.length === 1 && !isTemplate) setQuestionModal(true);
                     else expandQuestionMenu(!questionMenu);
                   }}
                 >
@@ -212,7 +253,7 @@ export default function Studio(){
                     <ScrollView style={styles(theme).questionScrollView}>
                       {questions.map((item, index) => (
                         <View key={index}>
-                          {index !== questions.length - 1 ? (
+                          {(index !== questions.length - 1 || isTemplate) ? (
                             <TouchableOpacity 
                               onPress={() => selectQuestion(item)}
                               style={styles(theme).questionOptionButton}
@@ -220,6 +261,7 @@ export default function Studio(){
                               <Text style={styles(theme).questionOptionText} numberOfLines={2}>
                                 {item}
                               </Text>
+                              {!isTemplate && (
                               <TouchableOpacity
                                 onPress={() => {
                                   const updatedQuestions = questions.filter((_, i) => i !== index);
@@ -237,7 +279,7 @@ export default function Studio(){
                                 style={styles(theme).deleteButton}
                               >
                                 <FontAwesome name="trash" size={14} color={theme.destructive} />
-                              </TouchableOpacity>
+                              </TouchableOpacity>)}
                             </TouchableOpacity>
                           ) : (
                             <TouchableOpacity 
@@ -265,11 +307,12 @@ export default function Studio(){
                       >
                         {(optionsDict[question] || []).map((item, index) => (
                           <View key={index}>
-                            {index !== (optionsDict[question]?.length || 0) - 1 ? (
+                            {(index !== (optionsDict[question]?.length || 0) - 1) || isTemplate ? (
                               <View style={styles(theme).optionContainer}>
                                 <Text style={styles(theme).optionText} numberOfLines={3}>
                                   {item}
                                 </Text>
+                                {!isTemplate && (
                                 <TouchableOpacity 
                                   style={styles(theme).optionTrashButton}
                                   onPress={() => {
@@ -282,7 +325,7 @@ export default function Studio(){
                                   }}
                                 >
                                   <FontAwesome name="trash" size={16} color="#ffffff" />
-                                </TouchableOpacity>
+                                </TouchableOpacity>)}
                               </View>
                             ) : (
                               <TouchableOpacity
@@ -432,6 +475,7 @@ export default function Studio(){
             title={title}
             description={description}
             image={""} // Placeholder for image, can be updated later
+            templateId={studio}
           />
         </SafeAreaView>
     )
@@ -454,7 +498,7 @@ const styles = (theme: Theme) => StyleSheet.create({
     alignItems: 'center',
   },
   overlayContent: {
-    backgroundColor: 'white',
+    backgroundColor: theme.background,
     padding: 25,
     borderRadius: 20,
     width: '90%',
@@ -480,8 +524,8 @@ const styles = (theme: Theme) => StyleSheet.create({
     padding: 15,
     fontSize: 16,
     fontFamily: "Roboto",
-    color: '#333',
-    backgroundColor: '#f8f9fa',
+    color: theme.cardText,
+    backgroundColor: theme.button_darker_primary,
     marginBottom: 20,
     textAlignVertical: 'top',
     minHeight: 50,
@@ -788,7 +832,7 @@ const styles = (theme: Theme) => StyleSheet.create({
     backgroundColor: 'rgba(0,0,0,0.5)',
   },
   modalContainer: {
-    backgroundColor: '#ffffff',
+    backgroundColor: theme.background,
     padding: 25,
     borderRadius: 15,
     width: '85%',
@@ -816,6 +860,7 @@ const styles = (theme: Theme) => StyleSheet.create({
     fontSize: 16,
     fontFamily: "Roboto",
     textAlignVertical: 'top',
+    color: theme.primary,
     minHeight: 60,
   },
   modalButtons: {

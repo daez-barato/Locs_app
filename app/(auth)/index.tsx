@@ -35,6 +35,8 @@ export default function SignIn() {
         }
     };
 
+    
+
     return (
         <View style={[styles.container, { backgroundColor: colors.background }]}>
             <Text style={[styles.title, { color: colors.primary }]}>

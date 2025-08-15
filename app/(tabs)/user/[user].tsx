@@ -4,26 +4,24 @@ import {
   StyleSheet, 
   Image, 
   Text, 
-  FlatList, 
   TouchableOpacity, 
   RefreshControl,
-  Dimensions,
   ActivityIndicator,
   Alert,
-  Platform,
   ScrollView,
   Modal,
-  TextInput
+  TextInput,
+  FlatList
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import React, { useCallback, useEffect, useState } from "react";
 import { useCoins } from "@/api/context/coinContext";
 import { useAuth } from "@/api/context/AuthContext";
 import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
-import { getFollowerCount, getFollowingCount, fetchUserData } from "@/api/profileFuntions";
+import { getFollowerCount, getFollowingCount, fetchUserData, checkIfFollowing, getFollowersList, getFollowingList } from "@/api/profileFuntions";
 import { FontAwesome } from "@expo/vector-icons";
+import { followRequest, unfollowRequest } from "@/api/eventFunctions";
 
-const { width } = Dimensions.get('window');
 const placeholderImage = "https://upload.wikimedia.org/wikipedia/commons/thumb/6/62/Vector_WikiAnswers_Orange_Avatar_Lady_Incognito.svg/960px-Vector_WikiAnswers_Orange_Avatar_Lady_Incognito.svg.png?20241130025355";
 
 interface BetItem {
@@ -35,16 +33,24 @@ interface BetItem {
   createdAt?: string;
 }
 
+interface UserItem {
+  id: string;
+  username: string;
+  avatar?: string;
+  following?: boolean;
+}
+
 type ActiveList = "created" | "participated";
+type ModalType = "settings" | "editProfile" | "followers" | "following" | null;
 
 export default function Profile() {
   const theme = useThemeConfig();
   const { authState, onLogout } = useAuth();
-  const { coins } = useCoins();
+  const { coins, fetchCoins } = useCoins();
   const { user } = useLocalSearchParams();
   const router = useRouter();
 
-  // State management
+  // Main state
   const [activeList, setActiveList] = useState<ActiveList>("created");
   const [followers, setFollowers] = useState<number>(0);
   const [following, setFollowing] = useState<number>(0);
@@ -53,14 +59,19 @@ export default function Profile() {
   const [betsParticipated, setBetsParticipated] = useState<BetItem[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [refreshing, setRefreshing] = useState<boolean>(false);
+  const [isFollowing, setIsFollowing] = useState<boolean>(false);
   
-  // Modal states
-  const [settingsVisible, setSettingsVisible] = useState<boolean>(false);
-  const [editProfileVisible, setEditProfileVisible] = useState<boolean>(false);
+  // Modal state
+  const [activeModal, setActiveModal] = useState<ModalType>(null);
   
-  // Edit profile states
+  // Edit profile state
   const [editedUsername, setEditedUsername] = useState<string>("");
   const [editedBio, setEditedBio] = useState<string>("");
+  
+  // User lists state
+  const [followersList, setFollowersList] = useState<UserItem[]>([]);
+  const [followingList, setFollowingList] = useState<UserItem[]>([]);
+  const [loadingUsers, setLoadingUsers] = useState<boolean>(false);
 
   const profileImage = "";
 
@@ -69,83 +80,113 @@ export default function Profile() {
     setEditedUsername(user as string || "");
   }, [user]);
 
-  // Fetch data function
+  // Fetch main profile data
   const fetchData = async (isRefresh = false) => {
     try {
       if (isRefresh) setRefreshing(true);
       else setLoading(true);
       
-      // Check if current user is the profile owner
-      if (user === authState?.userName) {
-        setOwner(true);
+      // Check ownership
+      const isOwner = user === authState?.userName;
+      setOwner(isOwner);
+      
+      if (isOwner) {
+        fetchCoins();
+      } else {
+        setIsFollowing(await checkIfFollowing(user as string));
       }
 
-      // Fetch follower and following counts
+      // Fetch counts and user data
       const [followerCount, followingCount, userData] = await Promise.all([
-        getFollowerCount(),
-        getFollowingCount(),
+        getFollowerCount(user as string),
+        getFollowingCount(user as string),
         fetchUserData(user as string)
       ]);
       
       setFollowers(followerCount || 0);
       setFollowing(followingCount || 0);
 
-      if (userData) {
-        setBetsCreated(userData.created || []);
-        setBetsParticipated(userData.participated || []);
-      } else {
-        console.error("No user data found");
-      }
+      
+      setBetsCreated(userData.created || []);
+      setBetsParticipated(userData.participated || []);
     } catch (err) {
       console.error("Error fetching data:", err);
+      router.back();
+      console.error("No user data found");
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
   };
 
-  // Refresh handler
+  // Fetch user lists (followers/following)
+  const fetchUserList = async (type: "followers" | "following") => {
+    setLoadingUsers(true);
+    try {
+      // TODO: Replace with actual API calls
+      const users = type === "followers" 
+        ? await getFollowersList(user as string)
+        : await getFollowingList(user as string);
+
+      if (users.error) {
+        throw new Error(users.msg);
+      }
+      
+      setTimeout(() => {
+        if (type === "followers") {
+          setFollowersList(users);
+        } else {
+          setFollowingList(users);
+        }
+        setLoadingUsers(false);
+      }, 1000);
+    } catch (error) {
+      console.error(`Error fetching ${type}:`, error);
+      if (type === "followers") {
+        setFollowersList([]);
+      } else {
+        setFollowingList([]);
+      }
+      setLoadingUsers(false);
+    }
+  };
+
+  // Handlers
   const onRefresh = useCallback(() => {
     fetchData(true);
   }, [user, authState?.userName]);
 
-  // Fetch data when screen comes into focus
-  useFocusEffect(
-    useCallback(() => {
-      fetchData();
-    }, [user, authState?.userName])
-  );
-
-  // Navigate to settings
-  const handleSettingsPress = () => {
-    setSettingsVisible(true);
+  const handleFollowToggle = async () => {
+    try {
+      if (isFollowing) {
+        await unfollowRequest(user as string);
+      } else {
+        await followRequest(user as string);
+      }
+      setIsFollowing(!isFollowing);
+      Alert.alert("Success", isFollowing ? "Unfollowed user" : "Followed user");
+    } catch (error) {
+      console.error("Follow toggle error:", error);
+      Alert.alert("Error", "Failed to update follow status. Please try again.");
+    }
   };
 
-  // Navigate to edit profile
-  const handleEditProfile = () => {
-    setEditProfileVisible(true);
-  };
-
-  // Handle logout
   const handleLogout = () => {
     Alert.alert(
       "Logout",
       "Are you sure you want to logout?",
       [
-        {
-          text: "Cancel",
-          style: "cancel"
-        },
+        { text: "Cancel", style: "cancel" },
         {
           text: "Logout",
           style: "destructive",
           onPress: async () => {
             try {
-              if (onLogout){
+              if (onLogout) {
                 await onLogout();
               }
-              setSettingsVisible(false);
-              router.replace('/(auth)'); // Navigate to login screen
+              setActiveModal(null);
+              router.replace('/(auth)');
             } catch (error) {
               console.error("Logout error:", error);
               Alert.alert("Error", "Failed to logout. Please try again.");
@@ -156,72 +197,45 @@ export default function Profile() {
     );
   };
 
-  // Handle save profile
   const handleSaveProfile = async () => {
     try {
-      // Add your profile update logic here
+      // TODO: Add your profile update logic here
       // await updateUserProfile({ username: editedUsername, bio: editedBio });
       
       Alert.alert("Success", "Profile updated successfully!");
-      setEditProfileVisible(false);
-      fetchData(); // Refresh data
+      setActiveModal(null);
+      fetchData();
     } catch (error) {
       console.error("Profile update error:", error);
       Alert.alert("Error", "Failed to update profile. Please try again.");
     }
   };
 
+  const openModal = (type: ModalType) => {
+    setActiveModal(type);
+    if (type === "followers" || type === "following") {
+      fetchUserList(type);
+    }
+  };
+
+  // Focus effect
+  useFocusEffect(
+    useCallback(() => {
+      fetchData();
+    }, [user, authState?.userName])
+  );
+
   // Settings options
   const settingsOptions = [
-    {
-      title: "Notifications",
-      icon: "bell",
-      onPress: () => {
-        setSettingsVisible(false);
-        // Navigate to notifications settings
-      }
-    },
-    {
-      title: "Privacy",
-      icon: "lock",
-      onPress: () => {
-        setSettingsVisible(false);
-        // Navigate to privacy settings
-      }
-    },
-    {
-      title: "Account",
-      icon: "user",
-      onPress: () => {
-        setSettingsVisible(false);
-        // Navigate to account settings
-      }
-    },
-    {
-      title: "Help & Support",
-      icon: "question-circle",
-      onPress: () => {
-        setSettingsVisible(false);
-        // Navigate to help
-      }
-    },
-    {
-      title: "About",
-      icon: "info-circle",
-      onPress: () => {
-        setSettingsVisible(false);
-        // Navigate to about
-      }
-    },
-    {
-      title: "Logout",
-      icon: "sign-out",
-      onPress: handleLogout,
-      isDestructive: true
-    }
+    { title: "Notifications", icon: "bell", onPress: () => setActiveModal(null) },
+    { title: "Privacy", icon: "lock", onPress: () => setActiveModal(null) },
+    { title: "Account", icon: "user", onPress: () => setActiveModal(null) },
+    { title: "Help & Support", icon: "question-circle", onPress: () => setActiveModal(null) },
+    { title: "About", icon: "info-circle", onPress: () => setActiveModal(null) },
+    { title: "Logout", icon: "sign-out", onPress: handleLogout, isDestructive: true }
   ];
 
-  // Render bet item
+  // Render functions
   const renderBetItem = ({ item }: { item: BetItem }) => (
     <TouchableOpacity 
       style={styles(theme).betContainer}
@@ -238,9 +252,7 @@ export default function Profile() {
         )}
         <View style={styles(theme).betFooter}>
           {item.amount && (
-            <Text style={styles(theme).betAmount}>
-              💰 ${item.amount}
-            </Text>
+            <Text style={styles(theme).betAmount}>💰 ${item.amount}</Text>
           )}
           {item.status && (
             <Text style={[
@@ -256,6 +268,212 @@ export default function Profile() {
     </TouchableOpacity>
   );
 
+  const renderUserItem = ({ item }: { item: UserItem }) => (
+    <TouchableOpacity style={styles(theme).userItem}
+      onPress={() => {
+        setActiveModal(null);
+        router.push(`/user/${item.username}`);
+      }}
+    >
+      <Image
+        source={{ uri: item.avatar || placeholderImage }}
+        style={styles(theme).userAvatar}
+      />
+      <View style={styles(theme).userInfo}>
+        <Text style={styles(theme).userUsername}>{item.username}</Text>
+        {item.username && (
+          <Text style={styles(theme).userDisplayName}>{item.username}</Text>
+        )}
+      </View>
+      <TouchableOpacity
+        style={[
+          styles(theme).followButton,
+          item.following && styles(theme).followingButton
+        ]}
+        onPress={() => {
+          if (item.following) {
+            unfollowRequest(item.username);
+            item.following = false;
+            setFollowing(following - 1);
+          } else {
+            followRequest(item.username);
+            item.following = true;
+            setFollowing(following + 1);
+          };
+        }}
+      >
+        <Text style={[
+          styles(theme).followButtonText,
+          item.following && styles(theme).followingButtonText
+        ]}>
+          {item.following ? 'Following' : 'Follow'}
+        </Text>
+      </TouchableOpacity>
+    </TouchableOpacity>
+  );
+
+  const renderModal = () => {
+    const modalProps = {
+      visible: activeModal !== null,
+      animationType: "slide" as const,
+      presentationStyle: "pageSheet" as const,
+      onRequestClose: () => setActiveModal(null)
+    };
+
+    switch (activeModal) {
+      case "settings":
+        return (
+          <Modal {...modalProps}>
+            <SafeAreaView style={styles(theme).modalContainer}>
+              <View style={styles(theme).modalHeader}>
+                <Text style={styles(theme).modalTitle}>Settings</Text>
+                <TouchableOpacity
+                  onPress={() => setActiveModal(null)}
+                  style={styles(theme).closeButton}
+                >
+                  <FontAwesome name="times" size={24} color={theme.text} />
+                </TouchableOpacity>
+              </View>
+              
+              <ScrollView style={styles(theme).settingsContent}>
+                {settingsOptions.map((option, index) => (
+                  <TouchableOpacity
+                    key={index}
+                    style={[
+                      styles(theme).settingItem,
+                      option.isDestructive && styles(theme).destructiveItem
+                    ]}
+                    onPress={option.onPress}
+                  >
+                    <FontAwesome
+                      name="gear"
+                      size={20}
+                      color={option.isDestructive ? '#FF3B30' : theme.text}
+                      style={styles(theme).settingIcon}
+                    />
+                    <Text
+                      style={[
+                        styles(theme).settingText,
+                        option.isDestructive && styles(theme).destructiveText
+                      ]}
+                    >
+                      {option.title}
+                    </Text>
+                    <FontAwesome name="chevron-right" size={16} color={theme.void} />
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+            </SafeAreaView>
+          </Modal>
+        );
+
+      case "editProfile":
+        return (
+          <Modal {...modalProps}>
+            <SafeAreaView style={styles(theme).modalContainer}>
+              <View style={styles(theme).modalHeader}>
+                <TouchableOpacity
+                  onPress={() => setActiveModal(null)}
+                  style={styles(theme).closeButton}
+                >
+                  <Text style={styles(theme).cancelText}>Cancel</Text>
+                </TouchableOpacity>
+                <Text style={styles(theme).modalTitle}>Edit Profile</Text>
+                <TouchableOpacity
+                  onPress={handleSaveProfile}
+                  style={styles(theme).saveButton}
+                >
+                  <Text style={styles(theme).saveText}>Save</Text>
+                </TouchableOpacity>
+              </View>
+              
+              <ScrollView style={styles(theme).editContent}>
+                <View style={styles(theme).editImageContainer}>
+                  <Image
+                    source={{ uri: profileImage || placeholderImage }}
+                    style={styles(theme).editProfileImage}
+                  />
+                  <TouchableOpacity style={styles(theme).changePhotoButton}>
+                    <Text style={styles(theme).changePhotoText}>Change Photo</Text>
+                  </TouchableOpacity>
+                </View>
+
+                <View style={styles(theme).inputContainer}>
+                  <Text style={styles(theme).inputLabel}>Username</Text>
+                  <TextInput
+                    style={styles(theme).textInput}
+                    value={editedUsername}
+                    onChangeText={setEditedUsername}
+                    placeholder="Enter username"
+                    placeholderTextColor={theme.void}
+                  />
+                </View>
+
+                <View style={styles(theme).inputContainer}>
+                  <Text style={styles(theme).inputLabel}>Bio</Text>
+                  <TextInput
+                    style={[styles(theme).textInput, styles(theme).bioInput]}
+                    value={editedBio}
+                    onChangeText={setEditedBio}
+                    placeholder="Tell us about yourself..."
+                    placeholderTextColor={theme.void}
+                    multiline
+                    numberOfLines={3}
+                  />
+                </View>
+              </ScrollView>
+            </SafeAreaView>
+          </Modal>
+        );
+
+      case "followers":
+      case "following":
+        const userList = activeModal === "followers" ? followersList : followingList;
+        const title = activeModal === "followers" ? "Followers" : "Following";
+        
+        return (
+          <Modal {...modalProps}>
+            <SafeAreaView style={styles(theme).modalContainer}>
+              <View style={styles(theme).modalHeader}>
+                <TouchableOpacity
+                  onPress={() => setActiveModal(null)}
+                  style={styles(theme).closeButton}
+                >
+                  <FontAwesome name="times" size={24} color={theme.text} />
+                </TouchableOpacity>
+                <Text style={styles(theme).modalTitle}>{title}</Text>
+                <View style={styles(theme).closeButton} />
+              </View>
+              
+              {loadingUsers ? (
+                <View style={styles(theme).loadingContainer}>
+                  <ActivityIndicator size="large" color={theme.primary} />
+                  <Text style={styles(theme).loadingText}>Loading {title.toLowerCase()}...</Text>
+                </View>
+              ) : userList.length === 0 ? (
+                <View style={styles(theme).emptyContainer}>
+                  <Text style={styles(theme).emptyText}>
+                    No {title.toLowerCase()} yet
+                  </Text>
+                </View>
+              ) : (
+                <FlatList
+                  data={userList}
+                  renderItem={renderUserItem}
+                  keyExtractor={(item) => item.id}
+                  style={styles(theme).userList}
+                  showsVerticalScrollIndicator={false}
+                />
+              )}
+            </SafeAreaView>
+          </Modal>
+        );
+
+      default:
+        return null;
+    }
+  };
+
   // Loading state
   if (loading) {
     return (
@@ -267,6 +485,8 @@ export default function Profile() {
       </SafeAreaView>
     );
   }
+
+  const currentBetList = activeList === "created" ? betsCreated : betsParticipated;
 
   return (
     <SafeAreaView style={styles(theme).container}>
@@ -282,18 +502,19 @@ export default function Profile() {
         }
       >
         {/* Header with Settings */}
-        <View style={styles(theme).header}>
-          <TouchableOpacity 
-            style={styles(theme).settingsButton} 
-            onPress={handleSettingsPress}
-          >
-            <FontAwesome name="cog" size={24} color={theme.text} />
-          </TouchableOpacity>
-        </View>
+        {owner && (
+          <View style={styles(theme).header}>
+            <TouchableOpacity 
+              style={styles(theme).settingsButton} 
+              onPress={() => openModal("settings")}
+            >
+              <FontAwesome name="cog" size={24} color={theme.text} />
+            </TouchableOpacity>
+          </View>
+        )}
 
         {/* Profile Section */}
         <View style={styles(theme).profileSection}>
-          {/* Profile Image */}
           <View style={styles(theme).profileImageContainer}>
             <Image
               source={{ uri: profileImage || placeholderImage }}
@@ -301,38 +522,61 @@ export default function Profile() {
             />
           </View>
 
-          {/* Username */}
           <Text style={styles(theme).username}>{user}</Text>
 
           {/* Stats Container */}
           <View style={styles(theme).statsContainer}>
-            <View style={styles(theme).statItem}>
+            <TouchableOpacity 
+              style={styles(theme).statItem} 
+              onPress={() => openModal("followers")}
+            >
               <Text style={styles(theme).statNumber}>{followers}</Text>
               <Text style={styles(theme).statLabel}>Followers</Text>
-            </View>
+            </TouchableOpacity>
             
             <View style={styles(theme).statDivider} />
             
-            <View style={styles(theme).statItem}>
+            <TouchableOpacity 
+              style={styles(theme).statItem} 
+              onPress={() => openModal("following")}
+            >
               <Text style={styles(theme).statNumber}>{following}</Text>
               <Text style={styles(theme).statLabel}>Following</Text>
-            </View>
+            </TouchableOpacity>
             
-            <View style={styles(theme).statDivider} />
-            
-            <View style={styles(theme).statItem}>
-              <Text style={styles(theme).statNumber}>${coins}</Text>
-              <Text style={styles(theme).statLabel}>Balance</Text>
-            </View>
+            {owner && (
+              <>
+                <View style={styles(theme).statDivider} />
+                <View style={styles(theme).statItem}>
+                  <Text style={styles(theme).statNumber}>${coins}</Text>
+                  <Text style={styles(theme).statLabel}>Balance</Text>
+                </View>
+              </>
+            )}
           </View>
 
-          {/* Edit Profile Button */}
-          {owner && (
+          {/* Action Button */}
+          {owner ? (
             <TouchableOpacity
               style={styles(theme).editButton}
-              onPress={handleEditProfile}
+              onPress={() => openModal("editProfile")}
             >
               <Text style={styles(theme).editButtonText}>Edit Profile</Text>
+            </TouchableOpacity>
+          ) : (
+            <TouchableOpacity
+              style={[
+                styles(theme).followButton,
+                isFollowing && styles(theme).followingButton
+              ]}
+              onPress={handleFollowToggle}
+            >
+              <Text style={[
+                styles(theme).followButtonText,
+                isFollowing && styles(theme).followingButtonText
+              ]}>
+                {isFollowing ? 'Following' : 'Follow'}
+              </Text>
             </TouchableOpacity>
           )}
         </View>
@@ -376,14 +620,14 @@ export default function Profile() {
 
         {/* Bets List */}
         <View style={styles(theme).listContainer}>
-          {(activeList === "created" ? betsCreated : betsParticipated).length === 0 ? (
+          {currentBetList.length === 0 ? (
             <View style={styles(theme).emptyContainer}>
               <Text style={styles(theme).emptyText}>
                 No {activeList === "created" ? "created" : "participated"} events yet
               </Text>
             </View>
           ) : (
-            (activeList === "created" ? betsCreated : betsParticipated).map((item) => (
+            currentBetList.map((item) => (
               <View key={item.id}>
                 {renderBetItem({ item })}
               </View>
@@ -392,120 +636,8 @@ export default function Profile() {
         </View>
       </ScrollView>
 
-      {/* Settings Modal */}
-      <Modal
-        visible={settingsVisible}
-        animationType="slide"
-        presentationStyle="pageSheet"
-        onRequestClose={() => setSettingsVisible(false)}
-      >
-        <SafeAreaView style={styles(theme).modalContainer}>
-          <View style={styles(theme).modalHeader}>
-            <Text style={styles(theme).modalTitle}>Settings</Text>
-            <TouchableOpacity
-              onPress={() => setSettingsVisible(false)}
-              style={styles(theme).closeButton}
-            >
-              <FontAwesome name="times" size={24} color={theme.text} />
-            </TouchableOpacity>
-          </View>
-          
-          <ScrollView style={styles(theme).settingsContent}>
-            {settingsOptions.map((option, index) => (
-              <TouchableOpacity
-                key={index}
-                style={[
-                  styles(theme).settingItem,
-                  option.isDestructive && styles(theme).destructiveItem
-                ]}
-                onPress={option.onPress}
-              >
-                <FontAwesome
-                  name={"gear"}
-                  size={20}
-                  color={option.isDestructive ? '#FF3B30' : theme.text}
-                  style={styles(theme).settingIcon}
-                />
-                <Text
-                  style={[
-                    styles(theme).settingText,
-                    option.isDestructive && styles(theme).destructiveText
-                  ]}
-                >
-                  {option.title}
-                </Text>
-                <FontAwesome
-                  name="chevron-right"
-                  size={16}
-                  color={theme.void}
-                />
-              </TouchableOpacity>
-            ))}
-          </ScrollView>
-        </SafeAreaView>
-      </Modal>
-
-      {/* Edit Profile Modal */}
-      <Modal
-        visible={editProfileVisible}
-        animationType="slide"
-        presentationStyle="pageSheet"
-        onRequestClose={() => setEditProfileVisible(false)}
-      >
-        <SafeAreaView style={styles(theme).modalContainer}>
-          <View style={styles(theme).modalHeader}>
-            <TouchableOpacity
-              onPress={() => setEditProfileVisible(false)}
-              style={styles(theme).closeButton}
-            >
-              <Text style={styles(theme).cancelText}>Cancel</Text>
-            </TouchableOpacity>
-            <Text style={styles(theme).modalTitle}>Edit Profile</Text>
-            <TouchableOpacity
-              onPress={handleSaveProfile}
-              style={styles(theme).saveButton}
-            >
-              <Text style={styles(theme).saveText}>Save</Text>
-            </TouchableOpacity>
-          </View>
-          
-          <ScrollView style={styles(theme).editContent}>
-            <View style={styles(theme).editImageContainer}>
-              <Image
-                source={{ uri: profileImage || placeholderImage }}
-                style={styles(theme).editProfileImage}
-              />
-              <TouchableOpacity style={styles(theme).changePhotoButton}>
-                <Text style={styles(theme).changePhotoText}>Change Photo</Text>
-              </TouchableOpacity>
-            </View>
-
-            <View style={styles(theme).inputContainer}>
-              <Text style={styles(theme).inputLabel}>Username</Text>
-              <TextInput
-                style={styles(theme).textInput}
-                value={editedUsername}
-                onChangeText={setEditedUsername}
-                placeholder="Enter username"
-                placeholderTextColor={theme.void}
-              />
-            </View>
-
-            <View style={styles(theme).inputContainer}>
-              <Text style={styles(theme).inputLabel}>Bio</Text>
-              <TextInput
-                style={[styles(theme).textInput, styles(theme).bioInput]}
-                value={editedBio}
-                onChangeText={setEditedBio}
-                placeholder="Tell us about yourself..."
-                placeholderTextColor={theme.void}
-                multiline
-                numberOfLines={3}
-              />
-            </View>
-          </ScrollView>
-        </SafeAreaView>
-      </Modal>
+      {/* Render Active Modal */}
+      {renderModal()}
     </SafeAreaView>
   );
 }
@@ -603,7 +735,7 @@ const styles = (theme: Theme) => StyleSheet.create({
     marginHorizontal: 16,
   },
 
-  // Edit Button
+  // Buttons
   editButton: {
     backgroundColor: theme.primary,
     paddingHorizontal: 24,
@@ -616,6 +748,27 @@ const styles = (theme: Theme) => StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     textAlign: 'center',
+  },
+  followButton: {
+    backgroundColor: theme.primary,
+    paddingHorizontal: 24,
+    paddingVertical: 10,
+    borderRadius: 8,
+    minWidth: 120,
+  },
+  followingButton: {
+    backgroundColor: theme.button_darker_primary,
+    borderWidth: 1,
+    borderColor: theme.primary,
+  },
+  followButtonText: {
+    color: theme.buttonText,
+    fontSize: 16,
+    fontWeight: '600',
+    textAlign: 'center',
+  },
+  followingButtonText: {
+    color: theme.primary,
   },
 
   // Tabs
@@ -645,11 +798,11 @@ const styles = (theme: Theme) => StyleSheet.create({
     color: theme.buttonText,
   },
 
-  // List
+  // Bet List
   listContainer: {
     paddingHorizontal: 20,
     paddingBottom: 20,
-    minHeight: 200, // Ensure minimum height for content
+    minHeight: 200,
   },
   betContainer: {
     backgroundColor: theme.button_darker_primary,
@@ -715,7 +868,7 @@ const styles = (theme: Theme) => StyleSheet.create({
     textAlign: 'center',
   },
 
-  // Modal Styles
+  // Modal Base
   modalContainer: {
     flex: 1,
     backgroundColor: theme.background,
@@ -736,6 +889,7 @@ const styles = (theme: Theme) => StyleSheet.create({
   },
   closeButton: {
     padding: 4,
+    minWidth: 32,
   },
   cancelText: {
     fontSize: 16,
@@ -750,7 +904,7 @@ const styles = (theme: Theme) => StyleSheet.create({
     fontWeight: '600',
   },
 
-  // Settings Content
+  // Settings Modal
   settingsContent: {
     flex: 1,
     paddingTop: 20,
@@ -763,9 +917,7 @@ const styles = (theme: Theme) => StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: theme.cardBorder,
   },
-  destructiveItem: {
-    // Additional styling for destructive items if needed
-  },
+  destructiveItem: {},
   settingIcon: {
     marginRight: 16,
     width: 20,
@@ -779,7 +931,7 @@ const styles = (theme: Theme) => StyleSheet.create({
     color: '#FF3B30',
   },
 
-  // Edit Profile Content
+  // Edit Profile Modal
   editContent: {
     flex: 1,
     paddingHorizontal: 20,
@@ -828,5 +980,43 @@ const styles = (theme: Theme) => StyleSheet.create({
   bioInput: {
     height: 80,
     textAlignVertical: 'top',
+  },
+
+  // User List Modal
+  userList: {
+    flex: 1,
+    paddingHorizontal: 20,
+    paddingTop: 10,
+  },
+  userItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    backgroundColor: theme.button_darker_primary,
+    borderRadius: 8,
+    marginBottom: 8,
+  },
+  userAvatar: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    borderWidth: 1,
+    borderColor: theme.primary,
+    marginRight: 12,
+  },
+  userInfo: {
+    flex: 1,
+    justifyContent: 'center',
+  },
+  userUsername: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: theme.text,
+    marginBottom: 2,
+  },
+  userDisplayName: {
+    fontSize: 14,
+    color: theme.void,
   },
 });

@@ -1,24 +1,18 @@
 
+import { Event } from "@/components/eventCard";
 import { SERVER_PORT } from "./config";
 import axiosInstance from "./utils/axiosInstance";
 
 
-export type Recommendation = {
-  id: string;
-  title: string;
-  description: string;
+export const fetchFollowingPosts = async () => {
+  try {
+    const response = await axiosInstance.get(`event/getUserFollowingPosts`);
+    if (response.status !== 200) {
+      throw new Error(`Error fetching following posts: ${response.statusText}`);
+    };
+    return response.data.posts as Event[];
+  } catch (error) {
+    console.error('Error fetching following posts:', error);
+    return [];
+  }
 }
-
-
-export const userRecommendations = async () => {
-    try {
-        const result = await axiosInstance.get(`${SERVER_PORT}/recomendations/userRecommendations`);
-
-        return result.data.recommendations as Recommendation[];
-
-    } catch (err){
-      console.error('Error fetching recommendations', err);
-      return []       
-    }
-}
-

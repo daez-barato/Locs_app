@@ -5,6 +5,7 @@ export interface Theme{
     background: string,
     text: string,
     primary: string,
+    darker_primary: string,
     button: string,
     buttonText: string,
     secondary: string,
@@ -16,6 +17,7 @@ export interface Theme{
     cardBorder: string,
     card: string,
     border: string,
+    cardText: string,
 };
 
 

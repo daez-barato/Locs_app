@@ -7,16 +7,22 @@ interface coinProps{
     coins: number;
     tradeCoins: (amount: number) => void;
     fetchCoins: () => void;
+    setCoinAmount: (amount: number) => void;
 }
 
 const CoinContext = createContext<coinProps>({
     coins: 0,
     tradeCoins: () => null,
     fetchCoins: () => null,
+    setCoinAmount: () => null
 });
 
 export const CoinProvider = ({ children }: { children: React.ReactNode }) => {
     const [coins, setCoins] = useState<number>(0);
+
+    const setCoinAmount = () => (amount: number) => {
+        setCoins(amount);
+    }
 
     const tradeCoins = async (amount: number) => {
         try {
@@ -45,7 +51,7 @@ export const CoinProvider = ({ children }: { children: React.ReactNode }) => {
     }, []);
 
     return (
-        <CoinContext.Provider value={{ coins, tradeCoins, fetchCoins }}>
+        <CoinContext.Provider value={{ coins, tradeCoins, fetchCoins, setCoinAmount }}>
             {children}
         </CoinContext.Provider>
     );

@@ -14,9 +14,9 @@ export const userInfo = async () => {
     }
 }
 
-export const getFollowerCount = async () => {
+export const getFollowerCount = async (username: string) => {
   try {
-    const result = await axiosInstance.get(`/followers/userFollowerCount`);
+    const result = await axiosInstance.get(`/followers/userFollowerCount/${username}`);
     
     return result.data.followers; // Return the follower count
   } catch (err) {
@@ -24,9 +24,9 @@ export const getFollowerCount = async () => {
   }
 };
 
-export const getFollowingCount = async () => {
+export const getFollowingCount = async (username: string) => {
   try {
-    const result = await axiosInstance.get(`/followers/userFollowingCount`);
+    const result = await axiosInstance.get(`/followers/userFollowingCount/${username}`);
     return result.data.following; // Return the following count
   } catch (err) {
     return { error: true, msg: (err as AxiosError).message };
@@ -45,6 +45,33 @@ export const fetchUserData = async (user: string) => {
 
   } catch (err: any){
     console.error('Error fetching user data:', err.message);
-    return []       
+    return null   
   }
-}
+};
+
+export const checkIfFollowing = async (username: string) => {
+  try {
+    const result = await axiosInstance.get(`/followers/checkFollowing/${username}`);
+    return result.data.isFollowing; // Return the following count
+  } catch (err) {
+    return { error: true, msg: (err as AxiosError).message };
+  }
+};
+
+export const getFollowingList = async (username: string) => {
+  try {
+    const result = await axiosInstance.get(`/followers/userFollowing/${username}`);
+    return result.data.followingList; // Return the following count
+  } catch (err) {
+    return { error: true, msg: (err as AxiosError).message };
+  }
+};
+
+export const getFollowersList = async (username: string) => {
+  try {
+    const result = await axiosInstance.get(`/followers/userFollowers/${username}`);
+    return result.data.followersList; // Return the following count
+  } catch (err) {
+    return { error: true, msg: (err as AxiosError).message };
+  }
+};

@@ -3,9 +3,11 @@ import { useLocalSearchParams, router, useFocusEffect } from 'expo-router';
 import { Theme, useThemeConfig } from '@/components/ui/use-theme-config';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useEffect, useState } from 'react';
-import { endEvent, eventInformation, fetchEventBets, lockEvent, placeBet } from '@/api/eventFunctions';
+import { endEvent, eventInformation, fetchEventBets, followRequest, lockEvent, placeBet, postTemplate, saveTemplate } from '@/api/eventFunctions';
 import { useAuth } from '@/api/context/AuthContext';
 import * as Linking from 'expo-linking';
+import { FontAwesome } from '@expo/vector-icons';
+import { useCoins } from '@/api/context/coinContext';
 
 const { width } = Dimensions.get('window');
 
@@ -22,6 +24,7 @@ type EventInfoType = {
   title: string;
   description: string;
   template_creator_id: string;
+  template_posted?: boolean | undefined; // Optional field to check if template is posted
 };
 
 type BetInfo = {
@@ -34,6 +37,7 @@ type BetInfo = {
 
 export default function eventScreen() {
   const { eventId } = useLocalSearchParams() as { eventId: string };
+  const { coins, fetchCoins } = useCoins();
   const [refresh, setRefresh] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const theme = useThemeConfig();
@@ -42,9 +46,11 @@ export default function eventScreen() {
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [showLockModal, setShowLockModal] = useState(false);
   const [showEndEventModal, setShowEndEventModal] = useState(false);
+  const [showInfoModal, setShowInfoModal] = useState(false);
   const [pendingBet, setPendingBet] = useState<{question: string, option: string, isIncrease: boolean} | null>(null);
   const [modalBetAmount, setModalBetAmount] = useState<string>('10');
   const [winningOptions, setWinningOptions] = useState<Record<string, string>>({});
+  const [postTemplateModal, setPostTemplateModal] = useState(false);
   const { authState } = useAuth();
   const userName = authState?.userName;
   const url = Linking.createURL(`event/${eventId}`);
@@ -68,12 +74,18 @@ export default function eventScreen() {
         const event = await eventInformation(eventId);
         setEventInfo(event);
 
+        if (isEventCreator && event.decided && !event.template_posted) {
+            setPostTemplateModal(true);
+        };
+
         const bets = await fetchEventBets(eventId);
 
         if (bets.error) {
           console.error('Failed to fetch bets:', bets.msg);
           return;
         }
+
+        fetchCoins();
 
         const bet_infos: Record<string, BetInfo> = {};
         const questions = event.questions as Record<string, string[]>;
@@ -114,6 +126,7 @@ export default function eventScreen() {
       }
     }
     fetchData();
+  
   }, [refresh]);
 
   const handleShareEvent = async () => {
@@ -189,7 +202,10 @@ export default function eventScreen() {
       // For now, we'll simulate ending the event
       setEventInfo(prev => prev ? { ...prev, decided: true } : null);
       setShowEndEventModal(false);
-      Alert.alert('Success', 'Event has been ended and winners have been selected.');
+      if (!eventInfo?.template_posted){
+        setPostTemplateModal(true);
+      }
+        
     } catch (error) {
       console.error('Error ending event:', error);
       Alert.alert('Error', 'Failed to end event');
@@ -311,7 +327,11 @@ export default function eventScreen() {
             ]} 
           />
         </View>
-
+        {!hasUserBet && (
+          <Text style={styles(theme).optionBetAmount}>
+            Option Total: {optionBetAmount.toLocaleString()} $
+          </Text>
+        )}
         {isLocked ? (
           <View style={styles(theme).lockedBetInfo}>
             <Text style={styles(theme).lockedBetText}>
@@ -322,7 +342,7 @@ export default function eventScreen() {
           <View style={styles(theme).userBetInfo}>
             <View style={styles(theme).userBetDetails}>
               <Text style={styles(theme).userBetAmount}>
-                {betInfo.userBet!.options[option]}$
+                Your Bet: {betInfo.userBet!.options[option]}$
               </Text>
             </View>
             <TouchableOpacity
@@ -348,6 +368,10 @@ export default function eventScreen() {
     );
   };
 
+  const handleInfoModal = () => {
+    setShowInfoModal(true);
+  }
+
   return (
     <SafeAreaView style={styles(theme).container}>
       {/* Header */}
@@ -358,6 +382,21 @@ export default function eventScreen() {
         >
           <Text style={styles(theme).backButtonText}>← Back</Text>
         </TouchableOpacity>
+        {!isEventCreator && (
+          <View>
+            <TouchableOpacity
+              onPress={handleInfoModal}
+              style= {styles(theme).infoButton}
+            >
+              <FontAwesome
+                name="info"
+                style = {styles(theme).infoIcon}
+                size= {20}
+              />
+            </TouchableOpacity>
+          </View>
+        )}
+
         
         {isEventCreator && (
           <View style={styles(theme).headerButtons}>
@@ -367,20 +406,22 @@ export default function eventScreen() {
             >
               <Text style={styles(theme).shareButtonText}>Share</Text>
             </TouchableOpacity>
-            
-            {!eventInfo?.decided && (
+
+            {(!eventInfo?.template_posted || !eventInfo.decided) && (
               <TouchableOpacity 
                 style={[
                   styles(theme).lockButton,
-                  eventInfo?.locked && styles(theme).endButton
+                  (eventInfo?.locked && ! eventInfo?.decided) && styles(theme).endButton,
+                  eventInfo?.decided && styles(theme).postTemplateButton
                 ]}
-                onPress={eventInfo?.locked ? handleEndEvent : handleLockEvent}
+                onPress={ () => {eventInfo?.locked ? ((eventInfo?.decided ) ? setPostTemplateModal(true) : handleEndEvent()) : handleLockEvent()}}
               >
                 <Text style={styles(theme).lockButtonText}>
-                  {eventInfo?.locked ? 'End Event' : 'Lock Event'}
+                  {eventInfo?.locked ? (eventInfo?.decided ? 'Post Template' : 'End Event') : 'Lock Event'}
                 </Text>
               </TouchableOpacity>
             )}
+            
           </View>
         )}
       </View>
@@ -489,11 +530,9 @@ export default function eventScreen() {
             </Text>
             <Text style={styles(theme).modalOption}>"{pendingBet?.option}"</Text>
             
-            {pendingBet?.isIncrease && (
-              <Text style={styles(theme).currentBetText}>
-                Current bet: {betInfos[pendingBet.question]?.userBet?.options[pendingBet?.option]} $
-              </Text>
-            )}
+            <Text style={styles(theme).currentBetText}>
+              Your Balance: {coins} $
+            </Text>
             
             <View style={styles(theme).betAmountContainer}>
               <Text style={styles(theme).betAmountLabel}>
@@ -585,6 +624,88 @@ export default function eventScreen() {
         </View>
       </Modal>
 
+      {/*Event Info Modal*/ }
+      <Modal
+        visible={showInfoModal}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setShowInfoModal(false)}
+      >
+        <TouchableOpacity 
+          style={styles(theme).modalOverlay}
+          activeOpacity={1}
+          onPress={() => setShowInfoModal(false)}
+        >
+          <View style={styles(theme).modalContent}>
+            <TouchableOpacity
+              activeOpacity={1}
+              onPress={(e) => e.stopPropagation()}
+              style={styles(theme).modalInner}
+            >
+              {/* Event Creator Section */}
+              <View style={styles(theme).creatorInfo}>
+                <TouchableOpacity 
+                  style={styles(theme).creatorMainArea}
+                  onPress={() => {
+                    setShowInfoModal(false);
+                    router.push(`/user/${eventInfo?.event_creator}`);
+                  }}
+                >
+                  <View style={styles(theme).userImagePlaceholder}>
+                    <FontAwesome name="user" size={20} color={theme.primary} />
+                  </View>
+                  <View style={styles(theme).creatorTextArea}>
+                    <Text style={styles(theme).sectionLabel}>Event Creator</Text>
+                    <Text style={styles(theme).creatorName}>{eventInfo?.event_creator}</Text>
+                  </View>
+                </TouchableOpacity>
+                
+                <TouchableOpacity 
+                  style={styles(theme).followButton}
+                  onPress={async () => {
+                    const follow = await followRequest(eventInfo?.event_creator as string)
+                    Alert.alert('Follow Request', `Follow request sent to ${eventInfo?.event_creator}`);
+                  }}
+                >
+                  <FontAwesome name="user-plus" size={16} color={theme.primary} />
+                  <Text style={styles(theme).followButtonText}>Follow</Text>
+                </TouchableOpacity>
+              </View>
+
+              {/* Template Section */}
+              <View style={styles(theme).templateInfo}>
+                <TouchableOpacity 
+                  style={styles(theme).templateMainArea}
+                  onPress={() => {
+                    setShowInfoModal(false);
+                    router.push(`/(tabs)/studio/${eventInfo?.template_id}`);
+                  }}
+                >
+                  <View style={styles(theme).templateImagePlaceholder}>
+                    <FontAwesome name="file-text" size={20} color={theme.primary} />
+                  </View>
+                  <View style={styles(theme).templateTextArea}>
+                    <Text style={styles(theme).sectionLabel}>Template</Text>
+                    <Text style={styles(theme).templateName}>{eventInfo?.title}</Text>
+                  </View>
+                </TouchableOpacity>
+                
+                <TouchableOpacity 
+                  style={styles(theme).saveButton}
+                  onPress={async () => {
+                    const save = await saveTemplate(eventInfo?.template_id as string);
+                    Alert.alert('Template Saved', `Template "${eventInfo?.title}" has been saved to your collection`);
+                  }}
+                >
+                  <FontAwesome name="bookmark" size={16} color={theme.primary} />
+                  <Text style={styles(theme).saveButtonText}>Save</Text>
+                </TouchableOpacity>
+              </View>
+            </TouchableOpacity>
+          </View>
+        </TouchableOpacity>
+      </Modal>
+
       {/* End Event Modal */}
       <Modal
         visible={showEndEventModal}
@@ -648,6 +769,62 @@ export default function eventScreen() {
           </ScrollView>
         </View>
       </Modal>
+      {/* Post Template Modal */}
+      <Modal
+        visible={postTemplateModal}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setPostTemplateModal(false)}
+      >
+        <TouchableOpacity 
+          style={styles(theme).modalOverlay}
+          activeOpacity={1}
+          onPress={() => setPostTemplateModal(false)}
+        >
+          <View style={styles(theme).modalContent}>
+            <TouchableOpacity
+              activeOpacity={1}
+              onPress={(e) => e.stopPropagation()}
+              style={styles(theme).modalInner}
+            >
+              <Text style={styles(theme).modalTitle}>
+                Post Template
+              </Text>
+              <Text style={styles(theme).modalText}>
+                You can now post this template for others to use.
+              </Text>
+              <Text style={styles(theme).modalText}>
+                Are you sure you want to post this template?
+              </Text>
+              <View style={styles(theme).modalButtons}>
+                <TouchableOpacity 
+                  style={styles(theme).modalCancelButton}
+                  onPress={() => setPostTemplateModal(false)}
+                >
+                  <Text style={styles(theme).modalCancelText}>Cancel</Text>
+                </TouchableOpacity>
+                
+                <TouchableOpacity 
+                  style={styles(theme).modalConfirmButton}
+                  onPress={async () => {
+                    const result = await postTemplate(eventInfo?.template_id as string);
+                    if (result.error) {
+                      Alert.alert('Error', result.msg);
+                    } else {
+                      Alert.alert('Success', 'Template has been posted to your studio');
+                      eventInfo!.template_posted = true;
+                      setEventInfo(eventInfo);
+                      setPostTemplateModal(false);
+                    }
+                  }}
+                >
+                  <Text style={styles(theme).modalConfirmText}>Post Template</Text>
+                </TouchableOpacity>
+              </View>
+            </TouchableOpacity>
+          </View>
+        </TouchableOpacity>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -708,6 +885,10 @@ const styles = (theme: Theme) => StyleSheet.create({
 
   endButton: {
     backgroundColor: '#DC2626',
+  },
+
+  postTemplateButton: {
+    backgroundColor: theme.primary,
   },
 
   lockButtonText: {
@@ -1257,5 +1438,161 @@ const styles = (theme: Theme) => StyleSheet.create({
   selectedOptionText: {
     color: theme.primary,
     fontWeight: '700',
+  },
+
+  infoIcon: {
+    color: theme.primary
+  },
+
+  infoButton: {
+    backgroundColor: theme.button_darker_primary,
+    borderRadius: 100,
+    height: 40,
+    width: 40,
+    alignContent: "center",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+
+  modalInner: {
+    // This prevents the tap from propagating to the overlay
+  },
+
+  creatorInfo: {
+    backgroundColor: theme.background,
+    borderWidth: 2,
+    borderColor: theme.primary,
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 12,
+    minWidth: 300,
+    height: 70,
+    flexDirection: 'row',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+
+  templateInfo: {
+    backgroundColor: theme.background,
+    borderWidth: 2,
+    borderColor: theme.primary,
+    borderRadius: 12,
+    padding: 16,
+    minWidth: 300,
+    height: 70,
+    flexDirection: 'row',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+
+  creatorMainArea: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+
+  templateMainArea: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+
+  userImagePlaceholder: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: theme.primary + '20',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+
+  templateImagePlaceholder: {
+    width: 40,
+    height: 40,
+    borderRadius: 8,
+    backgroundColor: theme.primary + '20',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+
+  creatorTextArea: {
+    flex: 1,
+  },
+
+  templateTextArea: {
+    flex: 1,
+  },
+
+  sectionLabel: {
+    color: theme.text,
+    fontSize: 12,
+    fontWeight: '500',
+    opacity: 0.7,
+    marginBottom: 2,
+  },
+
+  creatorName: {
+    color: theme.text,
+    fontSize: 16,
+    fontWeight: '700',
+  },
+
+  templateName: {
+    color: theme.text,
+    fontSize: 16,
+    fontWeight: '700',
+  },
+
+  followButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+    backgroundColor: theme.primary + '15',
+    borderWidth: 1,
+    borderColor: theme.primary,
+  },
+
+  followButtonText: {
+    color: theme.primary,
+    fontSize: 14,
+    fontWeight: '600',
+    marginLeft: 6,
+  },
+
+  saveButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+    backgroundColor: '#10B981' + '15',
+    borderWidth: 1,
+    borderColor: '#10B981',
+  },
+
+  saveButtonText: {
+    color: '#10B981',
+    fontSize: 14,
+    fontWeight: '600',
+    marginLeft: 6,
+  },
+  optionBetAmount: {
+    color: theme.text,
+    fontSize: 14,
+    fontWeight: '600',
+    marginBottom: 8,
+    textAlign: 'center',
   },
 });

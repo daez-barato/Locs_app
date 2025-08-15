@@ -14,9 +14,10 @@ type Props = {
   title: string | undefined;
   description?: string | undefined;
   image?: string | undefined;
+  templateId?: string; // New prop to indicate if it's a template
 }
 
-export default function StudioConfirm({optionsDict, visible, setVisible, title, description, image}: Props) {
+export default function StudioConfirm({optionsDict, visible, setVisible, title, description, image, templateId}: Props) {
   const theme = useThemeConfig();
   const [privacy, setPrivacy] = useState("Private");
   const [time, setTime] = useState("1 hour");
@@ -86,7 +87,7 @@ export default function StudioConfirm({optionsDict, visible, setVisible, title, 
 
   const handlePostEvent = async () => {
     // Logic to handle posting the event
-    const eventLink = await postEvent(optionsDict, title || "", description || "", image || "", privacy, time);
+    const eventLink = await postEvent(optionsDict, title || "", description || "", image || "", privacy, time, templateId);
     if (eventLink.error) {
       console.error("Error posting event:", eventLink.msg);
       return;

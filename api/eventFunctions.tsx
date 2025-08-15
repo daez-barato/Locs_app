@@ -88,3 +88,52 @@ export const endEvent = async (eventId: string, winningOptions: Record<string, s
     return { error: true, msg:  err.response.data.error };
   }
 };
+
+export const followRequest = async (followed: string) => {
+  try {
+    const result = await axiosInstance.post(`followers/request/${followed}`);
+
+    return result.data
+
+  } catch (err: any) {
+    console.error("Error Following:", err);
+    return { error: true, msg:  err.response.data.error };
+  }
+};
+
+export const unfollowRequest = async (unfollowed: string) => {
+  try {
+    const result = await axiosInstance.delete(`followers/unfollow/${unfollowed}`);
+
+    return result.data
+
+  } catch (err: any) {
+    console.error("Error unfollowing:", err);
+    return { error: true, msg:  err.response.data.error };
+  }
+};
+
+export const saveTemplate = async (template: string) => {
+  try {
+    const result = await axiosInstance.post(`users/save/template/${template}`);
+
+    return result.data
+
+  } catch (err: any) {
+    console.error("Error saving template:", err);
+    return { error: true, msg:  err.response.data.error };
+  }
+};
+
+export const postTemplate = async (template: string) => {
+  try {
+    const result = await axiosInstance.patch(`event/postTemplate/${template}`);
+
+    return result.data
+
+  } catch (err: any) {
+    console.error("Error saving template:", err);
+    return { error: true, msg:  err.response.data.error };
+  }
+
+}

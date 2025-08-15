@@ -1,7 +1,7 @@
 import { SERVER_PORT } from "./config";
 import axiosInstance from "./utils/axiosInstance";
 
-export const postEvent = async (optionsDict: { [key: string]: string[] }, title: string, description: string, image: string, privacy: string, time: string) => {
+export const postEvent = async (optionsDict: { [key: string]: string[] }, title: string, description: string, image: string, privacy: string, time: string, templateId: string | undefined) => {
     // remove last '+' option from optionsDict
     for (const key in optionsDict) {
         optionsDict[key].pop();
@@ -14,7 +14,8 @@ export const postEvent = async (optionsDict: { [key: string]: string[] }, title:
             description,
             image,
             privacy,
-            time
+            time,
+            templateId, // Pass the templateId to the server
         });
 
         if (result.status !== 201) {
@@ -32,5 +33,21 @@ export const postEvent = async (optionsDict: { [key: string]: string[] }, title:
 
     } catch (err: any){
         return { error: true, msg:  err.response.data.error };
+    }
+}
+
+export const fetchTemplate = async (templateId: string) => {
+    try {
+
+        const template = await axiosInstance.get(`/event/getTemplate/${templateId}`);
+
+        if (template.status !== 200) {
+            throw new Error("Failed to fetch template");
+        };
+
+        return template.data;
+
+    } catch (err: any){
+        return { error: true, msg:  err.message };
     }
 }
