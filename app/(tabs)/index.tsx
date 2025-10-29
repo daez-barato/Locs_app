@@ -1,43 +1,60 @@
 
 import { fetchFollowingPosts } from "@/api/fyFunctions";
-import EventCard, { Event } from "@/components/eventCard";
+import { Event } from "@/api/interfaces/objects";
+import EventCard from "@/components/eventCard";
 import { useThemeConfig, Theme } from "@/components/ui/use-theme-config"
 import { FontAwesome } from "@expo/vector-icons";
 import { useEffect, useState } from "react"
-import { FlatList, StyleSheet, Text, TouchableOpacity, View } from "react-native"
+import { ActivityIndicator, FlatList, StyleSheet, Text, TouchableOpacity, View } from "react-native"
 import { SafeAreaView } from "react-native-safe-area-context"
 
 
 
 export default function Home(){
-  const [refresh, activateRefresh] = useState(false);
+  const [refresh, activateRefresh] = useState(true);
+  const [offset, setOffset] = useState(0);
+  const [hasMore, setHasMore] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(true);
   const theme = useThemeConfig()
   const [followingPostsList, updateFollowingPostsList] = useState<Event[]>([]);
   const [activeTab, setActiveTab] = useState<'Following' | 'Shop'>('Following');
 
-  useEffect( () =>{
-    async function fetchData(){
-      try {
-        const posts = await fetchFollowingPosts();
+  async function fetchData(currentOffset = 0) {
+    try {
+      const posts = await fetchFollowingPosts(currentOffset);
+      if (posts.error) throw new Error(posts.message);
 
-        if (posts) {
-          updateFollowingPostsList(posts);
-        } else {
-          console.warn('No posts found');
-        }
-      } catch(err){
-        console.error('Failed to fetch data', err);
-      } finally {
-        activateRefresh(false);
+      updateFollowingPostsList(prev => {
+        const merged = [...prev, ...posts.events];
+        const unique = Array.from(
+          new Map(merged.map(e => [e.id, e])).values()
+        );
+        return unique;
+      });
+
+      if (posts.events.length > 0) {
+        setOffset(currentOffset + posts.events.length);
+      } else {
+        setHasMore(false);
       }
-    }
-    
-    fetchData();
 
+    } catch (err) {
+      console.error('Failed to fetch data', err);
+    } finally {
+      setLoadingMore(false);
+      activateRefresh(false);
+    }
+  }
+
+  useEffect( () =>{
+    if (!refresh) return;
+    updateFollowingPostsList([]);
+    setLoadingMore(true);
+    setHasMore(true);
+    setOffset(0);
+    fetchData(0);
   }, [refresh])
 
-
-  
   return (
     <SafeAreaView style={styles(theme).backgroundContainer}>
       <View style= {[styles(theme).topTabs]}>
@@ -68,8 +85,15 @@ export default function Home(){
               />
             )}
             refreshing={refresh}
-            onRefresh={() => activateRefresh(!refresh)}
+            onRefresh={() => {activateRefresh(true)}}
             contentContainerStyle={{ paddingBottom: 20 }}
+            onEndReached={() => {if (!loadingMore && hasMore) {setLoadingMore(true); fetchData(offset);}}}
+            onEndReachedThreshold={0.2}
+            ListFooterComponent={
+              loadingMore ? (
+                <ActivityIndicator size="small" color={theme.primary} />
+              ) : null
+            }
           />
         </View>
       ) : (

@@ -1,12 +1,18 @@
 import { SafeAreaView } from "react-native-safe-area-context"
-import { KeyboardAvoidingView, Modal, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View, Platform } from "react-native"
+import { Modal, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View, Platform, Image, Pressable, KeyboardAvoidingView } from "react-native"
 
 import { useThemeConfig, Theme } from "@/components/ui/use-theme-config"
 import { useEffect, useState } from "react";
 import FontAwesome from "@expo/vector-icons/FontAwesome";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import StudioConfirm from "@/components/studioConfirm";
-import { fetchTemplate } from "@/api/studioFunctions";
+import { deleteSavedTemplate, fetchSavedTemplates, fetchTemplate } from "@/api/studioFunctions";
+import { FlatList } from "react-native-gesture-handler";
+import TemplateCard from "@/components/templateCard";
+import { saveTemplate } from "@/api/eventFunctions";
+import * as ImagePicker from "expo-image-picker";
+import * as MediaLibrary from "expo-media-library";
+import { SearchTemplate } from "@/api/interfaces/objects";
 
 export default function Studio(){
     const params = useLocalSearchParams();
@@ -28,15 +34,25 @@ export default function Studio(){
     const [inputType, setInputType] = useState<string>("");
     const [tempInputValue, setTempInputValue] = useState<string>("");
     const [questions, setQuestionList] = useState(["+"]);
+    const [savedTemplatesModal, setSavedTemplatesModal] = useState(false);
+    const [savedTemplates, setSavedTemplates] = useState<SearchTemplate[]>([]);
+    const [bookmarks, setBookmarks] = useState<{ [id: string]: boolean }>({});
+    const [image, setImage] = useState<string | undefined>(undefined);
+    const [status, requestPermission] = MediaLibrary.usePermissions();
+    const [showMenu, setShowMenu] = useState(false);
+
     const router = useRouter();
+
+    if (status === null){
+      requestPermission();
+    }
 
     useEffect(() => {
       
       if (studio && studio.trim() !== "" && studio !== "create") {
-        const fetchData = async () => {
+        const fetchTemplateData = async () => {
           try {
             const templateInfo = await fetchTemplate(studio);
-            // Podes agora usar os dados recebidos para atualizar os estados
 
             if (templateInfo.error) {
               throw new Error(templateInfo.msg);
@@ -49,6 +65,7 @@ export default function Studio(){
             setNewQuestion("");
             setNewOption("");
             setQuestionList(Object.keys(templateInfo.questions));
+            setImage(templateInfo.template.image || undefined);
 
             setQuestion(Object.keys(templateInfo.questions)[0] || "+");
 
@@ -56,7 +73,7 @@ export default function Studio(){
             console.error("Erro ao buscar template:", err.message);
           }
         };
-        fetchData();
+        fetchTemplateData();
       }
       else {
         setTitle("");
@@ -66,8 +83,82 @@ export default function Studio(){
         setNewQuestion("");
         setNewOption("");
         setQuestionList(["+"]);
-      }
+        setImage(undefined); 
+      };
+
+      const fetchData = async () => {
+        try{
+          const templates = await fetchSavedTemplates()
+
+          if (templates.error) {
+              throw new Error(templates.msg);
+          };
+          setSavedTemplates(templates);
+          setBookmarks(() => Object.fromEntries(templates.map((t: SearchTemplate)=> [t.id, true])));
+        } catch (err: any){
+          console.log("Error fetching templates:", err.message)
+        }
+      };
+      setSavedTemplatesModal(false)
+      fetchData()
+      
     }, [studio]);
+
+    const pickImageAsync = async () => {
+      try {
+        // Request permissions
+        const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
+        
+        if (permissionResult.granted === false) {
+          alert("Permission to access camera roll is required!");
+          return;
+        }
+
+        let result = await ImagePicker.launchImageLibraryAsync({
+          mediaTypes: ["images"],
+          allowsEditing: true,
+          aspect: [16, 9], // Square aspect ratio for profile-like images
+          quality: 0.8, // Slightly compressed for better performance
+        });
+
+        if (!result.canceled) {
+          setImage(result.assets[0].uri);
+        }
+      } catch (error) {
+        console.error("Error picking image:", error);
+        alert("Error selecting image. Please try again.");
+      }
+    };
+
+    const takePhotoAsync = async () => {
+      try {
+        // Request camera permissions
+        const permissionResult = await ImagePicker.requestCameraPermissionsAsync();
+        
+        if (permissionResult.granted === false) {
+          alert("Permission to access camera is required!");
+          return;
+        }
+
+        const result = await ImagePicker.launchCameraAsync({
+          allowsEditing: true,
+          aspect: [16, 9], // Square aspect ratio
+          quality: 0.8,
+        });
+
+        if (!result.canceled) {
+          setImage(result.assets[0].uri);
+        }
+      } catch (error) {
+        console.error("Error taking photo:", error);
+        alert("Error taking photo. Please try again.");
+      }
+    };
+
+    const removeImage = () => {
+      setImage(undefined);
+      setShowMenu(false);
+    };
 
     const selectQuestion = (question: string) => {
       setQuestion(question);
@@ -186,20 +277,63 @@ export default function Studio(){
               <Text style={styles(theme).nextButtonText}>Next</Text>
             </TouchableOpacity>
           </View>
+          {/*Extra buttons */}
+          <TouchableOpacity style={styles(theme).savedTemplates}
+            onPress= {() => {setSavedTemplatesModal(true)}}
+          >
+            <FontAwesome name= "bookmark" size={30} style={styles(theme).savedTemplatesIcon}/>
+          </TouchableOpacity>
+          {isTemplate && <FontAwesome
+            name={studio && bookmarks[studio] ? "bookmark" : "bookmark-o"}
+            size= {40}
+            style={styles(theme).saveTemplateIcon}
+            onPress={async () => {
+              try {
+                if(!studio)
+                  return
+                let result: any;
+                if (bookmarks[studio]){
+                  result = deleteSavedTemplate(studio);
+                } else {
+                  result = saveTemplate(studio);
+                };
 
+                if (result.error) {
+                  throw new Error(result.msg);
+                };
+                
+                setBookmarks(prev => ({
+                  ...prev,
+                  [studio]: !prev[studio],
+                }));
+              }catch(err: any){
+                console.log("Error with templates:", err.message)
+              }
+            }}
+          />}
           {/* Main Content */}
-          <KeyboardAvoidingView 
-            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          <View 
             style={styles(theme).keyboardContainer}
           >
-            <ScrollView contentContainerStyle={styles(theme).scrollContainer}>
-              
+            <ScrollView contentContainerStyle={styles(theme).scrollContainer}>             
               {/* Upper Section */}
               <View style={styles(theme).upperContainer}>
-                <View style={styles(theme).imageContainer}>
-                  <FontAwesome name="camera" size={40} color={theme.background} />
-                </View>
-                
+                <TouchableOpacity 
+                  style={styles(theme).imageContainer} 
+                  onPress={() => !isTemplate ? setShowMenu(true) : null}
+                  disabled={isTemplate}
+                >
+                  {image ? (
+                    <Image 
+                      source={{uri: image}}
+                      style={styles(theme).imagePreview}
+                      resizeMode="cover"
+                    />
+                  ) : (
+                    <FontAwesome name="camera" size={40} color={theme.background} />
+                  )}
+                </TouchableOpacity>
+          
                 <TouchableOpacity 
                   style={styles(theme).titleContainer}
                   onPress={() => !isTemplate ? handleInputFocus("title", title) : null}
@@ -344,7 +478,7 @@ export default function Studio(){
                 )}
               </View>
             </ScrollView>
-          </KeyboardAvoidingView>
+          </View>
 
           {/* Question Modal */}
           <Modal visible={questionModal} transparent animationType="slide">
@@ -468,15 +602,122 @@ export default function Studio(){
             </View>
           </Modal>
 
+          {/*Saved Templates Modal*/}
+          <Modal visible={savedTemplatesModal} transparent animationType="slide" onRequestClose={() => {setSavedTemplatesModal(false)}}>
+              <View style={styles(theme).modalOverlay}>
+                  <View style={styles(theme).templatesModalContainer}>
+                    <View>
+                      <FlatList style={{height: '75%', borderBottomWidth: 2, borderColor: theme.button_darker_primary}}
+                        data={savedTemplates}
+                        renderItem={({item}) =>
+                          <View style= {{flexDirection: "row", alignItems:"center"}}>
+                            <View style= {{flex:1}}>
+                              <TemplateCard item={item}/>
+                            </View>
+                            <FontAwesome
+                              style={{width: 30, color: (bookmarks[item.id] ? theme.primary : theme.button_darker_primary)}}
+                              name= "bookmark"
+                              size={20}
+                              onPress={async () => {
+                                try {
+                                  let result: any;
+                                  if (bookmarks[item.id]){
+                                    result = deleteSavedTemplate(item.id);
+                                  } else {
+                                    result = saveTemplate(item.id);
+                                  };
+                                  if (result.error) {
+                                    throw new Error(result.msg);
+                                  };
+                                  setBookmarks(prev => ({
+                                    ...prev,
+                                    [item.id]: !prev[item.id],
+                                  }));
+                                }catch(err: any){
+                                  console.log("Error with templates:", err.message)
+                                }
+                              }}
+                            />
+                          </View>
+                          }
+                      />
+                    </View>
+                    <TouchableOpacity style= {styles(theme).cleanButton}
+                      onPress={() => {
+                        router.push(`/studio/create`)
+                        setSavedTemplatesModal(false);
+                      }}
+                    >
+                      <Text style= {styles(theme).cleanButtonText}> Clean Template</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity style= {styles(theme).cancelTemplateButton}
+                      onPress={() => {
+                        setSavedTemplatesModal(false);
+                      }}
+                    >
+                      <Text style= {styles(theme).cancelTemplateButtonText}>Cancel</Text>
+                    </TouchableOpacity>
+                  </View>
+              </View>
+          </Modal>
+          {/*Studio Confirm Modal*/}
           <StudioConfirm 
             optionsDict={optionsDict} 
             visible={studioConfirmModal} 
             setVisible={setStudioConfirmModal} 
             title={title}
             description={description}
-            image={""} // Placeholder for image, can be updated later
+            image={image || ""} // Pass the actual image URI
             templateId={studio}
           />
+          
+          {/*Image picker Modal */}
+          <Modal
+            visible={showMenu}
+            transparent
+            animationType="slide"
+            onRequestClose={() => setShowMenu(false)}
+          >
+            <Pressable 
+              style={styles(theme).imageModalOverlay} 
+              onPress={() => setShowMenu(false)} 
+            />
+            <View style={styles(theme).imageModalContainer}>
+              <TouchableOpacity 
+                style={styles(theme).imageMenuOption} 
+                onPress={() => { setShowMenu(false); takePhotoAsync(); }}
+              >
+                <FontAwesome name="camera" size={20} color={theme.primary} />
+                <Text style={styles(theme).imageMenuText}>Take Photo</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity 
+                style={styles(theme).imageMenuOption} 
+                onPress={() => { setShowMenu(false); pickImageAsync(); }}
+              >
+                <FontAwesome name="image" size={20} color={theme.primary} />
+                <Text style={styles(theme).imageMenuText}>Choose from Gallery</Text>
+              </TouchableOpacity>
+
+              {image && (
+                <TouchableOpacity 
+                  style={styles(theme).imageMenuOption} 
+                  onPress={removeImage}
+                >
+                  <FontAwesome name="trash" size={20} color={theme.destructive} />
+                  <Text style={[styles(theme).imageMenuText, {color: theme.destructive}]}>Remove Image</Text>
+                </TouchableOpacity>
+              )}
+
+              <TouchableOpacity 
+                style={[styles(theme).imageMenuOption, styles(theme).imageMenuCancel]} 
+                onPress={() => setShowMenu(false)}
+              >
+                <Text style={[styles(theme).imageMenuText, {color: theme.destructive}]}>Cancel</Text>
+              </TouchableOpacity>
+            </View>
+          </Modal>
+
         </SafeAreaView>
     )
 }
@@ -617,9 +858,9 @@ const styles = (theme: Theme) => StyleSheet.create({
     paddingBottom: 30,
   },
   imageContainer: {
-    width: 150,
-    height: 150,
-    borderRadius: 75,
+    width: "100%",
+    aspectRatio: 16/9,
+    borderRadius: 15,
     backgroundColor: theme.button_darker_primary,
     justifyContent: 'center',
     alignItems: 'center',
@@ -629,6 +870,11 @@ const styles = (theme: Theme) => StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 6,
     elevation: 4,
+    overflow: 'hidden', // Ensures image fits within rounded container
+  },
+  imagePreview: {
+    width: '100%',
+    height: '100%',
   },
   titleContainer: {
     width: '100%',
@@ -893,5 +1139,118 @@ const styles = (theme: Theme) => StyleSheet.create({
     fontWeight: '600',
     fontSize: 16,
     fontFamily: "Roboto",
+  },
+  savedTemplates: {
+    position: "absolute",
+    right: 30,
+    top: 100,
+    backgroundColor: theme.primary,
+    borderRadius: 360,
+    width: 50,
+    height: 50,
+    alignContent: "center",
+    alignItems: "center",
+    justifyContent: "center",
+    zIndex: 2,
+  },
+  savedTemplatesIcon: {
+    color: theme.cardText,
+  },
+  templatesModalContainer: {
+    backgroundColor: theme.background,
+    paddingVertical: 10,
+    borderRadius: 15,
+    width: '95%',
+    maxWidth: 400,
+    height: '70%',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 5,
+  },
+  cleanButton: {
+    backgroundColor: theme.primary,
+    borderRadius: 10,
+    marginVertical: 10,
+    width: '80%',
+    height: 40,
+    alignSelf: "center",
+    alignItems: "center",
+    justifyContent: "center",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 5,
+  },
+  cleanButtonText: {
+    color: theme.cardText,
+    fontWeight: "bold",
+  },
+  cancelTemplateButton: {
+    backgroundColor: theme.destructive,
+    borderRadius: 10,
+    marginVertical: 5,
+    width: '80%',
+    height: 40,
+    alignSelf: "center",
+    alignItems: "center",
+    justifyContent: "center",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 5,
+  },
+  cancelTemplateButtonText: {
+    color: theme.destructiveText,
+    fontWeight: "bold",
+  },
+  saveTemplateIcon: {
+    position: "absolute",
+    right: 40,
+    top: 160,
+    zIndex: 2,
+    color: theme.primary
+  },
+  // Image Modal Styles
+  imageModalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.4)",
+  },
+  imageModalContainer: {
+    backgroundColor: theme.background,
+    padding: 20,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    position: "absolute",
+    bottom: 0,
+    width: "100%",
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 8,
+  },
+  imageMenuOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 15,
+    borderBottomWidth: 1,
+    borderBottomColor: theme.button_darker_primary,
+  },
+  imageMenuText: {
+    fontSize: 16,
+    fontFamily: "Roboto",
+    fontWeight: "500",
+    color: theme.primary,
+    marginLeft: 15,
+  },
+  imageMenuCancel: {
+    borderBottomWidth: 0,
+    borderTopWidth: 0,
+    borderTopColor: theme.button_darker_primary,
+    marginTop: 10,
+    paddingTop: 20,
+    justifyContent: 'center',
   },
 })

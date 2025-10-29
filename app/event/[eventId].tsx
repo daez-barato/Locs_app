@@ -1,16 +1,17 @@
-import { Text, StyleSheet, View, FlatList, ScrollView, TouchableOpacity, Dimensions, TextInput, RefreshControl, Modal, Alert, Share } from 'react-native';
-import { useLocalSearchParams, router, useFocusEffect } from 'expo-router';
+import { Text, StyleSheet, View, ScrollView, TouchableOpacity, Dimensions, TextInput, RefreshControl, Modal, Alert, Share, Image } from 'react-native';
+import { useLocalSearchParams, router} from 'expo-router';
 import { Theme, useThemeConfig } from '@/components/ui/use-theme-config';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useEffect, useState } from 'react';
-import { endEvent, eventInformation, fetchEventBets, followRequest, lockEvent, placeBet, postTemplate, saveTemplate } from '@/api/eventFunctions';
+import { endEvent, eventInformation, fetchEventBets, lockEvent, placeBet, postTemplate, saveTemplate } from '@/api/eventFunctions';
 import { useAuth } from '@/api/context/AuthContext';
 import * as Linking from 'expo-linking';
-import { FontAwesome } from '@expo/vector-icons';
+import { FontAwesome5 } from '@expo/vector-icons';
 import { useCoins } from '@/api/context/coinContext';
+import { LinearGradient } from 'expo-linear-gradient';
+import { followRequest } from '@/api/followers/followers';
 
 const { width } = Dimensions.get('window');
-
 
 type EventInfoType = {
   questions: Record<string, string[]>;
@@ -24,7 +25,11 @@ type EventInfoType = {
   title: string;
   description: string;
   template_creator_id: string;
-  template_posted?: boolean | undefined; // Optional field to check if template is posted
+  template_posted?: boolean | undefined;
+  image_url?: string | undefined; 
+  template_saved: boolean;
+  is_following: boolean;
+  has_requested: boolean;
 };
 
 type BetInfo = {
@@ -46,7 +51,6 @@ export default function eventScreen() {
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [showLockModal, setShowLockModal] = useState(false);
   const [showEndEventModal, setShowEndEventModal] = useState(false);
-  const [showInfoModal, setShowInfoModal] = useState(false);
   const [pendingBet, setPendingBet] = useState<{question: string, option: string, isIncrease: boolean} | null>(null);
   const [modalBetAmount, setModalBetAmount] = useState<string>('10');
   const [winningOptions, setWinningOptions] = useState<Record<string, string>>({});
@@ -55,14 +59,12 @@ export default function eventScreen() {
   const userName = authState?.userName;
   const url = Linking.createURL(`event/${eventId}`);
 
-
   // Check if current user is the event creator
   const isEventCreator = eventInfo?.event_creator === userName;
 
   const onRefresh = async () => {
     setRefreshing(true);
     setRefresh(prev => !prev);
-    // Add small delay to show refresh animation
     setTimeout(() => {
       setRefreshing(false);
     }, 1000);
@@ -148,7 +150,6 @@ export default function eventScreen() {
 
   const confirmLockEvent = async () => {
     try {
-      // Add your lock event API call here
       const result = await lockEvent(eventId);
 
       if (result.error){
@@ -156,7 +157,6 @@ export default function eventScreen() {
         return;
       };
       
-      // For now, we'll simulate the lock
       setEventInfo(prev => prev ? { ...prev, locked: true } : null);
       setShowLockModal(false);
       Alert.alert('Success', 'Event has been locked. No more bets can be placed.');
@@ -167,10 +167,8 @@ export default function eventScreen() {
   };
 
   const handleEndEvent = () => {
-
     if (!eventInfo?.questions) return;
     
-    // Initialize winning options with empty values
     const initialWinners: Record<string, string> = {};
     Object.keys(eventInfo.questions).forEach(question => {
       initialWinners[question] = '';
@@ -180,7 +178,6 @@ export default function eventScreen() {
   };
 
   const confirmEndEvent = async () => {
-    // Validate that all questions have winning options selected
     const allQuestionsAnswered = Object.keys(eventInfo?.questions || {}).every(
       question => winningOptions[question] && winningOptions[question].trim() !== ''
     );
@@ -191,7 +188,6 @@ export default function eventScreen() {
     }
 
     try {
-      // Add your end event API call here
       const result = await endEvent(eventId, winningOptions);
 
       if (result.error){
@@ -199,7 +195,6 @@ export default function eventScreen() {
         return;
       };
       
-      // For now, we'll simulate ending the event
       setEventInfo(prev => prev ? { ...prev, decided: true } : null);
       setShowEndEventModal(false);
       if (!eventInfo?.template_posted){
@@ -215,7 +210,6 @@ export default function eventScreen() {
   const showBetConfirmation = (question: string, option: string, isIncrease: boolean = false) => {
     setPendingBet({ question, option, isIncrease });
     
-    // Set default amount based on whether it's a new bet or increase
     if (isIncrease) {
       const currentBet = betInfos[question]?.userBet?.options[option] || 0;
       setModalBetAmount((currentBet).toString());
@@ -257,14 +251,11 @@ export default function eventScreen() {
           const oldUserBetAmount = questionBetInfo.userBet?.options[pendingBet.option] || 0;
           const additionalAmount = pendingBet.isIncrease ? betAmount - oldUserBetAmount : betAmount;
           
-          // Update option bets
           const newOptionBets = { ...questionBetInfo.optionPots };
           newOptionBets[pendingBet.option] = (newOptionBets[pendingBet.option] || 0) + additionalAmount;
           
-          // Calculate new total pot
           const newTotalPot = Object.values(newOptionBets).reduce((sum, amount) => sum + amount, 0);
           
-          // Update bet info
           newBetInfos[pendingBet.question] = {
             ...questionBetInfo,
             totalPot: newTotalPot,
@@ -311,47 +302,53 @@ export default function eventScreen() {
           </Text>
           {hasUserBet && (
             <View style={styles(theme).userBetBadge}>
-              <Text style={styles(theme).userBetBadgeText}>YOUR BET</Text>
+              <FontAwesome5 name="star" size={12} color="#ffffff" />
             </View>
           )}
         </View>
 
         <View style={styles(theme).betStats}>
-          <View style={styles(theme).statItem}>
+          <View style={styles(theme).statRow}>
             <Text style={styles(theme).statPercentage}>{betPercentage.toFixed(1)}%</Text>
+            <Text style={styles(theme).optionBetAmount}>
+              ${optionBetAmount.toLocaleString()}
+            </Text>
           </View>
-          <View 
-            style={[
-              styles(theme).progressBar, 
-              { width: `${betPercentage}%` }
-            ]} 
-          />
+          <View style={styles(theme).progressBarContainer}>
+            <View 
+              style={[
+                styles(theme).progressBar, 
+                { width: `${betPercentage}%` }
+              ]} 
+            />
+          </View>
         </View>
-        {!hasUserBet && (
-          <Text style={styles(theme).optionBetAmount}>
-            Option Total: {optionBetAmount.toLocaleString()} $
-          </Text>
-        )}
+
         {isLocked ? (
-          <View style={styles(theme).lockedBetInfo}>
+          <View style={[
+            styles(theme).lockedBetInfo,
+            eventInfo?.decided && styles(theme).decidedBetInfo
+          ]}>
+            <FontAwesome5
+              name={eventInfo?.decided ? "trophy" : "lock"} 
+              size={16} 
+              color={eventInfo?.decided ? "#F59E0B" : "#6B7280"} 
+            />
             <Text style={styles(theme).lockedBetText}>
-              {eventInfo?.decided ? `Payout $${betInfo.userBet?.options[option] ?? 0}` : `Locked at $${betInfo.userBet?.options[option] ?? 0}`}
+              {eventInfo?.decided ? `Payout: $${betInfo.userBet?.options[option] ?? 0}` : `Locked: $${betInfo.userBet?.options[option] ?? 0}`}
             </Text>
           </View>
         ) : hasUserBet ? (
           <View style={styles(theme).userBetInfo}>
-            <View style={styles(theme).userBetDetails}>
-              <Text style={styles(theme).userBetAmount}>
-                Your Bet: {betInfo.userBet!.options[option]}$
-              </Text>
-            </View>
+            <Text style={styles(theme).userBetAmount}>
+              Your Bet: ${betInfo.userBet!.options[option]}
+            </Text>
             <TouchableOpacity
               style={styles(theme).increaseBetButton}
               onPress={() => showBetConfirmation(question, option, true)}
             >
-              <Text style={styles(theme).increaseBetButtonText}>
-                Increase Bet
-              </Text>
+              <FontAwesome5 name="plus" size={14} color="#ffffff" />
+              <Text style={styles(theme).increaseBetButtonText}>Increase</Text>
             </TouchableOpacity>
           </View>
         ) : (
@@ -359,71 +356,67 @@ export default function eventScreen() {
             style={styles(theme).betButton}
             onPress={() => showBetConfirmation(question, option, false)}
           >
-            <Text style={styles(theme).betButtonText}>
-              Place Bet
-            </Text>
+            <FontAwesome5 name="chart-line" size={16} color="#ffffff" />
+            <Text style={styles(theme).betButtonText}>Place Bet</Text>
           </TouchableOpacity>
         )}
       </View>
     );
   };
 
-  const handleInfoModal = () => {
-    setShowInfoModal(true);
-  }
-
   return (
     <SafeAreaView style={styles(theme).container}>
-      {/* Header */}
+      {/* Enhanced Header */}
       <View style={styles(theme).header}>
         <TouchableOpacity 
           style={styles(theme).backButton}
           onPress={() => router.back()}
         >
-          <Text style={styles(theme).backButtonText}>← Back</Text>
+          <FontAwesome5 name="arrow-left" size={18} color={theme.primary} />
         </TouchableOpacity>
-        {!isEventCreator && (
-          <View>
-            <TouchableOpacity
-              onPress={handleInfoModal}
-              style= {styles(theme).infoButton}
-            >
-              <FontAwesome
-                name="info"
-                style = {styles(theme).infoIcon}
-                size= {20}
-              />
-            </TouchableOpacity>
-          </View>
-        )}
-
         
-        {isEventCreator && (
-          <View style={styles(theme).headerButtons}>
+        <View style={styles(theme).headerActions}>
+          
+          {(isEventCreator || eventInfo?.public) && (
             <TouchableOpacity 
               style={styles(theme).shareButton}
               onPress={handleShareEvent}
             >
+              <FontAwesome5 name="share" size={16} color={theme.primary} />
               <Text style={styles(theme).shareButtonText}>Share</Text>
             </TouchableOpacity>
-
-            {(!eventInfo?.template_posted || !eventInfo.decided) && (
-              <TouchableOpacity 
-                style={[
-                  styles(theme).lockButton,
-                  (eventInfo?.locked && ! eventInfo?.decided) && styles(theme).endButton,
-                  eventInfo?.decided && styles(theme).postTemplateButton
-                ]}
-                onPress={ () => {eventInfo?.locked ? ((eventInfo?.decided ) ? setPostTemplateModal(true) : handleEndEvent()) : handleLockEvent()}}
-              >
-                <Text style={styles(theme).lockButtonText}>
-                  {eventInfo?.locked ? (eventInfo?.decided ? 'Post Template' : 'End Event') : 'Lock Event'}
-                </Text>
-              </TouchableOpacity>
-            )}
-            
-          </View>
-        )}
+          )}
+          
+          {isEventCreator && (
+            <>
+              {(!eventInfo?.template_posted || !eventInfo.decided) && (
+                <TouchableOpacity 
+                  style={[
+                    styles(theme).actionButton,
+                    eventInfo?.locked && !eventInfo?.decided && styles(theme).endButton,
+                    eventInfo?.decided && styles(theme).postTemplateButton
+                  ]}
+                  onPress={() => {
+                    if (eventInfo?.locked) {
+                      eventInfo?.decided ? setPostTemplateModal(true) : handleEndEvent()
+                    } else {
+                      handleLockEvent()
+                    }
+                  }}
+                >
+                  <FontAwesome5 
+                    name={eventInfo?.locked ? (eventInfo?.decided ? "upload" : "flag-checkered") : "lock"} 
+                    size={14} 
+                    color="#ffffff" 
+                  />
+                  <Text style={styles(theme).actionButtonText}>
+                    {eventInfo?.locked ? (eventInfo?.decided ? 'Post' : 'End') : 'Lock'}
+                  </Text>
+                </TouchableOpacity>
+              )}
+            </>
+          )}
+        </View>
       </View>
 
       <ScrollView 
@@ -438,43 +431,115 @@ export default function eventScreen() {
           />
         }
       >
-        {/* Event Header Section */}
-        <View style={styles(theme).headerContainer}>
-          {/* Event Image */}
+        {/* Enhanced Event Header */}
+        <View style={styles(theme).eventHeader}>
+          {/* 16:9 Event Image */}
           <View style={styles(theme).eventImageContainer}>
-            <Text style={styles(theme).imagePlaceholder}>Event Image</Text>
-          </View>
-          
-          <Text style={styles(theme).eventTitle}>
-            {eventInfo?.title}
-          </Text>
-          <Text style={styles(theme).eventDescription}>
-            {eventInfo?.description}
-          </Text>
-          
-          <View style={styles(theme).statusContainer}>
-            {eventInfo?.expire_date && (
-              <View style={styles(theme).expiryBadge}>
-                <Text style={styles(theme).expiryText}>
-                  Expires: {new Date(eventInfo.expire_date).toLocaleDateString()}
-                </Text>
+            {eventInfo?.image_url ? (
+              <Image 
+                source={{ uri: eventInfo.image_url }}
+                style={styles(theme).eventImage}
+                resizeMode="cover"
+              />
+            ) : (
+              <View style={styles(theme).placeholderImage}>
+                <FontAwesome5 name="image" size={40} color={theme.primary + '40'} />
+                <Text style={styles(theme).placeholderText}>No Image</Text>
               </View>
             )}
             
-            {(eventInfo?.locked || eventInfo?.decided) && (
-              <View style={[
-                styles(theme).lockedBadge,
-                eventInfo?.decided && styles(theme).decidedBadge
-              ]}>
-                <Text style={styles(theme).lockedBadgeText}>
-                  {eventInfo?.decided ? '🏁 ENDED' : '🔒 LOCKED'}
-                </Text>
-              </View>
+            {/* Gradient Overlay for better text readability */}
+            <LinearGradient
+              colors={['transparent', 'rgba(0,0,0,0.7)']}
+              style={styles(theme).imageOverlay}
+            />
+            
+            {/* Status badges overlay */}
+            <View style={styles(theme).statusOverlay}>
+              {eventInfo?.expire_date && (
+                <View style={styles(theme).expiryBadge}>
+                  <FontAwesome5 name="clock" size={12} color="#ffffff" />
+                  <Text style={styles(theme).expiryText}>
+                    {new Date(eventInfo.expire_date).toLocaleDateString()}
+                  </Text>
+                </View>
+              )}
+              
+              {(eventInfo?.locked || eventInfo?.decided) && (
+                <View style={[
+                  styles(theme).statusBadge,
+                  eventInfo?.decided && styles(theme).decidedBadge
+                ]}>
+                  <FontAwesome5 
+                    name={eventInfo?.decided ? "flag-checkered" : "lock"} 
+                    size={12} 
+                    color="#ffffff" 
+                  />
+                  <Text style={styles(theme).statusBadgeText}>
+                    {eventInfo?.decided ? 'ENDED' : 'LOCKED'}
+                  </Text>
+                </View>
+              )}
+            </View>
+          </View>
+          
+          {/* Event Info */}
+          <View style={styles(theme).eventInfo}>
+            <Text style={styles(theme).eventTitle} numberOfLines={3}>
+              {eventInfo?.title}
+            </Text>
+            {eventInfo?.description && (
+              <Text style={styles(theme).eventDescription} numberOfLines={4}>
+                {eventInfo.description}
+              </Text>
             )}
+            
+            {/* Creator badge */}
+            <View style={styles(theme).creatorRow}>
+              <TouchableOpacity
+                style={styles(theme).creatorBadge}
+                onPress={() => router.push(`/(tabs)/user/${eventInfo?.event_creator_id}`)}
+              >
+                <FontAwesome5 name="user" size={12} color={theme.primary} />
+                <Text style={styles(theme).creatorText}>by {eventInfo?.event_creator}</Text>
+              </TouchableOpacity>
+
+              <View style={styles(theme).creatorActions}>
+                {/* Follow button */}
+                {(!eventInfo?.is_following && !eventInfo?.has_requested) && 
+                  <TouchableOpacity
+                    style={styles(theme).creatorActionButton}
+                    onPress={async () => {
+                      await followRequest(eventInfo?.event_creator_id as string);
+                    }}
+                  >
+                    <FontAwesome5 name="user-plus" size={14} color={theme.primary} />
+                  </TouchableOpacity>
+                }
+
+                {/* Save Template button */}
+                {eventInfo?.template_posted && !eventInfo.template_saved && (
+                  <TouchableOpacity
+                    style={styles(theme).creatorActionButton}
+                    onPress={async () => {
+                      try {
+                        const save = await saveTemplate(eventInfo?.template_id as string);
+                        if (save.error) throw Error(save.msg);
+                        Alert.alert('Template Saved', `Template "${eventInfo?.title}" has been saved to your collection`);
+                      } catch (err: any) {
+                        Alert.alert('Error', err.msg || 'Template not saved');
+                      }
+                    }}
+                  >
+                    <FontAwesome5 name="bookmark" size={14} color="#10B981" />
+                  </TouchableOpacity>
+                )}
+              </View>
+            </View>
           </View>
         </View>
 
-        {/* Questions Section */}
+        {/* Enhanced Questions Section */}
         <View style={styles(theme).questionsContainer}>
           {eventInfo?.questions && Object.entries(eventInfo.questions).map(([question, options], questionIndex) => {
             const betInfo = betInfos[question];
@@ -483,15 +548,21 @@ export default function eventScreen() {
             return (
               <View key={questionIndex} style={styles(theme).questionContainer}>
                 <View style={styles(theme).questionHeader}>
-                  <View style={styles(theme).questionTitleContainer}>
-                    <Text style={styles(theme).questionNumber}>Q{questionIndex + 1}</Text>
+                  <View style={styles(theme).questionTitleRow}>
+                    <View style={styles(theme).questionNumber}>
+                      <Text style={styles(theme).questionNumberText}>Q{questionIndex + 1}</Text>
+                    </View>
                     <Text style={styles(theme).questionTitle}>{question}</Text>
                   </View>
+                  
                   <View style={styles(theme).totalPotContainer}>
-                    <Text style={styles(theme).totalPotLabel}>Total Pool</Text>
-                    <Text style={styles(theme).totalPotAmount}>
-                      {betInfo.totalPot.toLocaleString()} $
-                    </Text>
+                    <FontAwesome5 name="trophy" size={16} color="#F59E0B" />
+                    <View style={styles(theme).potInfo}>
+                      <Text style={styles(theme).totalPotLabel}>Total Pool</Text>
+                      <Text style={styles(theme).totalPotAmount}>
+                        ${betInfo.totalPot.toLocaleString()}
+                      </Text>
+                    </View>
                   </View>
                 </View>
 
@@ -516,58 +587,65 @@ export default function eventScreen() {
         </View>
       </ScrollView>
 
-      {/* Bet Confirmation Modal */}
+      {/* Enhanced Bet Confirmation Modal */}
       <Modal
         visible={showConfirmModal}
         transparent={true}
-        animationType="fade"
+        animationType="slide"
         onRequestClose={cancelBet}
       >
         <View style={styles(theme).modalOverlay}>
           <View style={styles(theme).modalContent}>
-            <Text style={styles(theme).modalTitle}>
-              {pendingBet?.isIncrease ? 'Increase Bet' : 'Place Bet'}
-            </Text>
-            <Text style={styles(theme).modalOption}>"{pendingBet?.option}"</Text>
+            <View style={styles(theme).modalHeader}>
+              <FontAwesome5 
+                name={pendingBet?.isIncrease ? "arrow-up" : "chart-line"} 
+                size={24} 
+                color={theme.primary} 
+              />
+              <Text style={styles(theme).modalTitle}>
+                {pendingBet?.isIncrease ? 'Increase Bet' : 'Place Bet'}
+              </Text>
+            </View>
             
-            <Text style={styles(theme).currentBetText}>
-              Your Balance: {coins} $
-            </Text>
+            <View style={styles(theme).modalOption}>
+              <Text style={styles(theme).modalOptionText}>"{pendingBet?.option}"</Text>
+            </View>
+            
+            <View style={styles(theme).balanceContainer}>
+              <FontAwesome5 name="wallet" size={16} color={theme.primary} />
+              <Text style={styles(theme).balanceText}>Balance: ${coins}</Text>
+            </View>
             
             <View style={styles(theme).betAmountContainer}>
-              <Text style={styles(theme).betAmountLabel}>
-                Bet amount:
-              </Text>
-              <TextInput
-                style={styles(theme).betAmountInput}
-                value={modalBetAmount}
-                onChangeText={(text) => {
-                  // Allow empty string for clearing
-                  if (text === '') {
-                    setModalBetAmount('');
-                    return;
-                  }
-                  
-                  // Only allow numbers and one decimal point
-                  const numericValue = text.replace(/[^0-9.]/g, '');
-                  const parts = numericValue.split('.');
-                  
-                  // Limit to one decimal point
-                  if (parts.length <= 2) {
-                    // Limit decimal places to 2
-                    if (parts.length === 2) {
-                      parts[1] = parts[1].substring(0, 2);
+              <Text style={styles(theme).betAmountLabel}>Bet Amount:</Text>
+              <View style={styles(theme).inputContainer}>
+                <Text style={styles(theme).currencySymbol}>$</Text>
+                <TextInput
+                  style={styles(theme).betAmountInput}
+                  value={modalBetAmount}
+                  onChangeText={(text) => {
+                    if (text === '') {
+                      setModalBetAmount('');
+                      return;
                     }
-                    const finalValue = parts.join('.');
-                    setModalBetAmount(finalValue);
-                  }
-                }}
-                placeholder="Amount"
-                placeholderTextColor={theme.text + '60'}
-                keyboardType="numeric"
-                autoFocus={true}
-              />
-              <Text style={styles(theme).unitText}>$</Text>
+                    
+                    const numericValue = text.replace(/[^0-9.]/g, '');
+                    const parts = numericValue.split('.');
+                    
+                    if (parts.length <= 2) {
+                      if (parts.length === 2) {
+                        parts[1] = parts[1].substring(0, 2);
+                      }
+                      const finalValue = parts.join('.');
+                      setModalBetAmount(finalValue);
+                    }
+                  }}
+                  placeholder="0.00"
+                  placeholderTextColor={theme.text + '60'}
+                  keyboardType="numeric"
+                  autoFocus={true}
+                />
+              </View>
             </View>
             
             <View style={styles(theme).modalButtons}>
@@ -582,9 +660,8 @@ export default function eventScreen() {
                 style={styles(theme).modalConfirmButton}
                 onPress={confirmBet}
               >
-                <Text style={styles(theme).modalConfirmText}>
-                  {pendingBet?.isIncrease ? 'Increase Bet' : 'Confirm Bet'}
-                </Text>
+                <FontAwesome5 name="check" size={16} color="#ffffff" />
+                <Text style={styles(theme).modalConfirmText}>Confirm</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -600,7 +677,10 @@ export default function eventScreen() {
       >
         <View style={styles(theme).modalOverlay}>
           <View style={styles(theme).modalContent}>
-            <Text style={styles(theme).modalTitle}>Lock Event</Text>
+            <View style={styles(theme).modalHeader}>
+              <FontAwesome5 name="lock" size={24} color="#F59E0B" />
+              <Text style={styles(theme).modalTitle}>Lock Event</Text>
+            </View>
             <Text style={styles(theme).modalText}>
               Are you sure you want to lock this event? This action cannot be undone and will prevent any new bets from being placed.
             </Text>
@@ -617,93 +697,12 @@ export default function eventScreen() {
                 style={styles(theme).modalConfirmButton}
                 onPress={confirmLockEvent}
               >
+                <FontAwesome5 name="lock" size={16} color="#ffffff" />
                 <Text style={styles(theme).modalConfirmText}>Lock Event</Text>
               </TouchableOpacity>
             </View>
           </View>
         </View>
-      </Modal>
-
-      {/*Event Info Modal*/ }
-      <Modal
-        visible={showInfoModal}
-        transparent={true}
-        animationType="fade"
-        onRequestClose={() => setShowInfoModal(false)}
-      >
-        <TouchableOpacity 
-          style={styles(theme).modalOverlay}
-          activeOpacity={1}
-          onPress={() => setShowInfoModal(false)}
-        >
-          <View style={styles(theme).modalContent}>
-            <TouchableOpacity
-              activeOpacity={1}
-              onPress={(e) => e.stopPropagation()}
-              style={styles(theme).modalInner}
-            >
-              {/* Event Creator Section */}
-              <View style={styles(theme).creatorInfo}>
-                <TouchableOpacity 
-                  style={styles(theme).creatorMainArea}
-                  onPress={() => {
-                    setShowInfoModal(false);
-                    router.push(`/user/${eventInfo?.event_creator}`);
-                  }}
-                >
-                  <View style={styles(theme).userImagePlaceholder}>
-                    <FontAwesome name="user" size={20} color={theme.primary} />
-                  </View>
-                  <View style={styles(theme).creatorTextArea}>
-                    <Text style={styles(theme).sectionLabel}>Event Creator</Text>
-                    <Text style={styles(theme).creatorName}>{eventInfo?.event_creator}</Text>
-                  </View>
-                </TouchableOpacity>
-                
-                <TouchableOpacity 
-                  style={styles(theme).followButton}
-                  onPress={async () => {
-                    const follow = await followRequest(eventInfo?.event_creator as string)
-                    Alert.alert('Follow Request', `Follow request sent to ${eventInfo?.event_creator}`);
-                  }}
-                >
-                  <FontAwesome name="user-plus" size={16} color={theme.primary} />
-                  <Text style={styles(theme).followButtonText}>Follow</Text>
-                </TouchableOpacity>
-              </View>
-
-              {/* Template Section */}
-              <View style={styles(theme).templateInfo}>
-                <TouchableOpacity 
-                  style={styles(theme).templateMainArea}
-                  onPress={() => {
-                    setShowInfoModal(false);
-                    router.push(`/(tabs)/studio/${eventInfo?.template_id}`);
-                  }}
-                >
-                  <View style={styles(theme).templateImagePlaceholder}>
-                    <FontAwesome name="file-text" size={20} color={theme.primary} />
-                  </View>
-                  <View style={styles(theme).templateTextArea}>
-                    <Text style={styles(theme).sectionLabel}>Template</Text>
-                    <Text style={styles(theme).templateName}>{eventInfo?.title}</Text>
-                  </View>
-                </TouchableOpacity>
-                
-                <TouchableOpacity 
-                  style={styles(theme).saveButton}
-                  onPress={async () => {
-                    const save = await saveTemplate(eventInfo?.template_id as string);
-                    Alert.alert('Template Saved', `Template "${eventInfo?.title}" has been saved to your collection`);
-                  }}
-                >
-                  <FontAwesome name="bookmark" size={16} color={theme.primary} />
-                  <Text style={styles(theme).saveButtonText}>Save</Text>
-                </TouchableOpacity>
-              </View>
-            </TouchableOpacity>
-          </View>
-        </TouchableOpacity>
       </Modal>
 
       {/* End Event Modal */}
@@ -716,7 +715,10 @@ export default function eventScreen() {
         <View style={styles(theme).modalOverlay}>
           <ScrollView contentContainerStyle={styles(theme).endEventModalContainer}>
             <View style={styles(theme).modalContent}>
-              <Text style={styles(theme).modalTitle}>End Event</Text>
+              <View style={styles(theme).modalHeader}>
+                <FontAwesome5 name="flag-checkered" size={24} color="#DC2626" />
+                <Text style={styles(theme).modalTitle}>End Event</Text>
+              </View>
               <Text style={styles(theme).modalText}>
                 Select the winning option for each question:
               </Text>
@@ -762,6 +764,7 @@ export default function eventScreen() {
                   style={styles(theme).modalConfirmButton}
                   onPress={confirmEndEvent}
                 >
+                  <FontAwesome5 name="flag-checkered" size={16} color="#ffffff" />
                   <Text style={styles(theme).modalConfirmText}>End Event</Text>
                 </TouchableOpacity>
               </View>
@@ -769,6 +772,7 @@ export default function eventScreen() {
           </ScrollView>
         </View>
       </Modal>
+
       {/* Post Template Modal */}
       <Modal
         visible={postTemplateModal}
@@ -787,9 +791,10 @@ export default function eventScreen() {
               onPress={(e) => e.stopPropagation()}
               style={styles(theme).modalInner}
             >
-              <Text style={styles(theme).modalTitle}>
-                Post Template
-              </Text>
+              <View style={styles(theme).modalHeader}>
+                <FontAwesome5 name="upload" size={24} color={theme.primary} />
+                <Text style={styles(theme).modalTitle}>Post Template</Text>
+              </View>
               <Text style={styles(theme).modalText}>
                 You can now post this template for others to use.
               </Text>
@@ -818,6 +823,7 @@ export default function eventScreen() {
                     }
                   }}
                 >
+                  <FontAwesome5 name="upload" size={16} color="#ffffff" />
                   <Text style={styles(theme).modalConfirmText}>Post Template</Text>
                 </TouchableOpacity>
               </View>
@@ -835,39 +841,51 @@ const styles = (theme: Theme) => StyleSheet.create({
     backgroundColor: theme.background,
   },
   
+  // Enhanced Header
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingVertical: 16,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
     backgroundColor: theme.background,
     borderBottomWidth: 1,
     borderBottomColor: theme.border || '#E5E5E5',
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
   },
   
   backButton: {
-    padding: 8,
+    padding: 12,
+    borderRadius: 12,
+    backgroundColor: theme.primary + '10',
   },
   
-  backButtonText: {
-    color: theme.primary,
-    fontSize: 16,
-    fontWeight: '600',
+  headerActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
   },
 
-  headerButtons: {
-    flexDirection: 'row',
-    gap: 12,
+  infoButton: {
+    padding: 12,
+    borderRadius: 12,
+    backgroundColor: theme.primary + '10',
   },
 
   shareButton: {
-    backgroundColor: theme.primary + '20',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingVertical: 10,
     paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 8,
+    borderRadius: 12,
+    backgroundColor: theme.primary + '15',
     borderWidth: 1,
-    borderColor: theme.primary,
+    borderColor: theme.primary + '30',
   },
 
   shareButtonText: {
@@ -876,11 +894,14 @@ const styles = (theme: Theme) => StyleSheet.create({
     fontWeight: '600',
   },
 
-  lockButton: {
-    backgroundColor: '#FF6B35',
+  actionButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingVertical: 10,
     paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 8,
+    borderRadius: 12,
+    backgroundColor: '#FF6B35',
   },
 
   endButton: {
@@ -891,209 +912,269 @@ const styles = (theme: Theme) => StyleSheet.create({
     backgroundColor: theme.primary,
   },
 
-  lockButtonText: {
-    color: '#FFFFFF',
+  actionButtonText: {
+    color: '#ffffff',
     fontSize: 14,
     fontWeight: '600',
   },
   
+  // Enhanced Event Header
+  eventHeader: {
+    backgroundColor: theme.background,
+  },
+  
   eventImageContainer: {
-    width: 120,
-    height: 120,
-    borderRadius: 60,
-    backgroundColor: theme.button_darker_primary,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 20,
+    position: 'relative',
+    width: '100%',
+    aspectRatio: 16/9, // 16:9 aspect ratio
+    backgroundColor: theme.card || '#F8F9FA',
+    borderBottomLeftRadius: 24,
+    borderBottomRightRadius: 24,
+    overflow: 'hidden',
+    elevation: 4,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 6,
-    elevation: 4,
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
   },
   
-  imagePlaceholder: {
-    color: theme.text,
-    fontSize: 14,
-    opacity: 0.6,
+  eventImage: {
+    width: '100%',
+    height: '100%',
   },
   
-  headerContainer: {
-    paddingVertical: 24,
-    backgroundColor: theme.background,
-    borderBottomWidth: 1,
-    borderBottomColor: theme.border || '#E5E5E5',
+  placeholderImage: {
+    flex: 1,
+    justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 16,
+    backgroundColor: theme.card || '#F8F9FA',
+  },
+  
+  placeholderText: {
+    color: theme.text + '60',
+    fontSize: 16,
+    fontWeight: '500',
+    marginTop: 8,
+  },
+  
+  imageOverlay: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: '50%',
+  },
+  
+  statusOverlay: {
+    position: 'absolute',
+    top: 16,
+    right: 16,
+    gap: 8,
+  },
+  
+  expiryBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 20,
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    backdropFilter: 'blur(10px)',
+  },
+  
+  expiryText: {
+    color: '#ffffff',
+    fontSize: 12,
+    fontWeight: '600',
+  },
+
+  statusBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255, 107, 53, 0.9)',
+  },
+
+  decidedBadge: {
+    backgroundColor: 'rgba(220, 38, 38, 0.9)',
+  },
+
+  statusBadgeText: {
+    color: '#ffffff',
+    fontSize: 12,
+    fontWeight: '700',
+    letterSpacing: 0.5,
+  },
+  
+  eventInfo: {
+    paddingTop: 20,
+    paddingHorizontal: 20,
+    paddingBottom: 5,
   },
   
   eventTitle: {
     color: theme.text,
-    fontSize: 24,
-    fontWeight: 'bold',
-    textAlign: 'center',
-    marginBottom: 10,
+    fontSize: 28,
+    fontWeight: '800',
+    lineHeight: 34,
+    marginBottom: 12,
+    letterSpacing: -0.5,
   },
   
   eventDescription: {
-    color: theme.text,
-    fontSize: 15,
-    textAlign: 'center',
-    lineHeight: 20,
-    opacity: 0.8,
+    color: theme.text + '80',
+    fontSize: 16,
+    lineHeight: 22,
     marginBottom: 16,
+    fontWeight: '400',
   },
 
-  statusContainer: {
+  creatorBadge: {
     flexDirection: 'row',
-    gap: 12,
     alignItems: 'center',
-    flexWrap: 'wrap',
-    justifyContent: 'center',
-  },
-  
-  expiryBadge: {
-    backgroundColor: theme.primary,
-    paddingHorizontal: 16,
+    gap: 8,
+    alignSelf: 'flex-start',
     paddingVertical: 8,
+    paddingHorizontal: 12,
     borderRadius: 20,
-  },
-  
-  expiryText: {
-    color: theme.background,
-    fontSize: 14,
-    fontWeight: '600',
+    backgroundColor: theme.primary + '15',
+    borderWidth: 1,
+    borderColor: theme.primary + '30',
   },
 
-  lockedBadge: {
-    backgroundColor: '#FF6B35',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
-  },
-
-  decidedBadge: {
-    backgroundColor: '#DC2626',
-  },
-
-  lockedBadgeText: {
-    color: '#FFFFFF',
+  creatorText: {
+    color: theme.primary,
     fontSize: 14,
     fontWeight: '600',
   },
   
+  // Enhanced Questions Section
   questionsContainer: {
-    paddingHorizontal: 16,
-    paddingBottom: 32,
+    padding: 16,
+    gap: 24,
   },
   
   questionContainer: {
     backgroundColor: theme.card || '#FFFFFF',
-    marginBottom: 32,
-    borderRadius: 20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.08,
-    shadowRadius: 12,
+    borderRadius: 24,
+    overflow: 'hidden',
     elevation: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.12,
+    shadowRadius: 16,
     borderWidth: 1,
     borderColor: theme.border || '#E5E5E5',
-    overflow: 'hidden',
   },
   
   questionHeader: {
-    paddingHorizontal: 24,
-    paddingTop: 24,
-    paddingBottom: 16,
+    padding: 20,
     backgroundColor: theme.background,
     borderBottomWidth: 2,
     borderBottomColor: theme.primary + '20',
   },
   
-  questionTitleContainer: {
+  questionTitleRow: {
     flexDirection: 'row',
     alignItems: 'flex-start',
     marginBottom: 16,
+    gap: 12,
   },
   
   questionNumber: {
     backgroundColor: theme.primary,
-    color: theme.background,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 16,
+    minWidth: 48,
+    alignItems: 'center',
+    elevation: 2,
+    shadowColor: theme.primary,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+  },
+  
+  questionNumberText: {
+    color: '#ffffff',
     fontSize: 14,
     fontWeight: '800',
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 12,
-    marginRight: 12,
-    textAlign: 'center',
-    minWidth: 36,
-    overflow: 'hidden',
+    letterSpacing: 0.5,
   },
   
   questionTitle: {
+    flex: 1,
     color: theme.text,
     fontSize: 20,
     fontWeight: '800',
     lineHeight: 26,
-    flex: 1,
     letterSpacing: -0.3,
   },
   
   totalPotContainer: {
-    backgroundColor: theme.primary + '15',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderRadius: 12,
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
+    gap: 12,
+    padding: 16,
+    borderRadius: 16,
+    backgroundColor: '#FEF3C7',
     borderWidth: 1,
-    borderColor: theme.primary + '30',
+    borderColor: '#F59E0B' + '30',
+  },
+  
+  potInfo: {
+    flex: 1,
   },
   
   totalPotLabel: {
-    color: theme.text,
-    fontSize: 16,
+    color: '#92400E',
+    fontSize: 14,
     fontWeight: '600',
-    opacity: 0.8,
+    marginBottom: 2,
   },
   
   totalPotAmount: {
-    color: theme.primary,
-    fontSize: 20,
-    fontWeight: '900',
+    color: '#92400E',
+    fontSize: 22,
+    fontWeight: '800',
     letterSpacing: -0.5,
   },
   
+  // Enhanced Option Cards
   optionsScrollView: {
-    paddingLeft: 24,
-    paddingVertical: 16,
-    backgroundColor: theme.background,
+    paddingLeft: 20,
+    paddingVertical: 20,
   },
   
   optionsScrollContent: {
-    paddingRight: 24,
+    paddingRight: 20,
+    gap: 16,
   },
   
   optionCard: {
-    width: width * 0.72,
+    width: width * 0.75,
     backgroundColor: theme.card || '#FFFFFF',
-    borderRadius: 18,
+    borderRadius: 20,
     padding: 20,
-    marginRight: 16,
+    borderWidth: 2,
+    borderColor: theme.border || '#E5E5E5',
+    elevation: 4,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.1,
-    shadowRadius: 10,
-    elevation: 6,
-    borderWidth: 2,
-    borderColor: theme.border || '#E5E5E5',
+    shadowRadius: 8,
   },
   
   userBetCard: {
     borderColor: '#10B981',
-    borderWidth: 3,
     backgroundColor: '#F0FDF4',
+    elevation: 8,
+    shadowColor: '#10B981',
+    shadowOpacity: 0.2,
   },
   
   optionHeader: {
@@ -1104,97 +1185,99 @@ const styles = (theme: Theme) => StyleSheet.create({
   },
   
   optionTitle: {
-    color: theme.text,
-    fontSize: 17,
-    fontWeight: '800',
     flex: 1,
-    marginRight: 8,
-    lineHeight: 22,
-    letterSpacing: -0.2,
+    color: theme.text,
+    fontSize: 18,
+    fontWeight: '700',
+    lineHeight: 24,
+    marginRight: 12,
   },
   
   userBetBadge: {
     backgroundColor: '#10B981',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 8,
+    padding: 8,
+    borderRadius: 12,
+    elevation: 2,
     shadowColor: '#10B981',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.3,
     shadowRadius: 4,
-    elevation: 3,
-  },
-  
-  userBetBadgeText: {
-    color: '#FFFFFF',
-    fontSize: 10,
-    fontWeight: '900',
-    letterSpacing: 0.5,
   },
   
   betStats: {
     marginBottom: 16,
   },
   
-  statItem: {
+  statRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 10,
-  },
-  
-  statLabel: {
-    color: theme.text,
-    fontSize: 14,
-    fontWeight: '600',
-    opacity: 0.7,
-  },
-  
-  statValue: {
-    color: theme.text,
-    fontSize: 16,
-    fontWeight: '700',
+    marginBottom: 12,
   },
   
   statPercentage: {
     color: theme.primary,
-    fontSize: 15,
+    fontSize: 18,
     fontWeight: '800',
   },
   
-  progressBar: {
-    height: 8,
-    width: '1%', // Will be set dynamically
-    backgroundColor: theme.primary,
-    borderRadius: 4,
+  optionBetAmount: {
+    color: theme.text + '80',
+    fontSize: 16,
+    fontWeight: '600',
   },
   
+  progressBarContainer: {
+    height: 8,
+    backgroundColor: theme.border || '#E5E5E5',
+    borderRadius: 4,
+    overflow: 'hidden',
+  },
+  
+  progressBar: {
+    height: '100%',
+    backgroundColor: theme.primary,
+    borderRadius: 4,
+    minWidth: 4,
+  },
+  
+  // Enhanced Buttons
   betButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
     backgroundColor: theme.primary,
     paddingVertical: 16,
-    borderRadius: 14,
-    alignItems: 'center',
+    borderRadius: 16,
+    elevation: 4,
     shadowColor: theme.primary,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 8,
-    elevation: 6,
   },
   
   betButtonText: {
-    color: theme.background,
-    fontSize: 17,
-    fontWeight: '800',
-    letterSpacing: -0.2,
+    color: '#ffffff',
+    fontSize: 16,
+    fontWeight: '700',
   },
   
   lockedBetInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
     backgroundColor: '#F3F4F6',
-    padding: 16,
-    borderRadius: 14,
+    paddingVertical: 16,
+    borderRadius: 16,
     borderWidth: 2,
     borderColor: '#D1D5DB',
-    alignItems: 'center',
+  },
+
+  decidedBetInfo: {
+    backgroundColor: '#FEF3C7',
+    borderColor: '#F59E0B',
   },
 
   lockedBetText: {
@@ -1204,160 +1287,157 @@ const styles = (theme: Theme) => StyleSheet.create({
   },
   
   userBetInfo: {
-    backgroundColor: '#F0FDF4',
-    padding: 16,
-    borderRadius: 14,
-    borderWidth: 2,
-    borderColor: '#10B981',
-    alignItems: 'center',
-  },
-  
-  userBetDetails: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 12,
+    gap: 12,
   },
   
   userBetAmount: {
     color: '#059669',
-    fontSize: 15,
+    fontSize: 16,
     fontWeight: '700',
-  },
-  
-  potentialWinnings: {
-    color: '#059669',
-    fontSize: 15,
-    fontWeight: '800',
+    textAlign: 'center',
+    marginBottom: 12,
   },
 
   increaseBetButton: {
-    backgroundColor: '#059669',
-    width: '100%',
-    paddingVertical: 12,
-    borderRadius: 12,
+    flexDirection: 'row',
     alignItems: 'center',
-    shadowColor: '#059669',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
+    justifyContent: 'center',
+    gap: 6,
+    backgroundColor: '#059669',
+    paddingVertical: 14,
+    borderRadius: 14,
     elevation: 3,
+    shadowColor: '#059669',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.3,
+    shadowRadius: 6,
   },
   
   increaseBetButtonText: {
-    color: '#FFFFFF',
+    color: '#ffffff',
     fontSize: 15,
-    fontWeight: '700',
-    letterSpacing: -0.1,
+    fontWeight: '600',
   },
 
   mainScrollView: {
     flex: 1,
   },
 
-  // Modal styles
+  // Enhanced Modal Styles
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
     justifyContent: 'center',
     alignItems: 'center',
   },
   
   modalContent: {
     backgroundColor: theme.background,
-    borderRadius: 20,
+    borderRadius: 24,
     padding: 24,
     margin: 20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.25,
-    shadowRadius: 20,
-    elevation: 15,
+    maxWidth: width * 0.9,
     minWidth: width * 0.8,
+    elevation: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 12 },
+    shadowOpacity: 0.3,
+    shadowRadius: 24,
+  },
+
+  modalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 12,
+    marginBottom: 20,
   },
   
   modalTitle: {
     color: theme.text,
-    fontSize: 20,
+    fontSize: 22,
     fontWeight: '800',
-    textAlign: 'center',
-    marginBottom: 16,
   },
   
   modalText: {
-    color: theme.text,
+    color: theme.text + '90',
     fontSize: 16,
     textAlign: 'center',
-    marginBottom: 24,
-    opacity: 0.8,
-    lineHeight: 22,
+    lineHeight: 24,
+    marginBottom: 20,
   },
   
   modalOption: {
+    backgroundColor: theme.primary + '15',
+    padding: 16,
+    borderRadius: 16,
+    marginBottom: 20,
+    borderWidth: 1,
+    borderColor: theme.primary + '30',
+  },
+
+  modalOptionText: {
     color: theme.text,
     fontSize: 18,
     fontWeight: '700',
     textAlign: 'center',
-    marginBottom: 16,
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    backgroundColor: theme.primary + '10',
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: theme.primary + '30',
   },
   
-  currentBetText: {
-    color: theme.text,
-    fontSize: 14,
-    textAlign: 'center',
-    marginBottom: 16,
-    opacity: 0.7,
-    fontStyle: 'italic',
-  },
-  
-  betAmountContainer: {
+  balanceContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 24,
-    backgroundColor: theme.card || '#F8F9FA',
-    padding: 16,
+    gap: 8,
+    marginBottom: 20,
+    padding: 12,
+    backgroundColor: theme.primary + '10',
     borderRadius: 12,
-    borderWidth: 1,
-    borderColor: theme.border || '#E5E5E5',
+  },
+
+  balanceText: {
+    color: theme.primary,
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  
+  betAmountContainer: {
+    alignItems: 'center',
+    marginBottom: 24,
   },
   
   betAmountLabel: {
     color: theme.text,
     fontSize: 16,
     fontWeight: '600',
-    marginRight: 12,
+    marginBottom: 12,
   },
-  
-  betAmountInput: {
-    backgroundColor: theme.background,
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    fontSize: 18,
-    fontWeight: '700',
-    color: theme.primary,
+
+  inputContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: theme.card || '#F8F9FA',
+    borderRadius: 16,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
     borderWidth: 2,
     borderColor: theme.primary,
-    textAlign: 'center',
-    minWidth: 100,
-    maxWidth: 100,
-    maxHeight: 50,
-    minHeight: 50,
+    minWidth: 150,
+  },
+
+  currencySymbol: {
+    color: theme.primary,
+    fontSize: 20,
+    fontWeight: '700',
     marginRight: 8,
   },
   
-  unitText: {
+  betAmountInput: {
+    flex: 1,
+    fontSize: 20,
+    fontWeight: '700',
     color: theme.text,
-    fontSize: 16,
-    fontWeight: '600',
-    opacity: 0.7,
+    textAlign: 'center',
+    padding: 0,
   },
   
   modalButtons: {
@@ -1369,7 +1449,7 @@ const styles = (theme: Theme) => StyleSheet.create({
     flex: 1,
     backgroundColor: theme.border || '#E5E5E5',
     paddingVertical: 16,
-    borderRadius: 12,
+    borderRadius: 16,
     alignItems: 'center',
   },
   
@@ -1381,23 +1461,32 @@ const styles = (theme: Theme) => StyleSheet.create({
   
   modalConfirmButton: {
     flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
     backgroundColor: theme.primary,
     paddingVertical: 16,
-    borderRadius: 12,
-    alignItems: 'center',
+    borderRadius: 16,
+    elevation: 4,
+    shadowColor: theme.primary,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
   },
   
   modalConfirmText: {
-    color: theme.background,
+    color: '#ffffff',
     fontSize: 16,
     fontWeight: '700',
   },
 
-  // End Event Modal styles
+  // End Event Modal
   endEventModalContainer: {
     flexGrow: 1,
     justifyContent: 'center',
     alignItems: 'center',
+    padding: 20,
   },
 
   questionSelection: {
@@ -1410,21 +1499,20 @@ const styles = (theme: Theme) => StyleSheet.create({
     fontSize: 16,
     fontWeight: '700',
     marginBottom: 12,
-    textAlign: 'left',
   },
 
   optionSelectionButton: {
     backgroundColor: theme.card || '#F8F9FA',
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    borderRadius: 8,
+    paddingVertical: 16,
+    paddingHorizontal: 20,
+    borderRadius: 12,
     marginBottom: 8,
     borderWidth: 2,
     borderColor: theme.border || '#E5E5E5',
   },
 
   selectedOptionButton: {
-    backgroundColor: theme.primary + '20',
+    backgroundColor: theme.primary + '15',
     borderColor: theme.primary,
   },
 
@@ -1440,57 +1528,40 @@ const styles = (theme: Theme) => StyleSheet.create({
     fontWeight: '700',
   },
 
-  infoIcon: {
-    color: theme.primary
-  },
-
-  infoButton: {
-    backgroundColor: theme.button_darker_primary,
-    borderRadius: 100,
-    height: 40,
-    width: 40,
-    alignContent: "center",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-
   modalInner: {
     // This prevents the tap from propagating to the overlay
   },
 
+  // Info Modal Specific Styles
   creatorInfo: {
-    backgroundColor: theme.background,
-    borderWidth: 2,
-    borderColor: theme.primary,
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 12,
-    minWidth: 300,
-    height: 70,
     flexDirection: 'row',
     alignItems: 'center',
+    backgroundColor: theme.card || '#F8F9FA',
+    borderWidth: 2,
+    borderColor: theme.primary + '30',
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 12,
+    elevation: 2,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
-    elevation: 3,
   },
 
   templateInfo: {
-    backgroundColor: theme.background,
-    borderWidth: 2,
-    borderColor: theme.primary,
-    borderRadius: 12,
-    padding: 16,
-    minWidth: 300,
-    height: 70,
     flexDirection: 'row',
     alignItems: 'center',
+    backgroundColor: theme.card || '#F8F9FA',
+    borderWidth: 2,
+    borderColor: theme.primary + '30',
+    borderRadius: 16,
+    padding: 16,
+    elevation: 2,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
-    elevation: 3,
   },
 
   creatorMainArea: {
@@ -1506,23 +1577,27 @@ const styles = (theme: Theme) => StyleSheet.create({
   },
 
   userImagePlaceholder: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 48,
+    height: 48,
+    borderRadius: 24,
     backgroundColor: theme.primary + '20',
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 12,
+    borderWidth: 2,
+    borderColor: theme.primary + '30',
   },
 
   templateImagePlaceholder: {
-    width: 40,
-    height: 40,
-    borderRadius: 8,
+    width: 48,
+    height: 48,
+    borderRadius: 12,
     backgroundColor: theme.primary + '20',
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 12,
+    borderWidth: 2,
+    borderColor: theme.primary + '30',
   },
 
   creatorTextArea: {
@@ -1534,11 +1609,12 @@ const styles = (theme: Theme) => StyleSheet.create({
   },
 
   sectionLabel: {
-    color: theme.text,
+    color: theme.text + '70',
     fontSize: 12,
     fontWeight: '500',
-    opacity: 0.7,
-    marginBottom: 2,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    marginBottom: 4,
   },
 
   creatorName: {
@@ -1554,45 +1630,38 @@ const styles = (theme: Theme) => StyleSheet.create({
   },
 
   followButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    borderRadius: 8,
+    padding: 12,
+    borderRadius: 12,
     backgroundColor: theme.primary + '15',
     borderWidth: 1,
     borderColor: theme.primary,
   },
 
-  followButtonText: {
-    color: theme.primary,
-    fontSize: 14,
-    fontWeight: '600',
-    marginLeft: 6,
-  },
-
   saveButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    borderRadius: 8,
+    padding: 12,
+    borderRadius: 12,
     backgroundColor: '#10B981' + '15',
     borderWidth: 1,
     borderColor: '#10B981',
   },
 
-  saveButtonText: {
-    color: '#10B981',
-    fontSize: 14,
-    fontWeight: '600',
-    marginLeft: 6,
+  creatorRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginTop: 4,
   },
-  optionBetAmount: {
-    color: theme.text,
-    fontSize: 14,
-    fontWeight: '600',
-    marginBottom: 8,
-    textAlign: 'center',
+
+  creatorActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
   },
+
+  creatorActionButton: {
+    padding: 6,
+    borderRadius: 8,
+    backgroundColor: 'rgba(0,0,0,0.05)',
+  },
+
 });

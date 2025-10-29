@@ -92,7 +92,7 @@ export default function TabLayout(){
                     }}
                 />
                 <Tabs.Screen
-                    name="user/[user]"
+                    name="user/[id]"
                     options = {{
                         title:"Profile",
                         tabBarIcon: ({ focused }: {focused: boolean}) => (
@@ -109,9 +109,9 @@ export default function TabLayout(){
                             </FontAwesome>
                         ),
                         href: {
-                            pathname: 'user/[user]',
+                            pathname: 'user/[id]',
                             params: {
-                                user: authState?.userName,
+                                id: authState?.id,
                             }
                         },
                         

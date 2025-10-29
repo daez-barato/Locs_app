@@ -1,18 +1,18 @@
 {
   "expo": {
-    "name": "Locs_app",
-    "slug": "Locs_app",
+    "name": "SayWhen",
+    "slug": "SayWhen",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/images/icon.png",
-    "scheme": "locs",
+    "icon": "./assets/images/SayWhen.png",
+    "scheme": "SayWHen",
     "deepLinking": true,
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
       "bitcode": false,
-      "bundleIdentifier": "com.daez.Locs_app"
+      "bundleIdentifier": "com.daez.SayWhen"
     },
     "android": {
       "adaptiveIcon": {
@@ -24,7 +24,7 @@
           "action": "VIEW",
           "data": {
             "scheme": "https",
-            "host": "Locs_app.com",
+            "host": "SayWhen.com",
             "pathPrefix": "/"
           },
           "category": ["BROWSABLE", "DEFAULT"]

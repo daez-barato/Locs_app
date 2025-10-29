@@ -1,5 +1,6 @@
+import { Event } from "@/api/interfaces/objects";
 import { fetchUserLiveBets, fetchUserLiveEvents } from "@/api/parleyFunctions";
-import EventCard, { Event } from "@/components/eventCard";
+import EventCard from "@/components/eventCard";
 import { useThemeConfig, Theme } from "@/components/ui/use-theme-config";
 import { FontAwesome } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
@@ -16,8 +17,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function Parleys() {
     const theme = useThemeConfig();
-    const router = useRouter();
-    
+    const router = useRouter()
     const [activeTab, setActiveTab] = useState<'participating' | 'created'>('participating');
     const [participatingEvents, setParticipatingEvents] = useState<Event[]>([]);
     const [createdEvents, setCreatedEvents] = useState<Event[]>([]);
@@ -63,9 +63,6 @@ export default function Parleys() {
             {/* Header */}
             <View style={styles(theme).header}>
                 <Text style={styles(theme).headerTitle}>My Parleys</Text>
-                <TouchableOpacity style={styles(theme).addButton}>
-                    <FontAwesome name="plus" size={20} color={theme.buttonText} />
-                </TouchableOpacity>
             </View>
 
             {/* Stats Overview */}
@@ -136,8 +133,6 @@ export default function Parleys() {
                     <EventCard
                         key={`event-${event.id}-${activeTab}`}
                         event={event}
-                        isCreated={activeTab === 'created'}
-                        isLoading={isLoading}
                     />
                 ))}
                 
@@ -156,7 +151,15 @@ export default function Parleys() {
                                 ? "Discover and join exciting events in the Explore tab" 
                                 : "Create your first event and bring people together"}
                         </Text>
-                        <TouchableOpacity style={styles(theme).emptyButton}>
+                        <TouchableOpacity style={styles(theme).emptyButton}
+                            onPress={() => {
+                                if (activeTab === "created"){
+                                    router.push("/studio/create");
+                                } else if (activeTab === "participating"){
+                                    router.push("/(tabs)/explore");
+                                }
+                            }}
+                        >
                             <Text style={styles(theme).emptyButtonText}>
                                 {activeTab === 'participating' ? 'Explore Events' : 'Create Event'}
                             </Text>

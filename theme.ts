@@ -1,22 +1,22 @@
 import { Theme } from "./components/ui/use-theme-config";
 
 export const lightTheme: Theme = {
-    background: '#A333CC',
-    text: '#000000',
-    primary: '#007AFF',
-    darker_primary: '#00FFAA',
-    button: '#007AFF',
-    buttonText: '#FFFFFF',
+    background: '#772497ff',
+    text: '#33CCA3',
+    primary: '#33CCA3',
+    darker_primary: '#33cca3e5',
+    button: '#A333CC',
+    buttonText: '#ffffff',
     secondary: "#C2653D",
     void: "#1c131f",
     button_darker_primary: "#641e7d",
     destructive: "#ac3239",
     destructiveText: "#ffffff",
-    cardBackground: "#ffffff",
-    cardBorder: "#7d7d7c",
-    card: '#f0f0f0',
-    cardText: '#000000',
-    border: '#dcdcdc',
+    cardBackground: "#713583ff",
+    cardBorder: "#52276bff",
+    card: '#641e7d',
+    cardText: '#ffffff',
+    border: '#33CCA3',
 };
 
 export const darkTheme: Theme = {

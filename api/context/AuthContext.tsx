@@ -1,12 +1,12 @@
 import { createContext, useContext, useEffect, useState } from "react";
-import axios, { AxiosError } from 'axios';
+import axios from 'axios';
 import  * as SecureStore from 'expo-secure-store';
 import { SERVER_PORT } from "../config";
 import axiosInstance from "../utils/axiosInstance";
 import { Platform } from "react-native";
 
 interface AuthProps{
-    authState?: {token: string | null; authenticated: boolean | null; userName?: string | null; email?: string | null};
+    authState?: {token: string | null; authenticated: boolean | null; userName?: string | null; email?: string | null; id?: string | null};
     onRegister?: (username: string, email: string, password: string) => Promise<any>;
     onLogin?: (email: string, password: string) => Promise<any>;
     onLogout?: () => Promise<any>;
@@ -26,11 +26,13 @@ export const AuthProvider = ({children}: any) => {
         authenticated: boolean;
         userName: string;
         email: string;
+        id: string;
     }>({
         token: "",
         authenticated: false,
         userName: "",
         email: "",
+        id: "",
     });
 
     useEffect(() => {
@@ -40,6 +42,7 @@ export const AuthProvider = ({children}: any) => {
                 const token = await SecureStore.getItemAsync("auth_token");
                 const username = await SecureStore.getItemAsync("user_name");
                 const email = await SecureStore.getItemAsync("email");
+                const id = await SecureStore.getItemAsync("id");
 
                 if (token) {
 
@@ -49,6 +52,7 @@ export const AuthProvider = ({children}: any) => {
                         authenticated: true,
                         userName: username as string,
                         email: email as string,
+                        id: id as string,
                     });
                 }
             }
@@ -68,22 +72,26 @@ export const AuthProvider = ({children}: any) => {
             const token = result.data.user.token;
             const usernameResult = result.data.user.userName;
             const emailResult = result.data.user.email;
+            const idResult = result.data.user.id;
     
             setAuthState({
                 token: token,
                 authenticated: true,
                 userName: usernameResult,
                 email: emailResult,
+                id: idResult,
             });
 
             if (!(Platform.OS === 'web')){
                 await SecureStore.setItemAsync("auth_token", token);
                 await SecureStore.setItemAsync("user_name", usernameResult);
                 await SecureStore.setItemAsync("email", emailResult);
+                await SecureStore.setItemAsync("id", idResult.toString());
             } else {
                 localStorage.setItem("auth_token", token);
                 localStorage.setItem("user_name", usernameResult);
                 localStorage.setItem("email", emailResult);
+                localStorage.setItem("id", idResult.toString());
             }
     
             
@@ -100,18 +108,20 @@ export const AuthProvider = ({children}: any) => {
             const result = await axiosInstance.post(`${SERVER_PORT}/auth/login`, { email, password });
 
             if (result.status !== 200){
-                throw new Error('Login error: ', result.data.error);
+                throw new Error(`Login error: ${result.data.error}`);
             }
     
             const token = result.data.user.token;
             const usernameResult = result.data.user.username;
             const emailResult = result.data.user.email;
+            const idResult = result.data.user.id;
     
             setAuthState({
                 token: token,
                 authenticated: true,
                 userName: usernameResult,
                 email: emailResult,
+                id: idResult,
             });
 
             
@@ -119,10 +129,12 @@ export const AuthProvider = ({children}: any) => {
                 await SecureStore.setItemAsync("auth_token", token);
                 await SecureStore.setItemAsync("user_name", usernameResult);
                 await SecureStore.setItemAsync("email", emailResult);
+                await SecureStore.setItemAsync("id", idResult.toString());
             } else {
                 localStorage.setItem("auth_token", token);
                 localStorage.setItem("user_name", usernameResult);
                 localStorage.setItem("email", emailResult);
+                localStorage.setItem("id", idResult.toString());
             };
             
             return result.data;
@@ -143,6 +155,7 @@ export const AuthProvider = ({children}: any) => {
             authenticated: false,
             userName: "",
             email: "",
+            id: "",
         });
     };
 

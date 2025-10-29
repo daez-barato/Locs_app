@@ -1,3 +1,4 @@
+import { Event } from "@/api/interfaces/objects";
 import { useThemeConfig, Theme } from "@/components/ui/use-theme-config";
 import { FontAwesome } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
@@ -11,34 +12,17 @@ import {
     Animated
 } from "react-native";
 
-export interface Event {
-    id: string;
-    title: string;
-    description: string;
-    thumbnail: string;
-    expire_date: string;
-    created_at: string;
-    participants_count: number;
-    locked: boolean;
-    category?: string;
-    is_creator: boolean;
-}
-
-interface EventCardProps {
-    event: Event;
-    isCreated?: boolean;
-    isLoading?: boolean;
-}
-
-export default function EventCard({ event, isCreated = false, isLoading = false }: EventCardProps) {
+export default function EventCard({event}: {event: Event}) {
     const theme = useThemeConfig();
     const router = useRouter();
 
-    const getStatusColor = (locked: boolean) => {
-        return locked ? '#FF6B6B' : theme.primary;
+    const getStatusColor = (locked: boolean, decided: boolean) => {
+        if (decided) return theme.destructive; // Green for decided
+        return locked ? theme.secondary : theme.primary;
     };
 
-    const getStatusText = (locked: boolean) => {
+    const getStatusText = (locked: boolean, decided: boolean) => {
+        if (decided) return 'Decided';
         return locked ? 'Locked' : 'Open';
     };
 
@@ -59,8 +43,8 @@ export default function EventCard({ event, isCreated = false, isLoading = false 
             style={[
                 styles(theme).eventCard,
                 { 
-                    opacity: isLoading ? 0.5 : 1,
-                    transform: [{ scale: isLoading ? 0.95 : 1 }]
+                    opacity: 1,
+                    transform: [{ scale: 1 }]
                 }
             ]}
         >
@@ -71,16 +55,17 @@ export default function EventCard({ event, isCreated = false, isLoading = false 
             >
                 <Image 
                     source={{ uri: event.thumbnail }} 
-                    style={styles(theme).eventImage} 
+                    style={styles(theme).eventImage}
+                    resizeMode="cover"
                 />
                 <View style={styles(theme).eventContent}>
                     <View style={styles(theme).eventHeader}>
                         <Text style={styles(theme).eventTitle} numberOfLines={2}>
                             {event.title}
                         </Text>
-                        <View style={[styles(theme).statusBadge, { backgroundColor: getStatusColor(event.locked) }]}>
+                        <View style={[styles(theme).statusBadge, { backgroundColor: getStatusColor(event.locked, event.decided) }]}>
                             <Text style={styles(theme).statusText}>
-                                {getStatusText(event.locked)}
+                                {getStatusText(event.locked, event.decided)}
                             </Text>
                         </View>
                     </View>
@@ -106,11 +91,6 @@ export default function EventCard({ event, isCreated = false, isLoading = false 
                     </View>
                     
                     <View style={styles(theme).eventFooter}>
-                        {event.category && (
-                            <View style={styles(theme).categoryTag}>
-                                <Text style={styles(theme).categoryText}>{event.category}</Text>
-                            </View>
-                        )}
                         
                         {event.is_creator && (
                             <View style={styles(theme).creatorBadge}>
@@ -137,6 +117,8 @@ const styles = (theme: Theme) => StyleSheet.create({
         shadowRadius: 6,
         elevation: 3,
         overflow: 'hidden',
+        borderWidth: 1,
+        borderColor: theme.cardBorder + "40",
     },
     cardTouchable: {
         flexDirection: 'row',

@@ -1,10 +1,10 @@
 import React, { useState } from "react";
-import { View, TextInput, Button, Text, StyleSheet } from "react-native";
+import { View, TextInput, Button, Text, StyleSheet, Image, TouchableOpacity } from "react-native";
 import { useAuth } from "@/api/context/AuthContext";
-import { useThemeConfig } from "@/components/ui/use-theme-config";
+import { Theme, useThemeConfig } from "@/components/ui/use-theme-config";
 
 export default function SignIn() {
-    const colors = useThemeConfig();
+    const theme = useThemeConfig();
     const { onLogin, onRegister } = useAuth();
 
     const [isRegistering, setIsRegistering] = useState(false); // Toggle between login and register
@@ -12,6 +12,7 @@ export default function SignIn() {
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [error, setError] = useState("");
+    const [confirmPassword, setConfirmPassword] = useState("");
 
     const handleLogin = async () => {
         if (onLogin) {
@@ -24,75 +25,110 @@ export default function SignIn() {
         }
     };
 
+    const isValidEmail = (email: string) => {
+        const regex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        return regex.test(email);
+    };
+
     const handleRegister = async () => {
+        if (!username || !email || !password || !confirmPassword) {
+            setError("All fields are required.");
+            return;
+        }
+
+        if (!isValidEmail(email)) {
+            setError("Invalid email format.");
+            return;
+        }
+
+        if (password !== confirmPassword) {
+            setError("Passwords do not match.");
+            return;
+        }
+
         if (onRegister) {
             const result = await onRegister(username, email, password);
-            if (result?.error) {
-                setError(result.msg);
-            } else {
-                setError(""); // Clear error on success
-            }
+            setError(result?.error ? result.msg : "");
         }
     };
 
-    
-
     return (
-        <View style={[styles.container, { backgroundColor: colors.background }]}>
-            <Text style={[styles.title, { color: colors.primary }]}>
+        <View style={[styles(theme).container, { backgroundColor: theme.background }]}>
+            <Image
+                source={require('@/assets/images/SayWhen.png')} 
+                style={styles(theme).logo}
+                resizeMode="contain"
+            />
+            <Text style={[styles(theme).title, { color: theme.primary }]}>
                 {isRegistering ? "Register" : "Login"}
             </Text>
 
             {isRegistering && (
                 <TextInput
-                    style={styles.input}
+                    style={styles(theme).input}
                     placeholder="Username"
-                    placeholderTextColor={colors.secondary}
+                    placeholderTextColor={theme.secondary}
                     value={username}
                     onChangeText={setUsername}
                 />
             )}
-
             <TextInput
-                style={styles.input}
+                style={styles(theme).input}
                 placeholder="Email"
-                placeholderTextColor={colors.secondary}
+                placeholderTextColor={theme.secondary}
                 value={email}
                 onChangeText={setEmail}
                 keyboardType="email-address"
                 autoCapitalize="none"
             />
-
             <TextInput
-                style={styles.input}
+                style={styles(theme).input}
                 placeholder="Password"
-                placeholderTextColor={colors.secondary}
+                placeholderTextColor={theme.secondary}
                 value={password}
                 onChangeText={setPassword}
                 secureTextEntry
             />
 
-            {error ? <Text style={styles.error}>{error}</Text> : null}
+            {isRegistering && (
+                <TextInput
+                    style={styles(theme).input}
+                    placeholder="Confirm Password"
+                    placeholderTextColor={theme.secondary}
+                    value={confirmPassword}
+                    onChangeText={setConfirmPassword}
+                    secureTextEntry
+                />
+            )}
 
-            <Button
-                title={isRegistering ? "Register" : "Login"}
-                onPress={isRegistering ? handleRegister : handleLogin}
-                color={colors.primary}
-            />
+            {error ? <Text style={styles(theme).error}>{error}</Text> : null}
 
-            <Button
-                title={isRegistering ? "Switch to Login" : "Switch to Register"}
-                onPress={() => {
-                    setIsRegistering(!isRegistering);
-                    setError(""); // Clear error when switching modes
-                }}
-                color={colors.secondary}
-            />
+            <TouchableOpacity
+            style={[styles(theme).button, { backgroundColor: theme.primary }]}
+            onPress={isRegistering ? handleRegister : handleLogin}
+            >
+            <Text style={styles(theme).buttonText}>
+                {isRegistering ? "Register" : "Login"}
+            </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+            style={[styles(theme).button, { backgroundColor: theme.secondary }]}
+            onPress={() => {
+                setIsRegistering(!isRegistering);
+                setError("");
+            }}
+            >
+            <Text style={styles(theme).buttonText}>
+                {isRegistering ? "Switch to Login" : "Switch to Register"}
+            </Text>
+            </TouchableOpacity>
+
         </View>
     );
 }
 
-const styles = StyleSheet.create({
+const styles = (theme: Theme) => StyleSheet.create({
     container: {
         flex: 1,
         justifyContent: "center",
@@ -116,5 +152,24 @@ const styles = StyleSheet.create({
     error: {
         color: "red",
         marginBottom: 10,
+    },
+    logo: {
+        borderRadius: 20,
+        width: 140,
+        height: 140,
+        elevation: 5,
+        marginBottom: 20
+    },
+    button: {
+        paddingVertical: 12,
+        borderRadius: 8,
+        width: 200,
+        alignItems: 'center',
+        marginVertical: 8,
+    },
+    buttonText: {
+        color: '#fff',
+        fontSize: 16,
+        fontWeight: '600',
     },
 });
