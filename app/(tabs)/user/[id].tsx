@@ -22,13 +22,14 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import { fetchUserCreatedEvents, fetchUserParticipatedEvents } from "@/api/profileFuntions";
 import { FontAwesome } from "@expo/vector-icons";
 import EventCard from "@/components/eventCard";
-import { changePrivacy, getUserProfile } from "@/api/user/userInfo";
+import { changePrivacy, getUserProfile, updateProfilePicture } from "@/api/user/userInfo";
 import { SearchUser, UserProfile } from "@/api/interfaces/objects";
 import UserCard from "@/components/userCard";
 import { followRequest, getFollowersList, getFollowingList, unfollowRequest, updateRequests } from "@/api/followers/followers";
+import * as ImagePicker from 'expo-image-picker';
 
 type ActiveList = "created" | "participated";
-type ModalType = "settings" | "followers" | "following" | "requests" | null;
+type ModalType = "settings" | "followers" | "following" | "requests" | "imageUpdate" | null;
 
 export default function Profile() {
   const [followersOffset, setFollowersOffset] = useState(0);
@@ -36,6 +37,7 @@ export default function Profile() {
   const [hasMoreFollowers, setHasMoreFollowers] = useState(true);
   const [hasMoreFollowing, setHasMoreFollowing] = useState(true);
   const [loadingMore, setLoadingMore] = useState<boolean>(true);
+  const [userImage, setUserImage] = useState<string | null>(null);
 
   const [createdOffset, setCreatedOffset] = useState(0);
   const [participatedOffset, setParticipatedOffset] = useState(0);
@@ -75,6 +77,7 @@ export default function Profile() {
       setUser(userData.user);
       setCreatedOffset(userData.user.created.length);
       setParticipatedOffset(userData.user.participated.length);
+      setUserImage(userData.user.profile_image);
       
     } catch (err) {
       console.error("Error fetching data:", err);
@@ -240,6 +243,34 @@ export default function Profile() {
     { title: "Logout", icon: "sign-out", onPress: handleLogout, isDestructive: true },
   ];
 
+  const pickImageAsync = async () => {
+    let result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ["images"],
+      allowsEditing: true,
+      quality: 0.75,
+      aspect: [226, 140],
+    });
+
+    if (!result.canceled) {
+      setUserImage(result.assets[0].uri);
+
+      try {
+        const response = await updateProfilePicture(result.assets[0].uri);
+
+        if (response.error){
+          throw new Error(response.msg);
+        };
+
+      } catch (error) {
+        console.error("Profile picture update error:", error);
+        Alert.alert("Error", "Failed to update profile picture. Please try again.");
+      }  
+
+    } else {
+      alert("You did not select any image.");
+    }
+  };
+
   const renderModal = () => {
     const modalProps = {
       visible: activeModal !== null,
@@ -397,6 +428,32 @@ export default function Profile() {
             </SafeAreaView>
           </Modal>
         );
+      case "imageUpdate":
+        return (
+          <Modal
+            visible={activeModal === "imageUpdate"}
+            animationType="slide"
+            presentationStyle="pageSheet"
+            onRequestClose={() => setActiveModal(null)}
+          >
+            <SafeAreaView style={styles(theme).modalContainer}>
+              <View style={styles(theme).modalHeader}>
+                <Text style={styles(theme).modalTitle}>Update Profile Image</Text>
+                <TouchableOpacity
+                  onPress={() => setActiveModal(null)}
+                  style={styles(theme).closeButton}
+                >
+                  <FontAwesome name="times" size={24} color={theme.text} />
+                </TouchableOpacity>
+              </View>
+
+              {/* Placeholder content */}
+              <View style={styles(theme).emptyContainer}>
+                <Text style={styles(theme).emptyText}>Profile image update functionality coming soon!</Text>
+              </View>
+            </SafeAreaView>
+          </Modal>
+        );
 
       default:
         return null;
@@ -521,12 +578,12 @@ export default function Profile() {
 
         {/* Profile Section */}
         <View style={styles(theme).profileSection}>
-          <View style={styles(theme).profileImageContainer}>
+          <TouchableOpacity style={styles(theme).profileImageContainer} onPress={user?.owner ? pickImageAsync : undefined}>
             <Image
-              source={{ uri: user?.profile_image }}
+              source={{ uri: userImage || undefined}}
               style={styles(theme).profileImage}
             />
-          </View>
+          </TouchableOpacity>
 
           <Text style={styles(theme).username}>{user?.username}</Text>
 
@@ -695,14 +752,21 @@ const styles = (theme: Theme) => StyleSheet.create({
     paddingVertical: 12,
   },
   profileImageContainer: {
-    marginBottom: 12,    borderRadius: 70,
+    marginBottom: 12,
+    borderRadius: 70,
+    shadowRadius: 10,
+    shadowColor: '#fff',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 1,
+    elevation: 10,
   },
   profileImage: {
     width: 226,
     height: 140,
     borderWidth: 1,
     borderColor: theme.primary,
-    elevation: 10
+    elevation: 10,
+    opacity: 0.95,
   },
   username: {
     fontSize: 24,

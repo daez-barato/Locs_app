@@ -39,3 +39,33 @@ export const changePrivacy = async ():
         return {error: true, msg: "An error occurred"};      
     }
 };
+
+export const updateProfilePicture = async (imageUri: string):
+    Promise<
+    { error: false; user: UserProfile}
+    | { error: true; msg: string }
+    > => {
+    try {
+        const formData = new FormData();
+        formData.append("image", {
+            uri: imageUri,
+            name: "profile.jpg",
+            type: "image/jpeg",
+        } as any);
+
+        const result = await axiosInstance.post(`/users/settings/uploadProfilePicture`, formData, {
+            headers: {
+                "Content-Type": "multipart/form-data",
+            },
+        });
+
+        if (result.status !== 201) {
+            throw new Error("Failed to update profile picture");
+        };
+
+        return {...result.data as {user: UserProfile }, error: false};
+
+    } catch (err){
+        return {error: true, msg: "An error occurred"};      
+    }
+};
