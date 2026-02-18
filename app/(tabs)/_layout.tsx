@@ -3,7 +3,7 @@ import { Tabs, useFocusEffect, useRouter} from "expo-router";
 import FontAwesome from "@expo/vector-icons/FontAwesome";
 import { Theme, useThemeConfig } from "@/components/ui/use-theme-config";
 import { useAuth } from "@/api/context/AuthContext";
-import { useCallback } from "react";
+import { useCallback, useEffect } from "react";
 import { StyleSheet, TouchableOpacity } from "react-native";
 
 
@@ -12,13 +12,13 @@ export default function TabLayout(){
     const router = useRouter();
     const { authState } = useAuth();
 
-    useFocusEffect(
-        useCallback( () => {
+    useEffect(
+        () => {
             if (!authState?.authenticated) {
                 router.replace('/(auth)');
             }
-        }, [authState?.authenticated])
-    );
+        }
+    , [authState?.authenticated]);
 
     return (
         <>

@@ -65,6 +65,7 @@ export default function Profile() {
       if (isRefresh) setRefreshing(true);
       else setLoading(true)
 
+      console.log("Fetching user profile for ID:", id, "Auth user:", authState?.id);
       const userData = await getUserProfile(id as string);
 
       if (userData.error) {
@@ -992,8 +993,6 @@ const styles = (theme: Theme) => StyleSheet.create({
     height: 80,
     textAlignVertical: 'top',
   },
-
-  // User List Modal
   userList: {
     flex: 1,
     paddingHorizontal: 20,

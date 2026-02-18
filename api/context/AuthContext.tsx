@@ -1,7 +1,6 @@
 import { createContext, useContext, useEffect, useState } from "react";
 import axios from 'axios';
 import  * as SecureStore from 'expo-secure-store';
-import { SERVER_PORT } from "../config";
 import axiosInstance from "../utils/axiosInstance";
 import { Platform } from "react-native";
 
@@ -58,12 +57,12 @@ export const AuthProvider = ({children}: any) => {
             }
         }
         
-            loadToken();
+        loadToken();
     }, []);
 
     const register = async (username: string, email: string, password: string) => {
         try {
-            const result = await axiosInstance.post(`${SERVER_PORT}/auth/register`, {
+            const result = await axiosInstance.post(`/auth/register`, {
                 username,
                 email,
                 password,
@@ -94,7 +93,6 @@ export const AuthProvider = ({children}: any) => {
                 localStorage.setItem("id", idResult.toString());
             }
     
-            
             return result.data;
     
         } catch (err: any) {
@@ -105,7 +103,7 @@ export const AuthProvider = ({children}: any) => {
     
     const login = async (email: string, password: string) => {
         try {
-            const result = await axiosInstance.post(`${SERVER_PORT}/auth/login`, { email, password });
+            const result = await axiosInstance.post(`/auth/login`, { email, password });
 
             if (result.status !== 200){
                 throw new Error(`Login error: ${result.data.error}`);
