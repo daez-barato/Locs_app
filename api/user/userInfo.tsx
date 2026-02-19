@@ -53,7 +53,7 @@ export const updateProfilePicture = async (imageUri: string):
             type: "image/jpeg",
         } as any);
 
-        const result = await axiosInstance.post(`/users/settings/uploadProfilePicture`, formData, {
+        const result = await axiosInstance.put(`/users/settings/uploadProfilePicture`, formData, {
             headers: {
                 "Content-Type": "multipart/form-data",
             },
