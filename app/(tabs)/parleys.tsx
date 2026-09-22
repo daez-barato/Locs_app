@@ -1,4 +1,4 @@
-import { Event } from "@/api/interfaces/objects";
+import { Event } from "@/types/interfaces";
 import { fetchUserLiveBets, fetchUserLiveEvents } from "@/api/parleyFunctions";
 import EventCard from "@/components/eventCard";
 import { useThemeConfig, Theme } from "@/components/ui/use-theme-config";

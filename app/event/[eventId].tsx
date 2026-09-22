@@ -4,50 +4,24 @@ import { Theme, useThemeConfig } from '@/components/ui/use-theme-config';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useEffect, useState } from 'react';
 import { endEvent, eventInformation, fetchEventBets, lockEvent, placeBet, postTemplate, saveTemplate } from '@/api/eventFunctions';
-import { useAuth } from '@/api/context/AuthContext';
 import * as Linking from 'expo-linking';
 import { FontAwesome5 } from '@expo/vector-icons';
-import { useCoins } from '@/api/context/coinContext';
 import { LinearGradient } from 'expo-linear-gradient';
 import { followRequest } from '@/api/followers/followers';
+import { useAuthContext } from '@/hooks/use-auth-context';
+import { useCoinContext } from '@/hooks/use-coin-context';
+import { Bet, ExpandedEvent } from '@/types/interfaces';
 
 const { width } = Dimensions.get('window');
 
-type EventInfoType = {
-  questions: Record<string, string[]>;
-  expire_date: string;
-  locked: boolean;
-  decided: boolean;
-  public: boolean;
-  event_creator_id: string;
-  event_creator: string;
-  template_id: string;
-  title: string;
-  description: string;
-  template_creator_id: string;
-  template_posted?: boolean | undefined;
-  image_url?: string | undefined; 
-  template_saved: boolean;
-  is_following: boolean;
-  has_requested: boolean;
-};
-
-type BetInfo = {
-  totalPot: number;
-  userBet?: {
-    options: Record<string, number>;
-  };
-  optionPots: Record<string, number>;
-};
-
 export default function eventScreen() {
   const { eventId } = useLocalSearchParams() as { eventId: string };
-  const { coins, fetchCoins } = useCoins();
+  const coins = useCoinContext().coins;
   const [refresh, setRefresh] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const theme = useThemeConfig();
-  const [eventInfo, setEventInfo] = useState<EventInfoType | null>(null);
-  const [betInfos, setBetInfos] = useState<Record<string, BetInfo>>({});
+  const [eventInfo, setEventInfo] = useState<ExpandedEvent | null>(null);
+  const [betInfos, setBetInfos] = useState<Record<string, Bet>>({});
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [showLockModal, setShowLockModal] = useState(false);
   const [showEndEventModal, setShowEndEventModal] = useState(false);
@@ -55,12 +29,10 @@ export default function eventScreen() {
   const [modalBetAmount, setModalBetAmount] = useState<string>('10');
   const [winningOptions, setWinningOptions] = useState<Record<string, string>>({});
   const [postTemplateModal, setPostTemplateModal] = useState(false);
-  const { authState } = useAuth();
-  const userName = authState?.userName;
+  const userName = useAuthContext().user?.username || '';
   const url = Linking.createURL(`event/${eventId}`);
 
-  // Check if current user is the event creator
-  const isEventCreator = eventInfo?.event_creator === userName;
+  const isEventCreator = eventInfo?.is_creator;
 
   const onRefresh = async () => {
     setRefreshing(true);
@@ -87,9 +59,7 @@ export default function eventScreen() {
           return;
         }
 
-        fetchCoins();
-
-        const bet_infos: Record<string, BetInfo> = {};
+        const bet_infos: Record<string, Bet> = {};
         const questions = event.questions as Record<string, string[]>;
 
         for (const [question, options] of Object.entries(questions)) {
@@ -284,7 +254,7 @@ export default function eventScreen() {
   const OptionCard = ({ option, question, betInfo }: { 
     option: string, 
     question: string, 
-    betInfo: BetInfo 
+    betInfo: Bet
   }) => {
     const optionBetAmount = betInfo.optionPots[option];
     const betPercentage = betInfo.totalPot > 0 ? ((optionBetAmount / betInfo.totalPot) * 100) : 0;
@@ -435,9 +405,9 @@ export default function eventScreen() {
         <View style={styles(theme).eventHeader}>
           {/* 16:9 Event Image */}
           <View style={styles(theme).eventImageContainer}>
-            {eventInfo?.image_url ? (
+            {eventInfo?.thumbnail_url ? (
               <Image 
-                source={{ uri: eventInfo.image_url }}
+                source={{ uri: eventInfo.thumbnail_url }}
                 style={styles(theme).eventImage}
                 resizeMode="cover"
               />
@@ -498,19 +468,19 @@ export default function eventScreen() {
             <View style={styles(theme).creatorRow}>
               <TouchableOpacity
                 style={styles(theme).creatorBadge}
-                onPress={() => router.push(`/(tabs)/user/${eventInfo?.event_creator_id}`)}
+                onPress={() => router.push(`/(tabs)/user/${eventInfo?.creator.username}`)}
               >
                 <FontAwesome5 name="user" size={12} color={theme.primary} />
-                <Text style={styles(theme).creatorText}>by {eventInfo?.event_creator}</Text>
+                <Text style={styles(theme).creatorText}>by {eventInfo?.creator.username}</Text>
               </TouchableOpacity>
 
               <View style={styles(theme).creatorActions}>
                 {/* Follow button */}
-                {(!eventInfo?.is_following && !eventInfo?.has_requested) && 
+                {(!eventInfo?.creator.is_following && !eventInfo?.creator.has_requested) && 
                   <TouchableOpacity
                     style={styles(theme).creatorActionButton}
                     onPress={async () => {
-                      await followRequest(eventInfo?.event_creator_id as string);
+                      await followRequest(eventInfo?.creator.id as string);
                     }}
                   >
                     <FontAwesome5 name="user-plus" size={14} color={theme.primary} />

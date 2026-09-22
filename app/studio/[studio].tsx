@@ -12,7 +12,7 @@ import TemplateCard from "@/components/templateCard";
 import { saveTemplate } from "@/api/eventFunctions";
 import * as ImagePicker from "expo-image-picker";
 import * as MediaLibrary from "expo-media-library";
-import { SearchTemplate } from "@/api/interfaces/objects";
+import { SearchTemplate } from "@/types/interfaces";
 
 export default function Studio(){
     const params = useLocalSearchParams();

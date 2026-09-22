@@ -1,6 +1,6 @@
 
-import { fetchFollowingPosts } from "@/api/fyFunctions";
-import { Event } from "@/api/interfaces/objects";
+import { fetchFollowingPosts } from "@/services/events";
+import { Event } from "@/types/interfaces";
 import EventCard from "@/components/eventCard";
 import { useThemeConfig, Theme } from "@/components/ui/use-theme-config"
 import { FontAwesome } from "@expo/vector-icons";
@@ -20,30 +20,23 @@ export default function Home(){
   const [activeTab, setActiveTab] = useState<'Following' | 'Shop'>('Following');
 
   async function fetchData(currentOffset = 0) {
-    try {
-      const posts = await fetchFollowingPosts(currentOffset);
-      if (posts.error) throw new Error(posts.message);
+    const posts = await fetchFollowingPosts(currentOffset);
 
-      updateFollowingPostsList(prev => {
-        const merged = [...prev, ...posts.events];
-        const unique = Array.from(
-          new Map(merged.map(e => [e.id, e])).values()
-        );
-        return unique;
-      });
+    updateFollowingPostsList(prev => {
+      const merged = [...prev, ...posts];
+      const unique = Array.from(
+        new Map(merged.map(e => [e.id, e])).values()
+      );
+      return unique;
+    });
 
-      if (posts.events.length > 0) {
-        setOffset(currentOffset + posts.events.length);
-      } else {
-        setHasMore(false);
-      }
-
-    } catch (err) {
-      console.error('Failed to fetch data', err);
-    } finally {
-      setLoadingMore(false);
-      activateRefresh(false);
+    if (posts.length > 0) {
+      setOffset(currentOffset + posts.length);
+    } else {
+      setHasMore(false);
     }
+    setLoadingMore(false);
+    activateRefresh(false);
   }
 
   useEffect( () =>{
