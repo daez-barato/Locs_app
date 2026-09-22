@@ -1,33 +1,38 @@
 import React, { useState } from "react";
-import { View, TextInput, Button, Text, StyleSheet, Image, TouchableOpacity } from "react-native";
-import { useAuth } from "@/api/context/AuthContext";
+import { View, TextInput, Text, StyleSheet, Image, TouchableOpacity, KeyboardAvoidingView, Platform, ScrollView } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { Theme, useThemeConfig } from "@/components/ui/use-theme-config";
+import { supabase } from "@/lib/supabase";
+import { isValidEmail } from "@/utils/parsing";
 
 export default function SignIn() {
     const theme = useThemeConfig();
-    const { onLogin, onRegister } = useAuth();
 
-    const [isRegistering, setIsRegistering] = useState(false); // Toggle between login and register
-    const [username, setUsername] = useState(""); // For registration
+    const [isRegistering, setIsRegistering] = useState(false);
+    const [username, setUsername] = useState("");
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [error, setError] = useState("");
     const [confirmPassword, setConfirmPassword] = useState("");
 
     const handleLogin = async () => {
-        if (onLogin) {
-            const result = await onLogin(email, password);
-            if (result?.error) {
-                setError(result.msg);
-            } else {
-                setError(""); // Clear error on success
+        try {
+            if (!isValidEmail(email)) {
+                setError("Invalid email format.");
+                return;
             }
-        }
-    };
+            const response = await supabase.auth.signInWithPassword({
+                email: email,
+                password: password,
+            });
 
-    const isValidEmail = (email: string) => {
-        const regex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        return regex.test(email);
+            if (response.error) {
+                throw new Error();
+            }
+
+        } catch (error) {
+            setError("Login failed. Please check your credentials.");
+        }
     };
 
     const handleRegister = async () => {
@@ -46,91 +51,131 @@ export default function SignIn() {
             return;
         }
 
-        if (onRegister) {
-            const result = await onRegister(username, email, password);
-            setError(result?.error ? result.msg : "");
+        try {
+            const response = await supabase.auth.signUp({
+                email: email,
+                password: password,
+                options: {
+                    data: {
+                        username: username,
+                    },
+                },
+            })
+
+            if (response.error) {
+                throw new Error();
+            }
+
+            setUsername("");
+            setEmail("");
+            setPassword("");
+            setConfirmPassword("");
+            setError("");
+            setIsRegistering(false);
+
+        } catch (error) {
+            setError("Registration failed. Check your input and please try again.");
         }
     };
 
     return (
-        <View style={[styles(theme).container, { backgroundColor: theme.background }]}>
-            <Image
-                source={require('@/assets/images/SayWhen.png')} 
-                style={styles(theme).logo}
-                resizeMode="contain"
-            />
-            <Text style={[styles(theme).title, { color: theme.primary }]}>
-                {isRegistering ? "Register" : "Login"}
-            </Text>
-
-            {isRegistering && (
-                <TextInput
-                    style={styles(theme).input}
-                    placeholder="Username"
-                    placeholderTextColor={theme.secondary}
-                    value={username}
-                    onChangeText={setUsername}
-                />
-            )}
-            <TextInput
-                style={styles(theme).input}
-                placeholder="Email"
-                placeholderTextColor={theme.secondary}
-                value={email}
-                onChangeText={setEmail}
-                keyboardType="email-address"
-                autoCapitalize="none"
-            />
-            <TextInput
-                style={styles(theme).input}
-                placeholder="Password"
-                placeholderTextColor={theme.secondary}
-                value={password}
-                onChangeText={setPassword}
-                secureTextEntry
-            />
-
-            {isRegistering && (
-                <TextInput
-                    style={styles(theme).input}
-                    placeholder="Confirm Password"
-                    placeholderTextColor={theme.secondary}
-                    value={confirmPassword}
-                    onChangeText={setConfirmPassword}
-                    secureTextEntry
-                />
-            )}
-
-            {error ? <Text style={styles(theme).error}>{error}</Text> : null}
-
-            <TouchableOpacity
-            style={[styles(theme).button, { backgroundColor: theme.primary }]}
-            onPress={isRegistering ? handleRegister : handleLogin}
+        <SafeAreaView style={[styles(theme).safeArea, { backgroundColor: theme.background }]}>
+            <KeyboardAvoidingView
+                style={styles(theme).flex}
+                behavior={Platform.OS === "ios" ? "padding" : "height"}
             >
-            <Text style={styles(theme).buttonText}>
-                {isRegistering ? "Register" : "Login"}
-            </Text>
-            </TouchableOpacity>
+                <ScrollView
+                    contentContainerStyle={styles(theme).container}
+                    keyboardShouldPersistTaps="handled"
+                >
+                    <Image
+                        source={require('@/assets/images/SayWhen.png')}
+                        style={styles(theme).logo}
+                        resizeMode="contain"
+                    />
+                    <Text style={[styles(theme).title, { color: theme.primary }]}>
+                        {isRegistering ? "Register" : "Login"}
+                    </Text>
 
-            <TouchableOpacity
-            style={[styles(theme).button, { backgroundColor: theme.secondary }]}
-            onPress={() => {
-                setIsRegistering(!isRegistering);
-                setError("");
-            }}
-            >
-            <Text style={styles(theme).buttonText}>
-                {isRegistering ? "Switch to Login" : "Switch to Register"}
-            </Text>
-            </TouchableOpacity>
+                    {isRegistering && (
+                        <TextInput
+                            style={styles(theme).input}
+                            placeholder="Username"
+                            placeholderTextColor={theme.cardText + '80'}
+                            value={username}
+                            onChangeText={setUsername}
+                            autoCapitalize="none"
+                        />
+                    )}
+                    <TextInput
+                        style={styles(theme).input}
+                        placeholder="Email"
+                        placeholderTextColor={theme.cardText + '80'}
+                        value={email}
+                        onChangeText={setEmail}
+                        keyboardType="email-address"
+                        autoCapitalize="none"
+                    />
+                    <TextInput
+                        style={styles(theme).input}
+                        placeholder="Password"
+                        placeholderTextColor={theme.cardText + '80'}
+                        value={password}
+                        onChangeText={setPassword}
+                        secureTextEntry
+                    />
 
-        </View>
+                    {isRegistering && (
+                        <TextInput
+                            style={styles(theme).input}
+                            placeholder="Confirm Password"
+                            placeholderTextColor={theme.cardText + '80'}
+                            value={confirmPassword}
+                            onChangeText={setConfirmPassword}
+                            secureTextEntry
+                        />
+                    )}
+
+                    {error ? <Text style={styles(theme).error}>{error}</Text> : null}
+
+                    <TouchableOpacity
+                        style={[styles(theme).button, { backgroundColor: theme.primary }]}
+                        onPress={isRegistering ? handleRegister : handleLogin}
+                        activeOpacity={0.8}
+                    >
+                        <Text style={styles(theme).buttonText}>
+                            {isRegistering ? "Register" : "Login"}
+                        </Text>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity
+                        style={[styles(theme).button, { backgroundColor: theme.secondary }]}
+                        onPress={() => {
+                            setIsRegistering(!isRegistering);
+                            setError("");
+                        }}
+                        activeOpacity={0.8}
+                    >
+                        <Text style={styles(theme).buttonText}>
+                            {isRegistering ? "Switch to Login" : "Switch to Register"}
+                        </Text>
+                    </TouchableOpacity>
+
+                </ScrollView>
+            </KeyboardAvoidingView>
+        </SafeAreaView>
     );
 }
 
 const styles = (theme: Theme) => StyleSheet.create({
-    container: {
+    safeArea: {
         flex: 1,
+    },
+    flex: {
+        flex: 1,
+    },
+    container: {
+        flexGrow: 1,
         justifyContent: "center",
         alignItems: "center",
         padding: 20,
@@ -142,16 +187,19 @@ const styles = (theme: Theme) => StyleSheet.create({
     },
     input: {
         width: "100%",
-        padding: 10,
-        marginVertical: 10,
+        padding: 12,
+        marginVertical: 8,
         borderWidth: 1,
-        borderColor: "#ccc",
-        borderRadius: 5,
-        color: "#000",
+        borderColor: theme.cardBorder,
+        borderRadius: 8,
+        backgroundColor: theme.card,
+        color: theme.cardText,
     },
     error: {
-        color: "red",
+        color: theme.destructive,
+        marginTop: 4,
         marginBottom: 10,
+        textAlign: "center",
     },
     logo: {
         borderRadius: 20,
@@ -161,14 +209,14 @@ const styles = (theme: Theme) => StyleSheet.create({
         marginBottom: 20
     },
     button: {
-        paddingVertical: 12,
+        paddingVertical: 14,
         borderRadius: 8,
-        width: 200,
+        width: "100%",
         alignItems: 'center',
         marginVertical: 8,
     },
     buttonText: {
-        color: '#fff',
+        color: theme.buttonText,
         fontSize: 16,
         fontWeight: '600',
     },
