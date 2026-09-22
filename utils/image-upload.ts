@@ -20,6 +20,47 @@ function formatMb(bytes: number): string {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
+/**
+ * Turns event-thumbnail storage paths into displayable URLs.
+ *
+ * The bucket is private, so the raw path stored on a template renders as a
+ * broken image. Signs the whole page of results in one request rather than one
+ * per card, and leaves already-signed/absolute URLs untouched.
+ */
+export async function signThumbnails<T extends Record<string, any>>(
+  rows: T[]
+): Promise<T[]> {
+  const paths = Array.from(
+    new Set(
+      rows
+        .map((r) => r.thumbnail_url as string | null | undefined)
+        .filter((p): p is string => !!p && !p.startsWith("http"))
+    )
+  );
+
+  if (paths.length === 0) return rows;
+
+  const { data, error } = await supabase.storage
+    .from("event-thumbnail")
+    .createSignedUrls(paths, 60 * 60);
+
+  if (error || !data) {
+    // A failed signing shouldn't blank out the list — just render placeholders.
+    console.error("Error signing thumbnails:", error);
+    return rows.map((r) => ({ ...r, thumbnail_url: null }) as T);
+  }
+
+  const byPath = new Map(
+    data.filter((d) => d.signedUrl).map((d) => [d.path as string, d.signedUrl])
+  );
+
+  return rows.map((r) =>
+    r.thumbnail_url && !r.thumbnail_url.startsWith("http")
+      ? ({ ...r, thumbnail_url: byPath.get(r.thumbnail_url) ?? null } as T)
+      : r
+  );
+}
+
 type Bucket = keyof typeof IMAGE_LIMITS;
 
 /**

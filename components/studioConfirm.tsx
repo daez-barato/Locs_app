@@ -16,9 +16,10 @@ type Props = {
   description?: string | undefined;
   image?: string | undefined;
   templateId?: string;
+  onPosted?: () => void;
 }
 
-export default function StudioConfirm({optionsDict, visible, setVisible, title, description, image, templateId}: Props) {
+export default function StudioConfirm({optionsDict, visible, setVisible, title, description, image, templateId, onPosted}: Props) {
   const theme = useThemeConfig();
   const [privacy, setPrivacy] = useState("Private");
   const [time, setTime] = useState("1 hour");
@@ -133,6 +134,7 @@ export default function StudioConfirm({optionsDict, visible, setVisible, title, 
       }
 
       setVisible(false);
+      onPosted?.();
       router.push(`/event/${eventLink}`);
     } catch (error: any) {
       Alert.alert("Error Creating Event:\n",  error.message);

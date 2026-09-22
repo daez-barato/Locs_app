@@ -1,4 +1,5 @@
 import { supabase } from "@/lib/supabase";
+import { signThumbnails } from "@/utils/image-upload";
 
 export const fetchTemplate = async (templateId: string) => {
   try {
@@ -22,7 +23,10 @@ export const fetchSavedTemplates = async () => {
       throw new Error(error.message);
     }
 
-    return data;
+    const signed = await signThumbnails<any>(
+      (data ?? []).map((t: any) => ({ ...t, id: t.template_id }))
+    );
+    return signed.map((t: any) => ({ ...t, thumbnail: t.thumbnail_url }));
   } catch (err: any) {
     return { error: true, msg: err.message };
   }

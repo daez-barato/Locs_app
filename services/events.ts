@@ -1,7 +1,7 @@
 import { supabase } from "@/lib/supabase";
 import { EventDto, TemplateDto } from "@/types/dtos";
 import { Event } from "@/types/interfaces";
-import { uploadImage } from "@/utils/image-upload";
+import { uploadImage, signThumbnails } from "@/utils/image-upload";
 
 export async function fetchFollowingPosts(offset: number): Promise<Event[]> {
 
@@ -16,7 +16,7 @@ export async function fetchFollowingPosts(offset: number): Promise<Event[]> {
 
         const events: Event[] = data.map((event: any) => Event(event));
 
-        return events;
+        return await signThumbnails<Event>(events);
     } catch (err: any) {
         // Rethrow so the feed can tell "nothing to show" apart from "request
         // failed" — returning [] made a network error look like an empty feed.

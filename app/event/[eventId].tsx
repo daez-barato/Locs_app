@@ -3,7 +3,7 @@ import { useLocalSearchParams, router} from 'expo-router';
 import { Theme, useThemeConfig } from '@/components/ui/use-theme-config';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useEffect, useState } from 'react';
-import { endEvent, eventInformation, fetchEventBets, lockEvent, placeBet, postTemplate, saveTemplate } from '@/api/eventFunctions';
+import { deleteEvent, endEvent, eventInformation, fetchEventBets, lockEvent, placeBet, postTemplate, saveTemplate } from '@/api/eventFunctions';
 import * as Linking from 'expo-linking';
 import { FontAwesome5 } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -30,6 +30,8 @@ export default function eventScreen() {
   const [winningOptions, setWinningOptions] = useState<Record<string, string>>({});
   const [postTemplateModal, setPostTemplateModal] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
   const userName = useAuthContext().user?.username || '';
   const url = Linking.createURL(`event/${eventId}`);
 
@@ -133,6 +135,32 @@ export default function eventScreen() {
 
   const handleLockEvent = () => {
     setShowLockModal(true);
+  };
+
+  const confirmDeleteEvent = async () => {
+    setIsDeleting(true);
+    try {
+      const result = await deleteEvent(eventId);
+
+      if (result.error) {
+        Alert.alert('Error', result.msg);
+        return;
+      }
+
+      setShowDeleteModal(false);
+      Alert.alert(
+        'Event deleted',
+        result.refundedUsers
+          ? `${result.refundedCoins} coins were returned to ${result.refundedUsers} ${result.refundedUsers === 1 ? 'person' : 'people'}.`
+          : 'No bets had been placed, so there was nothing to refund.'
+      );
+      router.back();
+    } catch (error) {
+      console.error('Error deleting event:', error);
+      Alert.alert('Error', 'Failed to delete event');
+    } finally {
+      setIsDeleting(false);
+    }
   };
 
   const confirmLockEvent = async () => {
@@ -399,6 +427,15 @@ export default function eventScreen() {
             </TouchableOpacity>
           )}
           
+          {isEventCreator && !eventInfo?.decided && (
+            <TouchableOpacity
+              style={styles(theme).deleteEventButton}
+              onPress={() => setShowDeleteModal(true)}
+            >
+              <FontAwesome5 name="trash" size={14} color="#ffffff" />
+            </TouchableOpacity>
+          )}
+
           {isEventCreator && (
             <>
               {(!eventInfo?.template_posted || !eventInfo.decided) && (
@@ -680,6 +717,48 @@ export default function eventScreen() {
         </View>
       </Modal>
 
+      {/* Delete Event Confirmation Modal */}
+      <Modal
+        visible={showDeleteModal}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setShowDeleteModal(false)}
+      >
+        <View style={styles(theme).modalOverlay}>
+          <View style={styles(theme).modalContent}>
+            <View style={styles(theme).modalHeader}>
+              <FontAwesome5 name="trash" size={24} color={theme.destructive} />
+              <Text style={styles(theme).modalTitle}>Delete Event</Text>
+            </View>
+            <Text style={styles(theme).modalText}>
+              This permanently deletes the event. Everyone who bet gets back exactly
+              what they staked, and this can't be undone.
+            </Text>
+
+            <View style={styles(theme).modalButtons}>
+              <TouchableOpacity
+                style={styles(theme).modalCancelButton}
+                onPress={() => setShowDeleteModal(false)}
+                disabled={isDeleting}
+              >
+                <Text style={styles(theme).modalCancelText}>Cancel</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[styles(theme).modalConfirmButton, styles(theme).modalDeleteButton]}
+                onPress={confirmDeleteEvent}
+                disabled={isDeleting}
+              >
+                <FontAwesome5 name="trash" size={16} color="#ffffff" />
+                <Text style={styles(theme).modalConfirmText}>
+                  {isDeleting ? 'Deleting...' : 'Delete & refund'}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
       {/* Lock Event Confirmation Modal */}
       <Modal
         visible={showLockModal}
@@ -851,6 +930,18 @@ const styles = (theme: Theme) => StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: theme.background,
+  },
+  deleteEventButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    borderRadius: 12,
+    backgroundColor: theme.destructive,
+  },
+  modalDeleteButton: {
+    backgroundColor: theme.destructive,
   },
   loadErrorContainer: {
     flex: 1,

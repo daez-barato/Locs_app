@@ -1,6 +1,6 @@
 import { UserProfile, Event, SearchUser } from "../types/interfaces";
 import { supabase } from "@/lib/supabase";
-import { uploadImage } from "@/utils/image-upload";
+import { uploadImage, signThumbnails } from "@/utils/image-upload";
 
 
 export const getUserProfile = async (username: string): Promise<UserProfile | null> => {
@@ -20,6 +20,30 @@ export const getUserProfile = async (username: string): Promise<UserProfile | nu
     }
 };
 
+
+// get_user_created_events/get_user_participated_events return event_id,
+// template_title and template_image_url, but Event() reads id/title/
+// thumbnail_url — mapping straight through left every row with id undefined,
+// which routed taps to /event/undefined and gave every card the same React key.
+function profileRowToEvent(row: any, viewerId?: string): Event {
+  return Event({
+    id: row.event_id,
+    template_id: row.template_id,
+    expire_date: row.expire_date,
+    title: row.template_title,
+    description: row.template_description,
+    locked: row.locked,
+    decided: row.decided,
+    thumbnail_url: row.template_image_url,
+    creator_username: row.creator_username,
+    is_creator: !!viewerId && row.creator_id === viewerId,
+    participants_count: 0,
+    total_pot: row.total_pot_amount,
+    likes_count: row.likes_count,
+    public: row.is_public,
+  });
+}
+
 export const fetchUserCreatedEvents = async (username: string, offset: number = 0) :Promise<Event[]> => {
   try {
     const {data, error} = await supabase.rpc(`get_user_created_events`, { username: username, page_offset: offset });
@@ -28,7 +52,8 @@ export const fetchUserCreatedEvents = async (username: string, offset: number = 
         throw new Error(error.message);
     };
 
-    return data.map((event: any) => Event(event));
+    const { data: userAuth } = await supabase.auth.getUser();
+    return await signThumbnails<Event>(data.map((e: any) => profileRowToEvent(e, userAuth.user?.id)));
   } catch (err) {
     console.error('Error fetching user created events:', err);
     return []
@@ -41,7 +66,8 @@ export const fetchUserParticipatedEvents = async (username: string, offset: numb
     if (error) {
       throw new Error(error.message);
     }
-    return data.map((event: any) => Event(event));
+    const { data: userAuth } = await supabase.auth.getUser();
+    return await signThumbnails<Event>(data.map((e: any) => profileRowToEvent(e, userAuth.user?.id)));
   } catch (err) {
     console.error('Error fetching user participated events:', err);
     return [];

@@ -1,5 +1,6 @@
 import { supabase } from "@/lib/supabase";
 import { Event } from "@/types/interfaces";
+import { signThumbnails } from "@/utils/image-upload";
 
 function toEvent(row: any): Event {
   return Event({
@@ -46,9 +47,11 @@ export const fetchUserLiveEvents = async () => {
       throw new Error(error.message);
     }
 
-    return (data ?? [])
-      .filter((row: any) => !row.decided)
-      .map((row: any) => toEvent({ ...row, viewer_id: viewerId }));
+    return await signThumbnails<Event>(
+      (data ?? [])
+        .filter((row: any) => !row.decided)
+        .map((row: any) => toEvent({ ...row, viewer_id: viewerId }))
+    );
   } catch (error: any) {
     console.error("Error fetching live events:", error.message);
     return [];
@@ -71,9 +74,11 @@ export const fetchUserLiveBets = async () => {
       throw new Error(error.message);
     }
 
-    return (data ?? [])
-      .filter((row: any) => !row.decided)
-      .map((row: any) => toEvent({ ...row, viewer_id: viewerId }));
+    return await signThumbnails<Event>(
+      (data ?? [])
+        .filter((row: any) => !row.decided)
+        .map((row: any) => toEvent({ ...row, viewer_id: viewerId }))
+    );
   } catch (error: any) {
     console.error("Error fetching live bets:", error.message);
     return [];

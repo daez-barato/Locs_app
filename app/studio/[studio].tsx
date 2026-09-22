@@ -44,6 +44,22 @@ export default function Studio(){
 
     const router = useRouter();
 
+    // studio is undefined for every "create" visit, so the effect below (keyed on
+    // studio) never re-runs between two creates and the previous draft's
+    // questions carried over into the new event. Reset explicitly after posting.
+    const resetDraft = () => {
+      setTitle("");
+      setDescription("");
+      setOptionsDict({});
+      setQuestion("+");
+      setNewQuestion("");
+      setNewOption("");
+      setQuestionList(["+"]);
+      setImage(undefined);
+      setEditTarget(null);
+      setEditText("");
+    };
+
     const startEditQuestion = (title: string) => {
       setEditTarget({ kind: "question", title });
       setEditText(title);
@@ -143,8 +159,8 @@ export default function Studio(){
         try{
           const templates = await fetchSavedTemplates()
 
-          if (templates.error) {
-              throw new Error(templates.msg);
+          if (!Array.isArray(templates)) {
+              throw new Error((templates as any).msg);
           };
           setSavedTemplates(templates);
           setBookmarks(() => Object.fromEntries(templates.map((t: SearchTemplate)=> [t.id, true])));
@@ -783,6 +799,7 @@ export default function Studio(){
             description={description}
             image={image || ""} // Pass the actual image URI
             templateId={studio}
+            onPosted={resetDraft}
           />
           
           {/*Image picker Modal */}

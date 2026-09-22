@@ -186,3 +186,23 @@ export const postTemplate = async (templateId: string) => {
     return { error: true, msg: err.message };
   }
 };
+
+export const deleteEvent = async (eventId: string) => {
+  try {
+    const { data, error } = await supabase.rpc("delete_event", { _event_id: eventId });
+
+    if (error) {
+      throw new Error(error.message);
+    }
+
+    const result = data?.[0];
+    return {
+      success: true,
+      refundedUsers: result?.refunded_users ?? 0,
+      refundedCoins: result?.refunded_coins ?? 0,
+    };
+  } catch (err: any) {
+    console.error("Error deleting event:", err);
+    return { error: true, msg: err.message };
+  }
+};

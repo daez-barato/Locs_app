@@ -1,4 +1,5 @@
 import { supabase } from "@/lib/supabase";
+import { signThumbnails } from "@/utils/image-upload";
 
 function eventRowToSearchEvent(row: any, viewerId: string | undefined) {
   return {
@@ -7,7 +8,6 @@ function eventRowToSearchEvent(row: any, viewerId: string | undefined) {
     title: row.template_title,
     description: row.template_description ?? "",
     expire_date: row.expire_date,
-    thumbnail: row.template_thumbnail,
     thumbnail_url: row.template_thumbnail,
     locked: row.locked,
     decided: row.decided,
@@ -25,10 +25,16 @@ function templateRowToSearchTemplate(row: any) {
     id: row.template_id,
     title: row.title,
     description: row.description,
-    thumbnail: row.thumbnail_url,
+    thumbnail_url: row.thumbnail_url,
     creator_username: row.creator_username,
     type: "template",
   };
+}
+
+// TemplateCard renders `thumbnail`; signThumbnails works off `thumbnail_url`.
+async function signTemplates(rows: any[]) {
+  const signed = await signThumbnails<any>(rows);
+  return signed.map((r: any) => ({ ...r, thumbnail: r.thumbnail_url }));
 }
 
 function userRowToSearchUser(row: any) {
@@ -54,8 +60,8 @@ export const fetchTrending = async (eventOffset: number = 0, templateOffset: num
     if (templatesRes.error) throw new Error(templatesRes.error.message);
 
     return {
-      events: (eventsRes.data ?? []).map((row: any) => eventRowToSearchEvent(row, viewerId)),
-      templates: (templatesRes.data ?? []).map(templateRowToSearchTemplate),
+      events: await signThumbnails<any>((eventsRes.data ?? []).map((row: any) => eventRowToSearchEvent(row, viewerId))),
+      templates: await signTemplates((templatesRes.data ?? []).map(templateRowToSearchTemplate)),
       error: undefined as string | undefined,
     };
   } catch (error: any) {
@@ -80,8 +86,8 @@ export const search = async (query: string, eventOffset: number = 0, templateOff
     if (usersRes.error) throw new Error(usersRes.error.message);
 
     return {
-      events: (eventsRes.data ?? []).map((row: any) => eventRowToSearchEvent(row, viewerId)),
-      templates: (templatesRes.data ?? []).map(templateRowToSearchTemplate),
+      events: await signThumbnails<any>((eventsRes.data ?? []).map((row: any) => eventRowToSearchEvent(row, viewerId))),
+      templates: await signTemplates((templatesRes.data ?? []).map(templateRowToSearchTemplate)),
       users: (usersRes.data ?? []).map(userRowToSearchUser),
       error: undefined as string | undefined,
     };
