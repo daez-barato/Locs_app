@@ -12,7 +12,12 @@
     "ios": {
       "supportsTablet": true,
       "bitcode": false,
-      "bundleIdentifier": "com.daez.Locs_app"
+      "bundleIdentifier": "com.daez.Locs_app",
+      "infoPlist": {
+        "NSCameraUsageDescription": "Locs uses your camera to let you add photos to events and templates.",
+        "NSPhotoLibraryUsageDescription": "Locs uses your photo library to let you choose images for your profile, events, and templates.",
+        "NSMicrophoneUsageDescription": "Locs uses your microphone for voice features."
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -67,7 +72,20 @@
       [
         "expo-secure-store"
       ],
-      "expo-sqlite"
+      "expo-sqlite",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Locs uses your photo library to let you choose images for your profile, events, and templates."
+        }
+      ],
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Locs uses your camera to let you add photos to events and templates.",
+          "microphonePermission": "Locs uses your microphone for voice features."
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true
