@@ -46,23 +46,32 @@ export default function AuthProvider({ children }: PropsWithChildren) {
       try {
         if (claims) {
           const { data, error } = await supabase.rpc('get_my_profile')
-          if (error || data.length === 0) {
-            throw error
+
+          if (error) {
+            // A failed request (offline, server hiccup) is not a reason to sign
+            // someone out — that used to drop users on any flaky connection.
+            console.error('Error fetching profile:', error)
+            return
           }
 
-          const userProfile = User(data[0])
+          if (!data || data.length === 0) {
+            // Authenticated but no profile row: the session can't be used.
+            console.error('No profile found for the current session, signing out')
+            await supabase.auth.signOut()
+            return
+          }
 
-          setUser(userProfile)
-
+          setUser(User(data[0]))
         } else {
           setUser(undefined)
         }
       } catch (error) {
         console.error('Error fetching profile:', error)
-        supabase.auth.signOut()
+      } finally {
+        // Must run on every path, including the early returns above, or the app
+        // stays stuck on the splash screen.
+        setIsLoading(false)
       }
-      
-      setIsLoading(false)
     }
 
     fetchProfile()

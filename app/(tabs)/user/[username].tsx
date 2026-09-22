@@ -20,12 +20,11 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import { FontAwesome } from "@expo/vector-icons";
 import EventCard from "@/components/eventCard";
 import { getUserProfile, fetchUserCreatedEvents, fetchUserParticipatedEvents,
-  getFollowersList, getFollowingList, getRequestsList, changePrivacy, updateProfilePicture
+  getFollowersList, getFollowingList, getRequestsList, changePrivacy
 } from "@/services/users";
 import { Event, SearchUser, UserProfile } from "@/types/interfaces";
 import UserCard from "@/components/userCard";
 import { followRequest, unfollowRequest} from "@/api/followers/followers";
-import * as ImagePicker from 'expo-image-picker';
 import { useAuthContext } from "@/hooks/use-auth-context";
 import { supabase } from "@/lib/supabase";
 
@@ -150,11 +149,15 @@ export default function Profile() {
 
   const handleFollowToggle = async () => {
     try {
+      if (!user?.id) return;
+
       if (user?.is_following || user?.has_requested) {
-        await unfollowRequest(username as string);
+        const result = await unfollowRequest(user.id);
+        if (result.error) throw new Error(result.message);
         setUser(prev => prev ? {...prev, is_following: false, has_requested: false} : prev);
       } else {
-        const result = await followRequest(username as string);
+        const result = await followRequest(user.id);
+        if (result.error) throw new Error(result.message);
         if (result.following){
           setUser(prev => prev ? {...prev, is_following: true, has_requested: false} : prev);
         } else {
@@ -234,34 +237,6 @@ export default function Profile() {
     {title: user?.public ? "Switch to Private" : "Switch to Public", icon: "lock", onPress: handlePrivacy},
     { title: "Logout", icon: "sign-out", onPress: handleLogout, isDestructive: true },
   ];
-
-  const pickImageAsync = async () => {
-    let result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ["images"],
-      allowsEditing: true,
-      quality: 0.75,
-      aspect: [226, 140],
-    });
-
-    if (!result.canceled) {
-      setUserImage(result.assets[0].uri);
-
-      try {
-        const response = await updateProfilePicture(result.assets[0].uri);
-
-        if (response.error){
-          throw new Error(response.msg);
-        };
-
-      } catch (error) {
-        console.error("Profile picture update error:", error);
-        Alert.alert("Error", "Failed to update profile picture. Please try again.");
-      }  
-
-    } else {
-      alert("You did not select any image.");
-    }
-  };
 
   const renderModal = () => {
     const modalProps = {
@@ -547,12 +522,12 @@ export default function Profile() {
 
         {/* Profile Section */}
         <View style={styles(theme).profileSection}>
-          <TouchableOpacity style={styles(theme).profileImageContainer} onPress={user?.owner ? pickImageAsync : undefined}>
+          <View style={styles(theme).profileImageContainer}>
             <Image
-              source={{ uri: userImage || undefined}}
+              source={userImage ? { uri: userImage } : require("@/assets/images/placeholder-user-image.png")}
               style={styles(theme).profileImage}
             />
-          </TouchableOpacity>
+          </View>
 
           <Text style={styles(theme).username}>{user?.username}</Text>
 

@@ -12,7 +12,7 @@ function eventRowToSearchEvent(row: any, viewerId: string | undefined) {
     locked: row.locked,
     decided: row.decided,
     is_creator: row.creator_id === viewerId,
-    participants_count: 0,
+    participants_count: row.participants_count ?? 0,
     total_pot: row.total_pot_amount,
     likes_count: row.likes_count,
     public: row.is_public,

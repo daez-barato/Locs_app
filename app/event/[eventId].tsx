@@ -555,16 +555,35 @@ export default function eventScreen() {
 
               <View style={styles(theme).creatorActions}>
                 {/* Follow button */}
-                {(!eventInfo?.creator?.is_following && !eventInfo?.creator?.has_requested) && 
+                {/* Following yourself is rejected by the RPC, so don't offer it. */}
+                {!isEventCreator && !eventInfo?.creator?.is_following && !eventInfo?.creator?.has_requested && (
                   <TouchableOpacity
                     style={styles(theme).creatorActionButton}
                     onPress={async () => {
-                      await followRequest(eventInfo?.creator?.id as string);
+                      const result = await followRequest(eventInfo?.creator?.id as string);
+
+                      if (result.error) {
+                        Alert.alert('Error', result.message || 'Could not follow this user');
+                        return;
+                      }
+
+                      setEventInfo(prev =>
+                        prev
+                          ? {
+                              ...prev,
+                              creator: {
+                                ...prev.creator,
+                                is_following: !!result.following,
+                                has_requested: !!result.requested,
+                              },
+                            }
+                          : prev
+                      );
                     }}
                   >
                     <FontAwesome5 name="user-plus" size={14} color={theme.primary} />
                   </TouchableOpacity>
-                }
+                )}
 
                 {/* Save Template button */}
                 {eventInfo?.template_posted && !eventInfo.template_saved && (

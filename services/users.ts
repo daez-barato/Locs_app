@@ -1,6 +1,6 @@
 import { UserProfile, Event, SearchUser } from "../types/interfaces";
 import { supabase } from "@/lib/supabase";
-import { uploadImage, signThumbnails } from "@/utils/image-upload";
+import { signThumbnails } from "@/utils/image-upload";
 
 
 export const getUserProfile = async (username: string): Promise<UserProfile | null> => {
@@ -37,7 +37,7 @@ function profileRowToEvent(row: any, viewerId?: string): Event {
     thumbnail_url: row.template_image_url,
     creator_username: row.creator_username,
     is_creator: !!viewerId && row.creator_id === viewerId,
-    participants_count: 0,
+    participants_count: row.participants_count ?? 0,
     total_pot: row.total_pot_amount,
     likes_count: row.likes_count,
     public: row.is_public,
@@ -126,31 +126,6 @@ export const changePrivacy = async (isPublic: boolean) => {
   }
 };
 
-export const updateProfilePicture = async (uri: string) => {
-  try {
-    const { data: userAuth } = await supabase.auth.getUser();
-    const userId = userAuth.user?.id;
-
-    if (!userId) {
-      throw new Error("Not authenticated");
-    }
-
-    const path = await uploadImage("avatar", uri, userId, "avatar");
-
-    const { data, error } = await supabase.rpc("update_avatar", { _avatar_url: path });
-
-    if (error || !data || data.length === 0) {
-      throw new Error(error?.message || "Failed to update avatar");
-    }
-
-    const { data: publicUrl } = supabase.storage.from("avatar").getPublicUrl(path);
-
-    return { error: false, avatar_url: publicUrl.publicUrl };
-  } catch (err: any) {
-    console.error("Error updating profile picture:", err);
-    return { error: true, msg: err.message };
-  }
-};
 
 
     

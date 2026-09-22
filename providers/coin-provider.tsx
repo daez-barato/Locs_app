@@ -15,26 +15,36 @@ export const CoinProvider = ({ children }: PropsWithChildren) => {
 
       if (!userId) return;
 
+      // Coins only ever arrived by broadcast, so the balance sat at 0 until the
+      // user's next coin change. Load the real balance up front.
+      const { data: profile, error } = await supabase.rpc("get_my_profile");
+
+      if (!error && profile?.[0] && isMounted) {
+        setCoins(profile[0].coins ?? 0);
+      }
+
       channel = supabase
         .channel(`user:${userId}:coins`, { config: { private: true } })
         .on(
           "broadcast",
           { event: "coins_updated" },
-          (payload: any) => {
+          (message: any) => {
             if (!isMounted) return;
-            const newCoins = payload?.coins;
+            // supabase-js delivers { type, event, payload }; the trigger's
+            // jsonb lands in payload, not on the message itself.
+            const newCoins = message?.payload?.coins ?? message?.coins;
 
             if (typeof newCoins === "number") {
               setCoins(newCoins);
-            } else {
-              console.log("coins_updated payload:", payload);
             }
           }
         )
         .subscribe();
     };
 
-    subscribeToCoinUpdates();
+    subscribeToCoinUpdates().catch((err) => {
+      console.error("Error subscribing to coin updates:", err);
+    });
 
     return () => {
       isMounted = false;

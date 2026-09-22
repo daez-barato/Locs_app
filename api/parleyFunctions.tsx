@@ -14,7 +14,7 @@ function toEvent(row: any): Event {
     thumbnail_url: row.template_image_url,
     creator_username: row.creator_username,
     is_creator: row.creator_id === row.viewer_id,
-    participants_count: 0,
+    participants_count: row.participants_count ?? 0,
     total_pot: row.total_pot_amount,
     likes_count: row.likes_count,
     public: row.is_public,

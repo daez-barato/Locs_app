@@ -3,6 +3,7 @@ import { SearchUser } from "@/types/interfaces";
 import { useThemeConfig, Theme } from "@/components/ui/use-theme-config";
 import { FontAwesome } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
+import { useAuthContext } from "@/hooks/use-auth-context";
 import React, { useState } from "react";
 import {
   Text,
@@ -17,6 +18,8 @@ import {
 export default function UserCard({ user }: { user: SearchUser }) {
   const theme = useThemeConfig();
   const router = useRouter();
+  const currentUserId = useAuthContext().user?.id;
+  const isSelf = !!currentUserId && currentUserId === user.id;
 
   const [followLabel, setFollowLabel] = useState<"Requested" | "Following" | "Follow" | "Follow back">((user.is_following) ? "Following" : (user.has_requested) ? "Requested" : "Follow");
   const [userState, setUser] = useState<SearchUser>(user);
@@ -100,7 +103,11 @@ export default function UserCard({ user }: { user: SearchUser }) {
       >
         <View style={styles(theme).avatarContainer}>
           <Image
-            source={{ uri: userState.avatar_url }}
+            source={
+              userState.avatar_url
+                ? { uri: userState.avatar_url }
+                : require("@/assets/images/placeholder-user-image.png")
+            }
             style={styles(theme).avatar}
             resizeMode="cover"
           />
@@ -117,7 +124,7 @@ export default function UserCard({ user }: { user: SearchUser }) {
             </Text>
 
             {/* --- Case 1: Follow requests --- */}
-            {userState.requester !== undefined && (
+            {!isSelf && userState.requester !== undefined && (
               <View style={{ flexDirection: "row", gap: 8 }}>
                 <TouchableOpacity
                   style={styles(theme).acceptButton}
@@ -134,7 +141,7 @@ export default function UserCard({ user }: { user: SearchUser }) {
               </View>
             )}
             {/* --- Case 3: Normal follow/following states --- */}
-            {userState.requester === undefined && userState.is_following !== undefined && (
+            {!isSelf && userState.requester === undefined && userState.is_following !== undefined && (
               <View style={styles(theme).userFooter}>
                   <TouchableOpacity
                     onPress={handleFollowLabel}
