@@ -5,6 +5,8 @@ export type AuthData = {
   claims?: Record<string, any> | null
   user?: User | undefined
   isLoading: boolean
+  /** True only until the first auth resolution completes, for gating first paint. */
+  isInitializing: boolean
   isLoggedIn: boolean
 }
 
@@ -12,6 +14,7 @@ export const AuthContext = createContext<AuthData>({
   claims: undefined,
   user: undefined,
   isLoading: true,
+  isInitializing: true,
   isLoggedIn: false,
 })
 

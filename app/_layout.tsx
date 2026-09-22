@@ -10,16 +10,22 @@ import { SplashScreenController } from "@/components/splash-screen-controller";
 export default function RootLayout() {
   return (
     <Providers>
+      {/* Mounted unconditionally so it can actually hide the splash once auth
+          settles; RootNavigator renders nothing until then. */}
+      <SplashScreenController />
       <RootNavigator />
     </Providers>
   );
 }
 
 function RootNavigator() {
-  const { isLoggedIn, isLoading, user } = useAuthContext();
-  
-  if (isLoading) {
-    return <SplashScreenController />;
+  const { isLoggedIn, isInitializing, user } = useAuthContext();
+
+  // Render no routes until auth is resolved. Rendering the Stack here would
+  // briefly evaluate the guards against an unresolved session and show the
+  // login screen over a stored one.
+  if (isInitializing) {
+    return null;
   }
 
   return (

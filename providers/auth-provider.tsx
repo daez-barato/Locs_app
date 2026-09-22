@@ -6,13 +6,12 @@ import { PropsWithChildren, useEffect, useState } from 'react'
 export default function AuthProvider({ children }: PropsWithChildren) {
   const [claims, setClaims] = useState<Record<string, any> | undefined | null>()
   const [user, setUser] = useState<User>()
-  const [isLoading, setIsLoading] = useState<boolean>(true)
+  const [claimsLoading, setClaimsLoading] = useState<boolean>(true)
+  const [profileFailed, setProfileFailed] = useState<boolean>(false)
 
   // Fetch the claims once, and subscribe to auth state changes
   useEffect(() => {
     const fetchClaims = async () => {
-      setIsLoading(true)
-
       const { data, error } = await supabase.auth.getClaims()
 
       if (error) {
@@ -20,7 +19,7 @@ export default function AuthProvider({ children }: PropsWithChildren) {
       }
 
       setClaims(data?.claims ?? null)
-      setIsLoading(false)
+      setClaimsLoading(false)
     }
 
     fetchClaims()
@@ -42,15 +41,18 @@ export default function AuthProvider({ children }: PropsWithChildren) {
   // Fetch the profile when the claims change
   useEffect(() => {
     const fetchProfile = async () => {
-      setIsLoading(true)
+      if (claims === undefined) return
+
       try {
         if (claims) {
+          setProfileFailed(false)
           const { data, error } = await supabase.rpc('get_my_profile')
 
           if (error) {
             // A failed request (offline, server hiccup) is not a reason to sign
             // someone out — that used to drop users on any flaky connection.
             console.error('Error fetching profile:', error)
+            setProfileFailed(true)
             return
           }
 
@@ -67,21 +69,37 @@ export default function AuthProvider({ children }: PropsWithChildren) {
         }
       } catch (error) {
         console.error('Error fetching profile:', error)
-      } finally {
-        // Must run on every path, including the early returns above, or the app
-        // stays stuck on the splash screen.
-        setIsLoading(false)
+        setProfileFailed(true)
       }
     }
 
     fetchProfile()
   }, [claims])
 
+  // A restored session resolves in two steps: claims first, profile a moment
+  // later. Reporting "not loading" in between rendered one frame with a valid
+  // session but no user, which the route guard reads as logged out — that's the
+  // login screen flashing over a stored session. Stay loading until the profile
+  // has resolved, or failed outright so this can't hang on the splash screen.
+  const isLoading =
+    claimsLoading || (claims != null && user === undefined && !profileFailed)
+
+  // Only the first resolution should block rendering. Later transitions (signing
+  // in, a token refresh) must not blank the screen — the guards handle those.
+  const [initialized, setInitialized] = useState<boolean>(false)
+
+  useEffect(() => {
+    if (!isLoading && !initialized) {
+      setInitialized(true)
+    }
+  }, [isLoading, initialized])
+
   return (
     <AuthContext.Provider
       value={{
         claims,
         isLoading,
+        isInitializing: !initialized,
         user,
         isLoggedIn: claims != undefined,
       }}
