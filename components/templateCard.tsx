@@ -1,4 +1,4 @@
-import { SearchTemplate } from "@/api/interfaces/objects";
+import { SearchTemplate } from "@/types/interfaces";
 import { useThemeConfig, Theme } from "@/components/ui/use-theme-config";
 import { FontAwesome } from "@expo/vector-icons";
 import { useRouter } from "expo-router";

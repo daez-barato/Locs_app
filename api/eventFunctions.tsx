@@ -1,115 +1,162 @@
-import axiosInstance from "./utils/axiosInstance";
+import { supabase } from "@/lib/supabase";
 
+type QuestionIdMap = Record<string, { questionId: number; options: Record<string, number> }>;
+
+// get_event_information_db returns question_id/option_id alongside titles so bets can be
+// placed by id (add_bet/decide_event require ids), but the event screen renders by title.
+// Cache the id lookup per event here instead of reshaping the screen's title-keyed state.
+const eventQuestionMaps = new Map<string, QuestionIdMap>();
+
+function splitQuestionsPayload(
+  raw: Record<string, { question_id: number; options: { option_id: number; title: string }[] }> | undefined
+): { flat: Record<string, string[]>; map: QuestionIdMap } {
+  const flat: Record<string, string[]> = {};
+  const map: QuestionIdMap = {};
+
+  for (const [title, question] of Object.entries(raw || {})) {
+    flat[title] = question.options.map((o) => o.title);
+    map[title] = {
+      questionId: question.question_id,
+      options: Object.fromEntries(question.options.map((o) => [o.title, o.option_id])),
+    };
+  }
+
+  return { flat, map };
+}
 
 export const eventInformation = async (eventId: string) => {
   try {
-    const result = await axiosInstance.get(`/event/getEvent/${eventId}`);
+    const { data, error } = await supabase.rpc("get_event_information_db", { p_event_id: eventId });
 
-    if (result.status !== 200) {
-      throw new Error("Failed to fetch event information");
+    if (error || !data) {
+      throw new Error(error?.message || "Event not found");
     }
 
-    return result.data;
-    
+    const { flat, map } = splitQuestionsPayload(data.questions);
+    eventQuestionMaps.set(eventId, map);
+
+    return { ...data, questions: flat };
   } catch (err: any) {
     console.error("Error fetching event information:", err);
-    return { error: true, msg:  err.response.data.error };
+    return { error: true, msg: err.message };
   }
 };
 
 export const fetchEventBets = async (eventId: string) => {
-
   try {
-    const bets = await axiosInstance.get(`/event/getEventBets/${eventId}`);
+    const { data, error } = await supabase.rpc("get_event_bets_db", { p_event_id: eventId });
 
-    if (bets.status !== 200) {
-      throw new Error("Failed to fetch event bets");
-    };
+    if (error) {
+      throw new Error(error.message);
+    }
 
-    return bets.data;
-    
+    return data;
   } catch (err: any) {
     console.error("Error fetching event bets:", err);
-    return { error: true, msg: err.response.data.error };
+    return { error: true, msg: err.message };
   }
-}
+};
 
 export const placeBet = async (eventId: string, question: string, option: string, amount: number) => {
   try {
-    const response = await axiosInstance.post(`/event/placeBet/${eventId}`, {
-      question,
-      option,
-      amount
+    const ids = eventQuestionMaps.get(eventId)?.[question];
+    const optionId = ids?.options[option];
+
+    if (ids === undefined || optionId === undefined) {
+      throw new Error("Unknown question or option — pull to refresh and try again");
+    }
+
+    const { error } = await supabase.rpc("add_bet", {
+      _event_id: eventId,
+      _question_id: ids.questionId,
+      _option_id: optionId,
+      _amount: amount,
     });
 
-    if (response.status !== 201 || !response.data.success) {
-      throw new Error("Failed to place bet");
-    };
+    if (error) {
+      throw new Error(error.message);
+    }
 
-    return response.data;
-    
+    return { success: true };
   } catch (err: any) {
     console.error("Error placing bet:", err);
-    const msg = err?.response?.data?.error || err.message || 'Unknown error';
-    return { error: true, msg };
+    return { error: true, msg: err.message };
   }
 };
-
 
 export const lockEvent = async (eventId: string) => {
   try {
-    const result = await axiosInstance.patch(`/event/lockEvent/${eventId}`);
+    const { error } = await supabase.rpc("lock_event", { _event_id: eventId });
 
-    if (result.status !== 200) {
-      throw new Error("Failed to lock event");
+    if (error) {
+      throw new Error(error.message);
     }
 
-    return result.data;
-    
+    return { success: true };
   } catch (err: any) {
     console.error("Error locking event:", err);
-    return { error: true, msg:  err.response.data.error };
+    return { error: true, msg: err.message };
   }
 };
-
 
 export const endEvent = async (eventId: string, winningOptions: Record<string, string>) => {
   try {
-    const result = await axiosInstance.post(`/event/endEvent/${eventId}`, {winningOptions: winningOptions});
+    const map = eventQuestionMaps.get(eventId);
 
-    if (result.status !== 200) {
-      throw new Error("Failed to end event");
+    if (!map) {
+      throw new Error("Event data not loaded — pull to refresh and try again");
     }
 
-    return result.data;
-    
+    const winners = Object.entries(winningOptions).map(([question, option]) => {
+      const ids = map[question];
+      const optionId = ids?.options[option];
+
+      if (ids === undefined || optionId === undefined) {
+        throw new Error(`Unknown question or option: ${question} / ${option}`);
+      }
+
+      return { question_id: ids.questionId, option_id: optionId };
+    });
+
+    const { error } = await supabase.rpc("decide_event", { _event_id: eventId, _winners: winners });
+
+    if (error) {
+      throw new Error(error.message);
+    }
+
+    return { success: true };
   } catch (err: any) {
     console.error("Error ending event:", err);
-    return { error: true, msg:  err.response.data.error };
+    return { error: true, msg: err.message };
   }
 };
 
-export const saveTemplate = async (template: string) => {
+export const saveTemplate = async (templateId: string) => {
   try {
-    const result = await axiosInstance.post(`users/save/template/${template}`);
+    const { error } = await supabase.rpc("save_template", { _template_id: templateId });
 
-    return result.data
+    if (error) {
+      throw new Error(error.message);
+    }
 
+    return { success: true };
   } catch (err: any) {
     console.error("Error saving template:", err);
-    return { error: true, msg:  err.response.data.error };
+    return { error: true, msg: err.message };
   }
 };
 
-export const postTemplate = async (template: string) => {
+export const postTemplate = async (templateId: string) => {
   try {
-    const result = await axiosInstance.patch(`event/postTemplate/${template}`);
+    const { error } = await supabase.rpc("publish_template", { _template_id: templateId });
 
-    return result.data
+    if (error) {
+      throw new Error(error.message);
+    }
 
+    return { success: true };
   } catch (err: any) {
-    console.error("Error saving template:", err);
-    return { error: true, msg:  err.response.data.error };
+    console.error("Error posting template:", err);
+    return { error: true, msg: err.message };
   }
-
-}
+};

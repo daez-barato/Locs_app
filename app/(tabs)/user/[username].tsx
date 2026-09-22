@@ -13,20 +13,21 @@ import {
   FlatList,
   NativeScrollEvent,
   NativeSyntheticEvent,
-  Dimensions
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import React, { useCallback, useEffect, useState } from "react";
-import { useAuth } from "@/api/context/AuthContext";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { fetchUserCreatedEvents, fetchUserParticipatedEvents } from "@/api/profileFuntions";
 import { FontAwesome } from "@expo/vector-icons";
 import EventCard from "@/components/eventCard";
-import { changePrivacy, getUserProfile, updateProfilePicture } from "@/api/user/userInfo";
-import { SearchUser, UserProfile } from "@/api/interfaces/objects";
+import { getUserProfile, fetchUserCreatedEvents, fetchUserParticipatedEvents,
+  getFollowersList, getFollowingList, getRequestsList, changePrivacy, updateProfilePicture
+} from "@/services/users";
+import { Event, SearchUser, UserProfile } from "@/types/interfaces";
 import UserCard from "@/components/userCard";
-import { followRequest, getFollowersList, getFollowingList, unfollowRequest, updateRequests } from "@/api/followers/followers";
+import { followRequest, unfollowRequest} from "@/api/followers/followers";
 import * as ImagePicker from 'expo-image-picker';
+import { useAuthContext } from "@/hooks/use-auth-context";
+import { supabase } from "@/lib/supabase";
 
 type ActiveList = "created" | "participated";
 type ModalType = "settings" | "followers" | "following" | "requests" | "imageUpdate" | null;
@@ -34,20 +35,18 @@ type ModalType = "settings" | "followers" | "following" | "requests" | "imageUpd
 export default function Profile() {
   const [followersOffset, setFollowersOffset] = useState(0);
   const [followingOffset, setFollowingOffset] = useState(0);
-  const [hasMoreFollowers, setHasMoreFollowers] = useState(true);
-  const [hasMoreFollowing, setHasMoreFollowing] = useState(true);
   const [loadingMore, setLoadingMore] = useState<boolean>(true);
   const [userImage, setUserImage] = useState<string | null>(null);
-
+  
   const [createdOffset, setCreatedOffset] = useState(0);
   const [participatedOffset, setParticipatedOffset] = useState(0);
-  const [hasMoreCreated, setHasMoreCreated] = useState(true);
-  const [hasMoreParticipated, setHasMoreParticipated] = useState(true);
+  const [createdEvents, setCreatedEvents] = useState<Event[]>([]);
+  const [participatedEvents, setParticipatedEvents] = useState<Event[]>([]);
   const [loadingMoreEvents, setLoadingMoreEvents] = useState<boolean>(true);
+  const hero = useAuthContext().user;
 
   const theme = useThemeConfig();
-  const { authState, onLogout } = useAuth();
-  const { id } = useLocalSearchParams();
+  const { username } = useLocalSearchParams();
   const router = useRouter();
 
   const [activeList, setActiveList] = useState<ActiveList>("created");
@@ -58,6 +57,7 @@ export default function Profile() {
   
   const [activeModal, setActiveModal] = useState<ModalType>(null);
   
+  const [requestsList, setRequestsList] = useState<SearchUser[]>([]);
   const [followersList, setFollowersList] = useState<SearchUser[]>([]);
   const [followingList, setFollowingList] = useState<SearchUser[]>([]);
   const [loadingUsers, setLoadingUsers] = useState<boolean>(false);
@@ -67,17 +67,25 @@ export default function Profile() {
       if (isRefresh) setRefreshing(true);
       else setLoading(true)
 
-      console.log("Fetching user profile for ID:", id, "Auth user:", authState?.id);
-      const userData = await getUserProfile(id as string);
+      const user = await getUserProfile(username as string);
 
-      if (userData.error) {
-        throw new Error(userData.msg);
-      };
+      if (!user) {
+        throw new Error("User not found");
+      }
 
-      setUser(userData.user);
-      setCreatedOffset(userData.user.created.length);
-      setParticipatedOffset(userData.user.participated.length);
-      setUserImage(userData.user.profile_image);
+      setUser(user);
+
+      if (user.owner || user.is_following || user.public) {
+        const created = await fetchUserCreatedEvents(username as string, 0);
+        const participated = await fetchUserParticipatedEvents(username as string, 0);
+        
+        setCreatedEvents(created);
+        setParticipatedEvents(participated);
+        setCreatedOffset(created.length);
+        setParticipatedOffset(participated.length);
+      }
+      
+      setUserImage(user.avatar_url);
       
     } catch (err) {
       console.error("Error fetching data:", err);
@@ -92,45 +100,33 @@ export default function Profile() {
   const fetchUserList = async (type: "followers" | "following") => {
     try {
       const users = type === "followers" 
-        ? await getFollowersList(id as string, followersOffset)
-        : await getFollowingList(id as string, followingOffset);
-
-      if (users.error) {
-        throw new Error(users.msg);
-      }
+        ? await getFollowersList(username as string, followersOffset)
+        : await getFollowingList(username as string, followingOffset);
       
       setTimeout(() => {
         if (type === "followers") {
           setFollowersList(
             prev => {
-              const merged = [...prev, ...users.list];
+              const merged = [...prev, ...users];
               const unique = Array.from(
                 new Map(merged.map(e => [e.id, e])).values()
               );
               return unique;
             }
           );
-          if (followersList.length > 0){
-            setFollowersOffset(prev => prev + users.list.length);
-          } else {
-            setHasMoreFollowers(false);
-          }
+          setFollowersOffset(prev => prev + users.length);
           
         } else {
           setFollowingList(
             prev => {
-              const merged = [...prev, ...users.list];
+              const merged = [...prev, ...users];
               const unique = Array.from(
                 new Map(merged.map(e => [e.id, e])).values()
               );
               return unique;
             }
           );
-          if (followingList.length > 0){
-            setFollowingOffset(prev => prev + users.list.length);
-          } else {
-            setHasMoreFollowing(false);
-          }
+          setFollowingOffset(prev => prev + users.length);
         }
         setLoadingUsers(false);
         setLoadingMore(false);
@@ -143,26 +139,22 @@ export default function Profile() {
 
   const onRefresh = useCallback(() => {
     setLoadingUsers(true);
-    setHasMoreFollowers(true);
-    setHasMoreFollowing(true);
     setFollowersOffset(0);
     setFollowingOffset(0);
     setFollowersList([]);
     setFollowingList([]);
-    setHasMoreCreated(true);
-    setHasMoreParticipated(true);
     setCreatedOffset(0);
     setParticipatedOffset(0);
     fetchData(true);
-  }, [id, authState?.userName]);
+  }, [username, hero?.username]);
 
   const handleFollowToggle = async () => {
     try {
       if (user?.is_following || user?.has_requested) {
-        await unfollowRequest(id as string);
+        await unfollowRequest(username as string);
         setUser(prev => prev ? {...prev, is_following: false, has_requested: false} : prev);
       } else {
-        const result = await followRequest(id as string);
+        const result = await followRequest(username as string);
         if (result.following){
           setUser(prev => prev ? {...prev, is_following: true, has_requested: false} : prev);
         } else {
@@ -187,9 +179,7 @@ export default function Profile() {
           style: "destructive",
           onPress: async () => {
             try {
-              if (onLogout) {
-                await onLogout();
-              }
+              await supabase.auth.signOut();
               setActiveModal(null);
               router.replace('/(auth)');
             } catch (error) {
@@ -211,14 +201,16 @@ export default function Profile() {
   };
 
   useEffect(() => {
+      if (!username || Array.isArray(username)) return;
+
       onRefresh();
       setActiveModal(null);
-    }, [id, authState?.userName]
+    }, [username, hero?.username]
   );
 
   const handlePrivacy = async () => {
     try {
-      const response = await changePrivacy();
+      const response = await changePrivacy(!user?.public);
 
       if (response.error){
         throw new Error(response.msg)
@@ -364,7 +356,8 @@ export default function Profile() {
                   showsVerticalScrollIndicator={false}
                   onEndReached={() => {
                     if (!loadingMore 
-                      && ((activeModal === "followers" && hasMoreFollowers) || (activeModal === "following" && hasMoreFollowing))){
+                      && ((activeModal === "followers" && user && user?.follower_count > followersList.length) 
+                      || (activeModal === "following" && user && user?.following_count > followingList.length))){
                       setLoadingMore(true);
                       fetchUserList(activeModal)
                     }}}
@@ -394,13 +387,9 @@ export default function Profile() {
                   onPress={async () => {
                     setActiveModal(null);
                     try {
-                      const result = await updateRequests(user?.id as string);
+                      const result = await getRequestsList(user?.username as string);
 
-                      if (result.error){
-                        throw new Error(result.msg)
-                      }
-                      
-                      setUser(prev => prev ? {...prev, requests: result.requests} : prev)
+                      setRequestsList(result);
 
                     }catch (error) {
                       console.error(`Error updating requestList:`, error);
@@ -412,13 +401,13 @@ export default function Profile() {
                 </TouchableOpacity>
               </View>
 
-              {user?.requests.length === 0 ? (
+              {requestsList.length === 0 ? (
                 <View style={styles(theme).emptyContainer}>
                   <Text style={styles(theme).emptyText}>No pending requests</Text>
                 </View>
               ) : (
                 <FlatList
-                  data={user?.requests}
+                  data={requestsList}
                   keyExtractor={(item) => item.id}
                   renderItem={({ item }) => <UserCard user={item}/>}
                   contentContainerStyle={{ padding: 16 }}
@@ -480,58 +469,38 @@ export default function Profile() {
     if (!isNearBottom || loadingMoreEvents) return;
 
     if (
-      (activeList === "created" && hasMoreCreated) 
-      || (activeList === "participated" && hasMoreParticipated)
+      (activeList === "created" && user && user?.owner && user?.created > createdEvents.length) 
+      || (activeList === "participated" && user && user?.participated > participatedEvents.length)
     ) {
       setLoadingMoreEvents(true);
       try {
         let events;
 
         if (activeList === "created") {
-          events = await fetchUserCreatedEvents(id as string, createdOffset);
+          events = await fetchUserCreatedEvents(username as string, createdOffset);
         } else {
-          events = await fetchUserParticipatedEvents(id as string, participatedOffset);
-        }
-        
-        if (events.error) {
-          throw new Error(events.msg);
+          events = await fetchUserParticipatedEvents(username as string, participatedOffset);
         }
 
         setTimeout(() => {
           if (activeList === "created") {
-            setUser(prev => {
-              if (prev) {
-                const merged = [...prev.created, ...events.events];
-                const unique = Array.from(
-                  new Map(merged.map(e => [e.id, e])).values()
-                );
-                return {...prev, created: unique};
-              } else {
-                return prev;
-              };
+            setCreatedEvents(prev => {
+              const merged = [...prev, ...events];
+              const unique = Array.from(
+                new Map(merged.map(e => [e.id, e])).values()
+              );
+              return unique;
             });
-            if (events.events.length > 0) {
-              setCreatedOffset(prev => prev + events.events.length);
-            } else {
-              setHasMoreCreated(false);
-            }
+            setCreatedOffset(prev => prev + events.length);
           } else {
-            setUser(prev => {
-              if (prev) {
-                const merged = [...prev.participated, ...events.events];
-                const unique = Array.from(
-                  new Map(merged.map(e => [e.id, e])).values()
-                );
-                return {...prev, participated: unique};
-              } else {
-                return prev;
-              };
+            setParticipatedEvents(prev => {
+              const merged = [...prev, ...events];
+              const unique = Array.from(
+                new Map(merged.map(e => [e.id, e])).values()
+              );
+              return {...prev, participated: unique};
             });
-            if (events.events.length > 0){
-              setParticipatedOffset(prev => prev + events.events.length);
-            } else {
-              setHasMoreParticipated(false);
-            }
+            setParticipatedOffset(prev => prev + events.length);
           }
           setLoadingMoreEvents(false);
         }, 1000);
@@ -542,7 +511,7 @@ export default function Profile() {
     }
   };
 
-  const currentBetList = (user?.public || user?.is_following || user?.owner) ? (activeList === "created") ? user?.created : user?.participated : undefined;
+  const currentBetList = (user?.public || user?.is_following || user?.owner) ? (activeList === "created") ? createdEvents : participatedEvents : undefined;
 
   return (
     <SafeAreaView style={styles(theme).container}>
@@ -564,7 +533,7 @@ export default function Profile() {
             <TouchableOpacity style={styles(theme).requestsButton} onPress={() => openModal("requests")}>
               <FontAwesome name="inbox" size={24} color={theme.text} />
               <View style={styles(theme).alert}>
-                <Text style={styles(theme).alertNumber}>{user.requests.length}</Text>   
+                <Text style={styles(theme).alertNumber}>{user.requests}</Text>   
               </View>
             </TouchableOpacity>
             <TouchableOpacity 

@@ -1,9 +1,10 @@
-import { postEvent } from "@/api/studioFunctions";
+import { postEvent } from "@/services/events";
 import { Theme, useThemeConfig } from "@/components/ui/use-theme-config";
 import FontAwesome from "@expo/vector-icons/FontAwesome";
 import { useRouter } from "expo-router";
 import { useState } from "react";
-import { Modal, SafeAreaView, StyleSheet, Text, TouchableOpacity, View, ScrollView, Dimensions, Image, Alert } from "react-native";
+import { Modal, StyleSheet, Text, TouchableOpacity, View, ScrollView, Dimensions, Image, Alert } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 const { height: screenHeight } = Dimensions.get('window');
 
@@ -21,6 +22,7 @@ export default function StudioConfirm({optionsDict, visible, setVisible, title, 
   const theme = useThemeConfig();
   const [privacy, setPrivacy] = useState("Private");
   const [time, setTime] = useState("1 hour");
+  const [durationMinutes, setDurationMinutes] = useState(60);
   const [pickTimer, setPickTimer] = useState(false);
   const [days, setDays] = useState(0);
   const [hours, setHours] = useState(1);
@@ -43,6 +45,7 @@ export default function StudioConfirm({optionsDict, visible, setVisible, title, 
       return;
     }
     setTime(formatTime(days, hours, minutes));
+    setDurationMinutes(totalMinutes);
     setPickTimer(false);
   };
 
@@ -51,6 +54,7 @@ export default function StudioConfirm({optionsDict, visible, setVisible, title, 
     setDays(d);
     setHours(h);
     setMinutes(m);
+    setDurationMinutes(d * 24 * 60 + h * 60 + m);
   };
 
   // Generate arrays for picker options
@@ -99,28 +103,39 @@ export default function StudioConfirm({optionsDict, visible, setVisible, title, 
   };
 
   const handlePostEvent = async () => {
-    if (!title?.trim()) {
-      Alert.alert("Missing Title", "Please add a title to your event.");
-      return;
-    }
-
-    if (Object.keys(optionsDict).length === 0) {
-      Alert.alert("No Questions", "Please add at least one question with options.");
-      return;
-    }
 
     setIsPosting(true);
     try {
-      const eventLink = await postEvent(optionsDict, title, description || "", image || "", privacy, time, templateId);
-      if (eventLink.error) {
-        Alert.alert("Error", eventLink.msg || "Failed to create event. Please try again.");
-        return;
+      if (!title?.trim()) {
+        throw new Error("Missing Title, please add a title to your event.");
       }
+
+      if (Object.keys(optionsDict).length === 0) {
+        throw new Error("No Questions, please add at least one question with options.");
+      }
+
+      const templateDto = {
+        optionsDict: optionsDict,
+        title: title.trim(),
+        description: description?.trim() || "",
+        image: image || "",
+      };
+
+      const eventDto = {
+        privacy: privacy,
+        durationMinutes: durationMinutes,
+        templateId: templateId || undefined,
+      };
+
+      const eventLink = await postEvent(eventDto, templateDto);
+      if (!eventLink) {
+        throw new Error("Failed to create event.");
+      }
+
       setVisible(false);
       router.push(`/event/${eventLink}`);
-    } catch (error) {
-      console.error("Error posting event:", error);
-      Alert.alert("Error", "Something went wrong. Please try again.");
+    } catch (error: any) {
+      Alert.alert("Error Creating Event:\n",  error.message);
     } finally {
       setIsPosting(false);
     }

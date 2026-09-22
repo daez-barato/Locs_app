@@ -15,7 +15,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import EventCard from "@/components/eventCard";
-import { SearchObject ,SearchUser, SearchTemplate, SearchEvent } from "@/api/interfaces/objects";
+import { SearchObject ,SearchUser, SearchTemplate, SearchEvent } from "@/types/interfaces";
 
 export default function Explore() {
     const theme = useThemeConfig();
@@ -37,7 +37,7 @@ export default function Explore() {
     const [loadMoreTemplates, setLoadMoreTemplates] = useState(true);
     const [loadMoreUsers, setLoadMoreUsers] = useState(true);
 
-    let typingTimeout: NodeJS.Timeout;
+    let typingTimeout: ReturnType<typeof setTimeout>;
     const handleQueryChange = (text: string) => {
         setQuery(text);
 

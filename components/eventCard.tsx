@@ -1,4 +1,4 @@
-import { Event } from "@/api/interfaces/objects";
+import { Event } from "@/types/interfaces";
 import { useThemeConfig, Theme } from "@/components/ui/use-theme-config";
 import { FontAwesome } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
@@ -54,7 +54,7 @@ export default function EventCard({event}: {event: Event}) {
                 activeOpacity={0.8}
             >
                 <Image 
-                    source={{ uri: event.thumbnail }} 
+                    source={{ uri: event.thumbnail_url }} 
                     style={styles(theme).eventImage}
                     resizeMode="cover"
                 />

@@ -1,24 +1,20 @@
-import { Tabs, useFocusEffect, useRouter} from "expo-router";
+import { Tabs, useRouter} from "expo-router";
 
 import FontAwesome from "@expo/vector-icons/FontAwesome";
 import { Theme, useThemeConfig } from "@/components/ui/use-theme-config";
-import { useAuth } from "@/api/context/AuthContext";
-import { useCallback, useEffect } from "react";
 import { StyleSheet, TouchableOpacity } from "react-native";
+import { useAuthContext } from "@/hooks/use-auth-context";
 
 
 export default function TabLayout(){
     const theme = useThemeConfig();
     const router = useRouter();
-    const { authState } = useAuth();
+    const { user } = useAuthContext();
 
-    useEffect(
-        () => {
-            if (!authState?.authenticated) {
-                router.replace('/(auth)');
-            }
-        }
-    , [authState?.authenticated]);
+    if (!user) {
+        
+        return null; // or a loading indicator, or redirect to login
+    }
 
     return (
         <>
@@ -92,7 +88,7 @@ export default function TabLayout(){
                     }}
                 />
                 <Tabs.Screen
-                    name="user/[id]"
+                    name="user/[username]"
                     options = {{
                         title:"Profile",
                         tabBarIcon: ({ focused }: {focused: boolean}) => (
@@ -109,9 +105,9 @@ export default function TabLayout(){
                             </FontAwesome>
                         ),
                         href: {
-                            pathname: 'user/[id]',
+                            pathname: '/user/[username]',
                             params: {
-                                id: authState?.id,
+                                username: user.username,
                             }
                         },
                         

@@ -1,90 +1,67 @@
-import { AxiosError } from "axios";
-import { SearchUser } from "../interfaces/objects";
-import axiosInstance from "../utils/axiosInstance";
-
-export const getFollowersList = async (id: string, offset: number = 0) :
-  Promise<
-    { error: true; msg: string }
-    | { error: false; list: SearchUser[] }
-  > => {
-  try {
-    const result = await axiosInstance.get(`/followers/userFollowers/${id}/${offset}`);
-    return { list: result.data.followersList, error: false}; 
-  } catch (err) {
-    return { error: true, msg: (err as AxiosError).message };
-  }
-};
-
-export const getFollowingList = async (id: string, offset: number = 0) :
-    Promise<
-    { error: true; msg: string }
-    | { error: false; list: SearchUser[] }
-  > => {
-  try {
-    const result = await axiosInstance.get(`/followers/userFollowing/${id}/${offset}`);
-    return { list: result.data.followingList, error: false};
-  } catch (err) {
-    return { error: true, msg: (err as AxiosError).message };
-  }
-};
+import { supabase } from "@/lib/supabase";
 
 export const followRequest = async (followed: string) => {
   try {
-    const result = await axiosInstance.post(`followers/request/${followed}`);
+    const { data, error } = await supabase.rpc("follow_user", { _target_id: followed });
 
-    return result.data
+    if (error) {
+      throw new Error(error.message);
+    }
 
+    const status = data?.[0]?.status;
+
+    return {
+      error: false,
+      following: status === "following",
+      requested: status === "pending",
+    };
   } catch (err: any) {
     console.error("Error Following:", err);
-    return { error: true, msg:  err.response.data.error };
+    return { error: true, message: err.message };
   }
 };
 
 export const unfollowRequest = async (unfollowed: string) => {
   try {
-    const result = await axiosInstance.delete(`followers/unfollow/${unfollowed}`);
+    const { error } = await supabase.rpc("unfollow_user", { _target_id: unfollowed });
 
-    return result.data
+    if (error) {
+      throw new Error(error.message);
+    }
 
+    return { error: false };
   } catch (err: any) {
     console.error("Error unfollowing:", err);
-    return { error: true, msg:  err.response.data.error };
+    return { error: true, message: err.message };
   }
 };
 
 export const acceptFollowRequest = async (requester: string) => {
-    try {
+  try {
+    const { error } = await supabase.rpc("accept_follow_request", { _requester_id: requester });
 
-        const result = await axiosInstance.post(`followers/accept/${requester}`);
-
-        return result.data
-
-    } catch (err: any) {
-        console.error("Error accepting:", err)
-        return { error: true, msg:  err.response.data.error };
+    if (error) {
+      throw new Error(error.message);
     }
-}
 
-export const rejectFollowRequest = async (requester: string) => {
-    try {
-        const result = await axiosInstance.delete(`followers/reject/${requester}`);
-
-        return result.data
-    } catch (err: any) {
-        console.error("Error accepting:", err)
-        return { error: true, msg:  err.response.data.error };
-    }
+    return { error: false };
+  } catch (err: any) {
+    console.error("Error accepting:", err);
+    return { error: true, message: err.message };
+  }
 };
 
-export const updateRequests = async (id: string) :
-    Promise<
-    { error: true; msg: string }
-    | { error: false; requests: SearchUser[] }
-  > => {
+export const rejectFollowRequest = async (requester: string) => {
   try {
-    const result = await axiosInstance.get(`/followers/requests/${id}`);
-    return { requests: result.data.list, error: false};
-  } catch (err) {
-    return { error: true, msg: (err as AxiosError).message };
+    const { error } = await supabase.rpc("reject_follow_request", { _requester_id: requester });
+
+    if (error) {
+      throw new Error(error.message);
+    }
+
+    return { error: false };
+  } catch (err: any) {
+    console.error("Error accepting:", err);
+    return { error: true, message: err.message };
   }
 };
