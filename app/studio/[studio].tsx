@@ -1,5 +1,5 @@
 import { SafeAreaView } from "react-native-safe-area-context"
-import { Modal, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View, Platform, Image, Pressable, KeyboardAvoidingView } from "react-native"
+import { Modal, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View, Platform, Image, Pressable, FlatList } from "react-native"
 
 import { useThemeConfig, Theme } from "@/components/ui/use-theme-config"
 import { useEffect, useState } from "react";
@@ -7,11 +7,9 @@ import FontAwesome from "@expo/vector-icons/FontAwesome";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import StudioConfirm from "@/components/studioConfirm";
 import { deleteSavedTemplate, fetchSavedTemplates, fetchTemplate } from "@/api/studioFunctions";
-import { FlatList } from "react-native-gesture-handler";
 import TemplateCard from "@/components/templateCard";
 import { saveTemplate } from "@/api/eventFunctions";
 import * as ImagePicker from "expo-image-picker";
-import * as MediaLibrary from "expo-media-library";
 import { SearchTemplate } from "@/types/interfaces";
 
 export default function Studio(){
@@ -38,14 +36,9 @@ export default function Studio(){
     const [savedTemplates, setSavedTemplates] = useState<SearchTemplate[]>([]);
     const [bookmarks, setBookmarks] = useState<{ [id: string]: boolean }>({});
     const [image, setImage] = useState<string | undefined>(undefined);
-    const [status, requestPermission] = MediaLibrary.usePermissions();
     const [showMenu, setShowMenu] = useState(false);
 
     const router = useRouter();
-
-    if (status === null){
-      requestPermission();
-    }
 
     useEffect(() => {
       

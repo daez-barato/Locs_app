@@ -6,17 +6,14 @@
     "orientation": "portrait",
     "icon": "./assets/images/SayWhen.png",
     "scheme": "locs.com",
-    "deepLinking": true,
     "userInterfaceStyle": "automatic",
-    "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
       "bitcode": false,
-      "bundleIdentifier": "com.daez.Locs_app",
+      "bundleIdentifier": "com.daez.locsapp",
       "infoPlist": {
-        "NSCameraUsageDescription": "Locs uses your camera to let you add photos to events and templates.",
-        "NSPhotoLibraryUsageDescription": "Locs uses your photo library to let you choose images for your profile, events, and templates.",
-        "NSMicrophoneUsageDescription": "Locs uses your microphone for voice features."
+        "NSCameraUsageDescription": "Locs uses your camera to let you take photos for events and templates.",
+        "NSPhotoLibraryUsageDescription": "Locs uses your photo library to let you choose images for your profile, events, and templates."
       }
     },
     "android": {
@@ -42,13 +39,9 @@
         "android.permission.ACCESS_NETWORK_STATE",
         "android.permission.CAMERA",
         "android.permission.INTERNET",
-        "android.permission.MODIFY_AUDIO_SETTINGS",
-        "android.permission.RECORD_AUDIO",
-        "android.permission.SYSTEM_ALERT_WINDOW",
-        "android.permission.WAKE_LOCK",
-        "android.permission.BLUETOOTH"
+        "android.permission.WAKE_LOCK"
       ],
-      "package": "com.daez.Locs_app"
+      "package": "com.daez.locsapp"
     },
     "web": {
       "bundler": "metro",
@@ -67,23 +60,13 @@
         }
       ],
       [
-        "expo-video"
-      ],
-      [
         "expo-secure-store"
       ],
-      "expo-sqlite",
       [
         "expo-image-picker",
         {
-          "photosPermission": "Locs uses your photo library to let you choose images for your profile, events, and templates."
-        }
-      ],
-      [
-        "expo-camera",
-        {
-          "cameraPermission": "Locs uses your camera to let you add photos to events and templates.",
-          "microphonePermission": "Locs uses your microphone for voice features."
+          "photosPermission": "Locs uses your photo library to let you choose images for your profile, events, and templates.",
+          "cameraPermission": "Locs uses your camera to let you take photos for events and templates."
         }
       ]
     ],
