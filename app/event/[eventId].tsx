@@ -29,6 +29,7 @@ export default function eventScreen() {
   const [modalBetAmount, setModalBetAmount] = useState<string>('10');
   const [winningOptions, setWinningOptions] = useState<Record<string, string>>({});
   const [postTemplateModal, setPostTemplateModal] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const userName = useAuthContext().user?.username || '';
   const url = Linking.createURL(`event/${eventId}`);
 
@@ -46,9 +47,15 @@ export default function eventScreen() {
     async function fetchData() {
       try {
         const event = await eventInformation(eventId);
-        setEventInfo(event);
 
-        if (isEventCreator && event.decided && !event.template_posted) {
+        if (event.error) {
+          throw new Error(event.msg);
+        }
+
+        setEventInfo(event);
+        setLoadError(null);
+
+        if (event.is_creator && event.decided && !event.template_posted) {
             setPostTemplateModal(true);
         };
 
@@ -93,8 +100,11 @@ export default function eventScreen() {
 
         setBetInfos(bet_infos);
 
-      } catch (err) {
+      } catch (err: any) {
         console.error('Failed to fetch data', err);
+        setLoadError(
+          "We couldn't load this event. It may have been removed, or you may be offline."
+        );
       }
     }
     fetchData();
@@ -103,10 +113,17 @@ export default function eventScreen() {
 
   const handleShareEvent = async () => {
     try {
-      const result = await Share.share({
-        message: `${url}`,
+      const eventTitle = eventInfo?.title || 'a prediction event';
+      // Private events are excluded from search and trending, so the link is the
+      // only way in — say so, otherwise people assume the recipient can find it.
+      const invite = eventInfo?.public
+        ? `Join "${eventTitle}" on Locs:\n${url}`
+        : `You're invited to "${eventTitle}" on Locs. This event is private — only people with this link can join:\n${url}`;
+
+      await Share.share({
+        message: invite,
         url: url,
-        title: eventInfo?.title || 'Prediction Event',
+        title: eventTitle,
       });
     } catch (error) {
       console.error('Error sharing:', error);
@@ -334,6 +351,31 @@ export default function eventScreen() {
     );
   };
 
+  if (loadError) {
+    return (
+      <SafeAreaView style={styles(theme).container}>
+        <View style={styles(theme).header}>
+          <TouchableOpacity style={styles(theme).backButton} onPress={() => router.back()}>
+            <FontAwesome5 name="arrow-left" size={18} color={theme.primary} />
+          </TouchableOpacity>
+        </View>
+        <View style={styles(theme).loadErrorContainer}>
+          <FontAwesome5 name="exclamation-triangle" size={48} color={theme.destructive} />
+          <Text style={styles(theme).loadErrorTitle}>Event unavailable</Text>
+          <Text style={styles(theme).loadErrorText}>{loadError}</Text>
+          <TouchableOpacity
+            style={styles(theme).loadErrorButton}
+            onPress={onRefresh}
+            activeOpacity={0.8}
+          >
+            <FontAwesome5 name="redo" size={14} color="#ffffff" />
+            <Text style={styles(theme).loadErrorButtonText}>Try again</Text>
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
   return (
     <SafeAreaView style={styles(theme).container}>
       {/* Enhanced Header */}
@@ -468,19 +510,19 @@ export default function eventScreen() {
             <View style={styles(theme).creatorRow}>
               <TouchableOpacity
                 style={styles(theme).creatorBadge}
-                onPress={() => router.push(`/(tabs)/user/${eventInfo?.creator.username}`)}
+                onPress={() => router.push(`/(tabs)/user/${eventInfo?.creator?.username}`)}
               >
                 <FontAwesome5 name="user" size={12} color={theme.primary} />
-                <Text style={styles(theme).creatorText}>by {eventInfo?.creator.username}</Text>
+                <Text style={styles(theme).creatorText}>by {eventInfo?.creator?.username}</Text>
               </TouchableOpacity>
 
               <View style={styles(theme).creatorActions}>
                 {/* Follow button */}
-                {(!eventInfo?.creator.is_following && !eventInfo?.creator.has_requested) && 
+                {(!eventInfo?.creator?.is_following && !eventInfo?.creator?.has_requested) && 
                   <TouchableOpacity
                     style={styles(theme).creatorActionButton}
                     onPress={async () => {
-                      await followRequest(eventInfo?.creator.id as string);
+                      await followRequest(eventInfo?.creator?.id as string);
                     }}
                   >
                     <FontAwesome5 name="user-plus" size={14} color={theme.primary} />
@@ -809,6 +851,41 @@ const styles = (theme: Theme) => StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: theme.background,
+  },
+  loadErrorContainer: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 32,
+  },
+  loadErrorTitle: {
+    color: theme.text,
+    fontSize: 20,
+    fontWeight: '700',
+    marginTop: 16,
+    textAlign: 'center',
+  },
+  loadErrorText: {
+    color: theme.text + '90',
+    fontSize: 15,
+    lineHeight: 22,
+    marginTop: 8,
+    textAlign: 'center',
+  },
+  loadErrorButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginTop: 24,
+    paddingVertical: 14,
+    paddingHorizontal: 28,
+    borderRadius: 14,
+    backgroundColor: theme.primary,
+  },
+  loadErrorButtonText: {
+    color: '#ffffff',
+    fontSize: 16,
+    fontWeight: '600',
   },
   
   // Enhanced Header

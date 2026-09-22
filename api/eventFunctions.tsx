@@ -35,7 +35,33 @@ export const eventInformation = async (eventId: string) => {
     const { flat, map } = splitQuestionsPayload(data.questions);
     eventQuestionMaps.set(eventId, map);
 
-    return { ...data, questions: flat };
+    const { data: userAuth } = await supabase.auth.getUser();
+    const viewerId = userAuth.user?.id;
+
+    // The RPC returns the creator as flat fields and the thumbnail as a storage
+    // path in a private bucket. The screen wants a nested creator and a URL it
+    // can render, so shape it here rather than in every consumer.
+    let thumbnailUrl: string | null = null;
+    if (data.image_url) {
+      const { data: signed } = await supabase.storage
+        .from("event-thumbnail")
+        .createSignedUrl(data.image_url, 60 * 60);
+      thumbnailUrl = signed?.signedUrl ?? null;
+    }
+
+    return {
+      ...data,
+      questions: flat,
+      thumbnail_url: thumbnailUrl,
+      is_creator: !!viewerId && data.event_creator_id === viewerId,
+      creator: {
+        id: data.event_creator_id,
+        username: data.event_creator,
+        avatar_url: data.avatar_url,
+        is_following: data.is_following,
+        has_requested: data.has_requested,
+      },
+    };
   } catch (err: any) {
     console.error("Error fetching event information:", err);
     return { error: true, msg: err.message };

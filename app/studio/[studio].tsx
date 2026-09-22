@@ -37,8 +37,68 @@ export default function Studio(){
     const [bookmarks, setBookmarks] = useState<{ [id: string]: boolean }>({});
     const [image, setImage] = useState<string | undefined>(undefined);
     const [showMenu, setShowMenu] = useState(false);
+    const [editTarget, setEditTarget] = useState<
+      { kind: "question"; title: string } | { kind: "option"; index: number } | null
+    >(null);
+    const [editText, setEditText] = useState("");
 
     const router = useRouter();
+
+    const startEditQuestion = (title: string) => {
+      setEditTarget({ kind: "question", title });
+      setEditText(title);
+    };
+
+    const startEditOption = (index: number) => {
+      setEditTarget({ kind: "option", index });
+      setEditText(optionsDict[question]?.[index] ?? "");
+    };
+
+    const cancelEdit = () => {
+      setEditTarget(null);
+      setEditText("");
+      handleInputBlur();
+    };
+
+    const confirmEdit = () => {
+      const trimmed = editText.trim();
+      if (!editTarget || trimmed === "") return;
+
+      if (editTarget.kind === "question") {
+        const oldTitle = editTarget.title;
+        if (trimmed !== oldTitle) {
+          if (questions.includes(trimmed)) {
+            alert("A question with that name already exists.");
+            return;
+          }
+          setQuestionList(prev => prev.map(q => (q === oldTitle ? trimmed : q)));
+          // Rebuild rather than delete+add so the questions keep their order.
+          setOptionsDict(prev => {
+            const next: { [key: string]: string[] } = {};
+            for (const [key, value] of Object.entries(prev)) {
+              next[key === oldTitle ? trimmed : key] = value;
+            }
+            return next;
+          });
+          setQuestion(cur => (cur === oldTitle ? trimmed : cur));
+        }
+      } else {
+        const current = optionsDict[question] || [];
+        if (current.some((opt, i) => i !== editTarget.index && opt === trimmed)) {
+          alert("That option already exists.");
+          return;
+        }
+        setOptionsDict(prev => {
+          const next = { ...prev };
+          const opts = [...(next[question] || [])];
+          opts[editTarget.index] = trimmed;
+          next[question] = opts;
+          return next;
+        });
+      }
+
+      cancelEdit();
+    };
 
     useEffect(() => {
       
@@ -390,6 +450,13 @@ export default function Studio(){
                               </Text>
                               {!isTemplate && (
                               <TouchableOpacity
+                                onPress={() => startEditQuestion(item)}
+                                style={styles(theme).editButton}
+                              >
+                                <FontAwesome name="pencil" size={14} color={theme.primary} />
+                              </TouchableOpacity>)}
+                              {!isTemplate && (
+                              <TouchableOpacity
                                 onPress={() => {
                                   const updatedQuestions = questions.filter((_, i) => i !== index);
                                   setQuestionList(updatedQuestions);
@@ -440,7 +507,14 @@ export default function Studio(){
                                   {item}
                                 </Text>
                                 {!isTemplate && (
-                                <TouchableOpacity 
+                                <TouchableOpacity
+                                  style={styles(theme).optionEditButton}
+                                  onPress={() => startEditOption(index)}
+                                >
+                                  <FontAwesome name="pencil" size={14} color="#ffffff" />
+                                </TouchableOpacity>)}
+                                {!isTemplate && (
+                                <TouchableOpacity
                                   style={styles(theme).optionTrashButton}
                                   onPress={() => {
                                     setOptionsDict((prev) => {
@@ -474,6 +548,44 @@ export default function Studio(){
           </View>
 
           {/* Question Modal */}
+          {/* Edit Question / Option Modal */}
+          <Modal visible={editTarget !== null} transparent animationType="slide">
+            <View style={styles(theme).modalOverlay}>
+              <View style={styles(theme).modalContainer}>
+                <Text style={styles(theme).modalTitle}>
+                  {editTarget?.kind === "question" ? "Edit Question" : "Edit Option"}
+                </Text>
+
+                <TextInput
+                  placeholder={
+                    editTarget?.kind === "question" ? "Enter your question..." : "Enter your option..."
+                  }
+                  value={editText}
+                  onChangeText={(text) => {
+                    setEditText(text);
+                    setCurrentInputValue(text);
+                  }}
+                  style={styles(theme).modalInput}
+                  multiline={true}
+                  numberOfLines={3}
+                  autoFocus={true}
+                  onFocus={() => handleInputFocus(editTarget?.kind ?? "question", editText, true)}
+                  onBlur={handleInputBlur}
+                />
+
+                <View style={styles(theme).modalButtons}>
+                  <TouchableOpacity onPress={cancelEdit} style={styles(theme).cancelButton}>
+                    <Text style={styles(theme).cancelButtonText}>Cancel</Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity onPress={confirmEdit} style={styles(theme).addButton}>
+                    <Text style={styles(theme).addButtonText}>Save</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            </View>
+          </Modal>
+
           <Modal visible={questionModal} transparent animationType="slide">
             <View style={styles(theme).modalOverlay}>
               <View style={styles(theme).modalContainer}>
@@ -988,6 +1100,10 @@ const styles = (theme: Theme) => StyleSheet.create({
     padding: 8,
     marginLeft: 10,
   },
+  editButton: {
+    padding: 8,
+    marginLeft: 4,
+  },
   addQuestionButton: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1042,6 +1158,17 @@ const styles = (theme: Theme) => StyleSheet.create({
     fontWeight: "500",
     fontSize: 16,
     flex: 1,
+  },
+  optionEditButton: {
+    position: "absolute",
+    bottom: 10,
+    right: 50,
+    backgroundColor: theme.button,
+    height: 32,
+    width: 32,
+    borderRadius: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   optionTrashButton: {
     position: "absolute",
