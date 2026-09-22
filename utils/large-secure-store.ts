@@ -1,3 +1,4 @@
+import { Platform } from 'react-native'
 import * as SecureStore from 'expo-secure-store'
 
 // SecureStore has a hard ~2048 byte limit per value on some platforms.
@@ -25,7 +26,7 @@ async function removeAllChunks(key: string, chunkCount: number) {
   await Promise.all(deletions)
 }
 
-export const LargeSecureStore = {
+const nativeSecureStore = {
   async getItem(key: string): Promise<string | null> {
     // Check if this key was stored in chunks
     const chunkCount = await getChunkCount(key)
@@ -86,3 +87,28 @@ export const LargeSecureStore = {
     await SecureStore.deleteItemAsync(key)
   },
 }
+
+// expo-secure-store has no web implementation at all, and Expo Router also
+// pre-renders the root route in a plain Node process (no `window`, no native
+// modules) even during a normal `expo start` for mobile — both would throw
+// calling into SecureStore's native binding. Fall back to localStorage in a
+// real browser, and a no-op store during server-side prerender (there's no
+// real session to read there anyway).
+const isServer = typeof window === 'undefined'
+
+const webStorage = {
+  async getItem(key: string): Promise<string | null> {
+    if (isServer) return null
+    return window.localStorage.getItem(key)
+  },
+  async setItem(key: string, value: string): Promise<void> {
+    if (isServer) return
+    window.localStorage.setItem(key, value)
+  },
+  async removeItem(key: string): Promise<void> {
+    if (isServer) return
+    window.localStorage.removeItem(key)
+  },
+}
+
+export const LargeSecureStore = Platform.OS === 'web' ? webStorage : nativeSecureStore
