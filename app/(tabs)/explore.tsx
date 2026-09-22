@@ -36,6 +36,7 @@ export default function Explore() {
     const [loadMoreEvents, setLoadMoreEvents] = useState(true);
     const [loadMoreTemplates, setLoadMoreTemplates] = useState(true);
     const [loadMoreUsers, setLoadMoreUsers] = useState(true);
+    const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
     let typingTimeout: ReturnType<typeof setTimeout>;
     const handleQueryChange = (text: string) => {
@@ -62,9 +63,11 @@ export default function Explore() {
 
             setEvents(trending.events);
             setTemplates(trending.templates);
-            
-        } catch (error) {
+            setErrorMessage(null);
+
+        } catch (error: any) {
             console.error('Error fetching trending events:', error);
+            setErrorMessage("Couldn't load Explore. Check your connection and try again.");
         }
     };
 
@@ -106,8 +109,10 @@ export default function Explore() {
                 templates: results.templates,
                 users: results.users,
             });
-        } catch (error) {
+            setErrorMessage(null);
+        } catch (error: any) {
             console.error('Error searching:', error);
+            setErrorMessage("Search failed. Check your connection and try again.");
         }
     };
 
@@ -198,18 +203,30 @@ export default function Explore() {
                     {!isLoading && (
                     <View style={styles(theme).emptyState}>
                         <FontAwesome
-                        name={isSearching ? "search" : "exclamation-triangle"}
+                        name={errorMessage ? "exclamation-triangle" : isSearching ? "search" : "compass"}
                         size={48}
-                        color={theme.text + '40'}
+                        color={errorMessage ? theme.destructive : theme.text + '40'}
                         />
                         <Text style={styles(theme).emptyText}>
-                        No {activeTab} found
+                        {errorMessage ? "Something went wrong" : `No ${activeTab} found`}
                         </Text>
                         <Text style={styles(theme).emptySubtext}>
-                        {isSearching
+                        {errorMessage
+                            ? errorMessage
+                            : isSearching
                             ? "Try adjusting your search terms"
                             : "Pull down to refresh"}
                         </Text>
+                        {errorMessage && (
+                            <TouchableOpacity
+                                style={styles(theme).retryButton}
+                                onPress={onRefresh}
+                                activeOpacity={0.8}
+                            >
+                                <FontAwesome name="refresh" size={14} color={theme.buttonText} />
+                                <Text style={styles(theme).retryButtonText}>Try again</Text>
+                            </TouchableOpacity>
+                        )}
                     </View>
                     )}
                 </>
@@ -288,7 +305,12 @@ export default function Explore() {
                         
                     }
                 } catch (err) {
+                // Stop paginating on failure, otherwise every scroll-to-end retries
+                // the same failing request and spams errors.
                 console.error('Error fetching more:', err);
+                setLoadMoreEvents(false);
+                setLoadMoreTemplates(false);
+                setLoadMoreUsers(false);
                 } finally {
                 setIsLoading(false);
                 }
@@ -408,6 +430,21 @@ const styles = (theme: Theme) => StyleSheet.create({
         justifyContent: 'center',
         paddingVertical: 80,
         paddingHorizontal: 32,
+    },
+    retryButton: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
+        marginTop: 20,
+        paddingVertical: 12,
+        paddingHorizontal: 24,
+        borderRadius: 12,
+        backgroundColor: theme.primary,
+    },
+    retryButtonText: {
+        color: theme.buttonText,
+        fontSize: 15,
+        fontWeight: '600',
     },
     emptyText: {
         color: theme.text,

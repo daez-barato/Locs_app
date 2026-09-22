@@ -103,8 +103,11 @@ export const postEvent = async (eventDto: EventDto, templateDto: TemplateDto): P
     }
 
     return data[0].event_id;
-  } catch (err) {
+  } catch (err: any) {
+    // Rethrow so the caller can surface the real reason (storage rejected the
+    // image, not authenticated, validation failed) instead of a generic
+    // "Failed to create event".
     console.error("Error creating event:", err);
-    return undefined;
+    throw new Error(err?.message || "Failed to create event");
   }
 };
