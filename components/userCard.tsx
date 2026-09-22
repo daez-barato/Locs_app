@@ -1,5 +1,5 @@
 import { acceptFollowRequest, rejectFollowRequest, followRequest, unfollowRequest  } from "@/api/followers/followers";
-import { SearchUser } from "@/api/interfaces/objects";
+import { SearchUser } from "@/types/interfaces";
 import { useThemeConfig, Theme } from "@/components/ui/use-theme-config";
 import { FontAwesome } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
@@ -100,7 +100,7 @@ export default function UserCard({ user }: { user: SearchUser }) {
       >
         <View style={styles(theme).avatarContainer}>
           <Image
-            source={{ uri: userState.profile_image }}
+            source={{ uri: userState.avatar_url }}
             style={styles(theme).avatar}
             resizeMode="cover"
           />
