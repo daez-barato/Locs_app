@@ -11,6 +11,7 @@ import {
     TouchableOpacity, 
     View, 
     RefreshControl,
+    ActivityIndicator,
     FlatList
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -200,6 +201,11 @@ export default function Explore() {
             }}
             ListEmptyComponent={
                 <>
+                    {isLoading && (
+                    <View style={styles(theme).emptyState}>
+                        <ActivityIndicator size="large" color={theme.primary} />
+                    </View>
+                    )}
                     {!isLoading && (
                     <View style={styles(theme).emptyState}>
                         <FontAwesome

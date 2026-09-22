@@ -615,9 +615,9 @@ export default function Studio(){
                                 try {
                                   let result: any;
                                   if (bookmarks[item.id]){
-                                    result = deleteSavedTemplate(item.id);
+                                    result = await deleteSavedTemplate(item.id);
                                   } else {
-                                    result = saveTemplate(item.id);
+                                    result = await saveTemplate(item.id);
                                   };
                                   if (result.error) {
                                     throw new Error(result.msg);
@@ -633,6 +633,15 @@ export default function Studio(){
                             />
                           </View>
                           }
+                        ListEmptyComponent={
+                          <View style={styles(theme).emptyTemplates}>
+                            <FontAwesome name="bookmark-o" size={40} color={theme.text + '40'} />
+                            <Text style={styles(theme).emptyTemplatesTitle}>No saved templates</Text>
+                            <Text style={styles(theme).emptyTemplatesText}>
+                              Templates you bookmark from events will show up here.
+                            </Text>
+                          </View>
+                        }
                       />
                     </View>
                     <TouchableOpacity style= {styles(theme).cleanButton}
@@ -1161,6 +1170,26 @@ const styles = (theme: Theme) => StyleSheet.create({
     shadowOpacity: 0.2,
     shadowRadius: 8,
     elevation: 5,
+  },
+  emptyTemplates: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 48,
+    paddingHorizontal: 24,
+  },
+  emptyTemplatesTitle: {
+    color: theme.text,
+    fontSize: 16,
+    fontWeight: '600',
+    marginTop: 12,
+    textAlign: 'center',
+  },
+  emptyTemplatesText: {
+    color: theme.text + '80',
+    fontSize: 13,
+    marginTop: 6,
+    textAlign: 'center',
+    lineHeight: 18,
   },
   cleanButton: {
     backgroundColor: theme.primary,

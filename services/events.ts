@@ -1,6 +1,7 @@
 import { supabase } from "@/lib/supabase";
 import { EventDto, TemplateDto } from "@/types/dtos";
 import { Event } from "@/types/interfaces";
+import { uploadImage } from "@/utils/image-upload";
 
 export async function fetchFollowingPosts(offset: number): Promise<Event[]> {
 
@@ -16,27 +17,12 @@ export async function fetchFollowingPosts(offset: number): Promise<Event[]> {
         const events: Event[] = data.map((event: any) => Event(event));
 
         return events;
-    } catch (err) {
+    } catch (err: any) {
+        // Rethrow so the feed can tell "nothing to show" apart from "request
+        // failed" — returning [] made a network error look like an empty feed.
         console.error('Error fetching following posts:', err);
-        return [];
+        throw new Error(err?.message || 'Failed to load posts');
     }
-}
-
-async function uploadTemplateThumbnail(uri: string, userId: string): Promise<string> {
-  const response = await fetch(uri);
-  const blob = await response.blob();
-  const ext = blob.type?.split("/")[1] || "jpg";
-  const path = `${userId}/${Date.now()}.${ext}`;
-
-  const { error } = await supabase.storage
-    .from("event-thumbnail")
-    .upload(path, blob, { contentType: blob.type || "image/jpeg" });
-
-  if (error) {
-    throw new Error(error.message);
-  }
-
-  return path;
 }
 
 export const postEvent = async (eventDto: EventDto, templateDto: TemplateDto): Promise<string | undefined> => {
@@ -60,7 +46,7 @@ export const postEvent = async (eventDto: EventDto, templateDto: TemplateDto): P
 
       let thumbnailPath: string | undefined;
       if (templateDto.image) {
-        thumbnailPath = await uploadTemplateThumbnail(templateDto.image, userId);
+        thumbnailPath = await uploadImage("event-thumbnail", templateDto.image, userId);
       }
 
       const questions = Object.entries(options).map(([title, opts], qIdx) => ({

@@ -5,6 +5,7 @@ import EventCard from "@/components/eventCard";
 import { useThemeConfig, Theme } from "@/components/ui/use-theme-config"
 import { FontAwesome } from "@expo/vector-icons";
 import { useEffect, useState } from "react"
+import { useRouter } from "expo-router"
 import { ActivityIndicator, FlatList, StyleSheet, Text, TouchableOpacity, View } from "react-native"
 import { SafeAreaView } from "react-native-safe-area-context"
 
@@ -16,27 +17,36 @@ export default function Home(){
   const [hasMore, setHasMore] = useState(true);
   const [loadingMore, setLoadingMore] = useState(true);
   const theme = useThemeConfig()
+  const router = useRouter()
   const [followingPostsList, updateFollowingPostsList] = useState<Event[]>([]);
   const [activeTab, setActiveTab] = useState<'Following' | 'Shop'>('Following');
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   async function fetchData(currentOffset = 0) {
-    const posts = await fetchFollowingPosts(currentOffset);
+    try {
+      const posts = await fetchFollowingPosts(currentOffset);
 
-    updateFollowingPostsList(prev => {
-      const merged = [...prev, ...posts];
-      const unique = Array.from(
-        new Map(merged.map(e => [e.id, e])).values()
-      );
-      return unique;
-    });
+      updateFollowingPostsList(prev => {
+        const merged = [...prev, ...posts];
+        const unique = Array.from(
+          new Map(merged.map(e => [e.id, e])).values()
+        );
+        return unique;
+      });
 
-    if (posts.length > 0) {
-      setOffset(currentOffset + posts.length);
-    } else {
+      if (posts.length > 0) {
+        setOffset(currentOffset + posts.length);
+      } else {
+        setHasMore(false);
+      }
+      setErrorMessage(null);
+    } catch (err: any) {
+      setErrorMessage("Couldn't load your feed. Check your connection and try again.");
       setHasMore(false);
+    } finally {
+      setLoadingMore(false);
+      activateRefresh(false);
     }
-    setLoadingMore(false);
-    activateRefresh(false);
   }
 
   useEffect( () =>{
@@ -86,6 +96,39 @@ export default function Home(){
               loadingMore ? (
                 <ActivityIndicator size="small" color={theme.primary} />
               ) : null
+            }
+            ListEmptyComponent={
+              loadingMore || refresh ? null : (
+                <View style={styles(theme).emptyState}>
+                  <FontAwesome
+                    name={errorMessage ? "exclamation-triangle" : "users"}
+                    size={48}
+                    color={errorMessage ? theme.destructive : theme.text + '40'}
+                  />
+                  <Text style={styles(theme).emptyTitle}>
+                    {errorMessage ? "Something went wrong" : "Your feed is empty"}
+                  </Text>
+                  <Text style={styles(theme).emptySubtext}>
+                    {errorMessage
+                      ? errorMessage
+                      : "Follow people to see the events they create here."}
+                  </Text>
+                  <TouchableOpacity
+                    style={styles(theme).emptyAction}
+                    onPress={() => (errorMessage ? activateRefresh(true) : router.push("/explore"))}
+                    activeOpacity={0.8}
+                  >
+                    <FontAwesome
+                      name={errorMessage ? "refresh" : "search"}
+                      size={14}
+                      color={theme.buttonText}
+                    />
+                    <Text style={styles(theme).emptyActionText}>
+                      {errorMessage ? "Try again" : "Find people to follow"}
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              )
             }
           />
         </View>
@@ -146,5 +189,40 @@ const styles = (theme: Theme) => StyleSheet.create({
     flex: 1,
     paddingTop: 10,
     backgroundColor: theme.background,
+  },
+  emptyState: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 80,
+    paddingHorizontal: 32,
+  },
+  emptyTitle: {
+    color: theme.text,
+    fontSize: 18,
+    fontWeight: '600',
+    marginTop: 16,
+    textAlign: 'center',
+  },
+  emptySubtext: {
+    color: theme.text + '80',
+    fontSize: 14,
+    marginTop: 8,
+    textAlign: 'center',
+    lineHeight: 20,
+  },
+  emptyAction: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginTop: 20,
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    borderRadius: 12,
+    backgroundColor: theme.primary,
+  },
+  emptyActionText: {
+    color: theme.buttonText,
+    fontSize: 15,
+    fontWeight: '600',
   },
 })

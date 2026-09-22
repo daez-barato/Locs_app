@@ -1,5 +1,6 @@
 import { UserProfile, Event, SearchUser } from "../types/interfaces";
 import { supabase } from "@/lib/supabase";
+import { uploadImage } from "@/utils/image-upload";
 
 
 export const getUserProfile = async (username: string): Promise<UserProfile | null> => {
@@ -108,18 +109,7 @@ export const updateProfilePicture = async (uri: string) => {
       throw new Error("Not authenticated");
     }
 
-    const response = await fetch(uri);
-    const blob = await response.blob();
-    const ext = blob.type?.split("/")[1] || "jpg";
-    const path = `${userId}/avatar.${ext}`;
-
-    const { error: uploadError } = await supabase.storage
-      .from("avatar")
-      .upload(path, blob, { contentType: blob.type || "image/jpeg", upsert: true });
-
-    if (uploadError) {
-      throw new Error(uploadError.message);
-    }
+    const path = await uploadImage("avatar", uri, userId, "avatar");
 
     const { data, error } = await supabase.rpc("update_avatar", { _avatar_url: path });
 
