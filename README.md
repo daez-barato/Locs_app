@@ -1,50 +1,151 @@
-# Welcome to your Expo app 👋
+# Locs_app
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+The Locs mobile app — Expo (SDK 57) with Expo Router, talking directly to
+Supabase. The schema and business logic live in the sibling
+[`locs_server`](../locs_server) directory.
 
-## Get started
-
-1. Install dependencies
-
-   ```bash
-   npm install
-   ```
-
-2. Start the app
-
-   ```bash
-    npx expo start
-   ```
-
-In the output, you'll find options to open the app in a
-
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
-
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
-
-## Get a fresh project
-
-When you're ready, run:
+## Running it
 
 ```bash
-npm run reset-project
+npm install
+npx expo start        # then scan the QR code
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+`.env` points at the hosted Supabase project and is gitignored:
 
-## Learn more
+```
+EXPO_PUBLIC_SUPABASE_URL=...
+EXPO_PUBLIC_SUPABASE_KEY=...      # publishable/anon key, safe on the client
+```
 
-To learn more about developing your project with Expo, look at the following resources:
+To run against the local stack instead, start it in `locs_server` and point the
+URL at `http://127.0.0.1:54321`. Note a phone can't reach `127.0.0.1` on your
+machine, so local Supabase is for simulators and tests, not device testing.
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+```bash
+npm test          # jest
+npm run typecheck # tsc --noEmit
+npm run gen:types # regenerate types from the database
+```
 
-## Join the community
+## How data flows
 
-Join our community of developers creating universal apps.
+There is no REST API. Screens call service functions, which call Postgres RPCs
+through `supabase.rpc(...)`.
 
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+```
+screen  →  services/ | api/  →  supabase.rpc()  →  Postgres function
+```
+
+`services/` and `api/` are the same layer with different histories: `api/` held
+the old axios client for a retired Express server and was rewritten in place.
+New code should go in `services/`.
+
+**The service layer's job is translation.** The RPCs return database-shaped rows
+(`event_id`, `template_title`, `template_image_url`, a flat creator) and the
+screens want view-shaped objects (`id`, `title`, `thumbnail_url`, a nested
+`creator`). Every mismatch between those two shapes has, at some point, shipped
+as a runtime crash. Keep the mapping in the service layer and out of components.
+
+Two things the service layer must always do:
+
+- **Map row fields explicitly.** Passing an RPC row straight into `Event()` left
+  every card with `id: undefined`, which routed taps to `/event/undefined` and
+  gave every row the same React key.
+- **Sign thumbnails.** `event-thumbnail` is a private bucket, so rows carry an
+  object path that renders as a broken image. Use `signThumbnails()` for lists
+  (one request per page) and `createSignedUrl` for a single record.
+
+## Types
+
+`types/database.types.ts` is generated from the live schema and passed to
+`createClient<Database>`, so `supabase.rpc()` checks argument names and return
+shapes at compile time.
+
+```bash
+npm run gen:types    # after any schema change in locs_server
+```
+
+This catches the mistakes that used to reach devices: a wrong parameter name
+(`user_id` where the function declares `username`), a misread column
+(`row.id` when the RPC returns `event_id`), a renamed field.
+
+**Three RPCs return `jsonb` and cannot be generated:**
+`get_event_information_db`, `get_event_bets_db`, `get_template_by_id`. Postgres
+has no schema to introspect for a jsonb return, so the generator emits `Json`.
+Their shapes are declared by hand in `types/rpc.ts` — the one place a payload is
+asserted rather than derived. If you change that SQL, update that file too.
+
+`types/rpc.ts` also re-exports row types for the table-returning RPCs
+(`CreatedEventRow`, `SearchEventRow`, …). Mapping functions should take those
+rather than `any`, otherwise field typos compile happily and fail on device.
+
+## Tests
+
+```bash
+npm test
+```
+
+| File | Covers |
+|---|---|
+| `__tests__/event-mapping.test.ts` | the event payload → screen translation, bet id resolution |
+| `__tests__/template-profile-mapping.test.ts` | template nesting, profile row mapping, RPC parameter names |
+| `__tests__/image-upload.test.ts` | upload size limits, content types, failure paths |
+| `__tests__/thumbnails.test.ts` | batched signing, de-duplication, failure fallback |
+
+These cover the service layer, not components — that's deliberate, because every
+bug worth regression-testing so far has been a shape or contract mismatch rather
+than a rendering problem. Database behaviour is covered separately by the pgTAP
+suites in `locs_server`.
+
+Jest note: mock factories are hoisted above imports, so a factory must not close
+over anything declared below it. Build the mock inline and wire behaviour in
+`beforeEach`.
+
+## Project structure
+
+```
+app/              expo-router routes (file-based)
+  (auth)/         login & register
+  (tabs)/         feed, explore, parleys, profile
+  event/[eventId] event detail, betting, lock/decide/delete
+  studio/[studio] event & template editor
+components/       shared UI (cards, modals)
+services/         data layer — RPC calls + shape translation
+api/              older data layer, same role (see above)
+providers/        auth and coin context
+hooks/            context accessors
+lib/supabase.ts   the typed client
+types/            generated schema, hand-written jsonb contracts, view models
+utils/            uploads, thumbnail signing, secure storage
+```
+
+## Auth
+
+Supabase Auth. A `handle_new_user` trigger creates the `public.users` profile row
+when an auth user is created, so username lives in `raw_user_meta_data` at signup.
+
+Session tokens are stored through `utils/large-secure-store.ts`, which chunks
+values across `expo-secure-store` keys — Supabase sessions exceed SecureStore's
+~2 KB per-value limit. It falls back to `localStorage` on web and a no-op during
+server prerender, because `expo-secure-store` has no implementation in either and
+Expo Router prerenders routes in a plain Node process even for a native `expo
+start`.
+
+A restored session resolves in two steps — claims first, profile second. Route
+rendering is gated on `isInitializing` (true only until the first resolution) so
+the login screen can't flash over a valid session, while later transitions don't
+blank the screen.
+
+## Deploying
+
+`eas.json` and `app.json` are configured; bundle id is `com.daez.locsapp` on both
+platforms.
+
+Outstanding before a store release:
+- Apple Developer and Google Play Console accounts
+- store listing assets: screenshots, description, privacy policy URL
+- `npx expo-doctor` should stay at 21/21
+- shared event links use the app's custom scheme, so they only open for people
+  who already have the app installed. Universal/App Links need a real domain
+  hosting `apple-app-site-association` and `assetlinks.json`.

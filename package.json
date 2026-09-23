@@ -8,9 +8,11 @@
     "android": "expo run:android",
     "ios": "expo run:ios",
     "web": "expo start --web",
-    "test": "jest --watchAll",
+    "test": "jest",
     "lint": "expo lint",
-    "gen:types": "cd ../locs_server && npx supabase gen types typescript --linked > ../Locs_app/types/database.types.ts"
+    "gen:types": "cd ../locs_server && npx supabase gen types typescript --linked > ../Locs_app/types/database.types.ts",
+    "test:watch": "jest --watchAll",
+    "typecheck": "tsc --noEmit"
   },
   "jest": {
     "preset": "jest-expo"
