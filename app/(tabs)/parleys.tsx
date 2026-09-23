@@ -23,6 +23,7 @@ export default function Parleys() {
     const [createdEvents, setCreatedEvents] = useState<Event[]>([]);
     const [isRefreshing, setIsRefreshing] = useState(false);
     const [isLoading, setIsLoading] = useState(true);
+    const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
     const fetchUserEvents = async () => {
         try {
@@ -36,8 +37,10 @@ export default function Parleys() {
 
             setParticipatingEvents(participating);
             setCreatedEvents(created);
+            setErrorMessage(null);
         } catch (error) {
             console.error('Error fetching user events:', error);
+            setErrorMessage("Couldn't load your parleys. Check your connection and try again.");
         }
     };
 
@@ -139,21 +142,27 @@ export default function Parleys() {
                 {currentEvents.length === 0 && !isLoading && (
                     <View style={styles(theme).emptyState}>
                         <FontAwesome 
-                            name={activeTab === 'participating' ? "calendar-o" : "star-o"} 
+                            name={errorMessage ? "exclamation-triangle" : activeTab === 'participating' ? "calendar-o" : "star-o"} 
                             size={48} 
-                            color={theme.text + '40'} 
+                            color={errorMessage ? theme.destructive : theme.text + '40'} 
                         />
                         <Text style={styles(theme).emptyTitle}>
-                            No {activeTab === 'participating' ? 'events joined' : 'events created'} yet
+                            {errorMessage
+                                ? "Something went wrong"
+                                : `No ${activeTab === 'participating' ? 'events joined' : 'events created'} yet`}
                         </Text>
                         <Text style={styles(theme).emptySubtext}>
-                            {activeTab === 'participating' 
-                                ? "Discover and join exciting events in the Explore tab" 
+                            {errorMessage
+                                ? errorMessage
+                                : activeTab === 'participating'
+                                ? "Discover and join exciting events in the Explore tab"
                                 : "Create your first event and bring people together"}
                         </Text>
                         <TouchableOpacity style={styles(theme).emptyButton}
                             onPress={() => {
-                                if (activeTab === "created"){
+                                if (errorMessage){
+                                    onRefresh();
+                                } else if (activeTab === "created"){
                                     router.push("/studio/create");
                                 } else if (activeTab === "participating"){
                                     router.push("/(tabs)/explore");
@@ -161,7 +170,9 @@ export default function Parleys() {
                             }}
                         >
                             <Text style={styles(theme).emptyButtonText}>
-                                {activeTab === 'participating' ? 'Explore Events' : 'Create Event'}
+                                {errorMessage
+                                    ? 'Try again'
+                                    : activeTab === 'participating' ? 'Explore Events' : 'Create Event'}
                             </Text>
                         </TouchableOpacity>
                     </View>

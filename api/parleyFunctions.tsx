@@ -53,8 +53,9 @@ export const fetchUserLiveEvents = async () => {
         .map((row: any) => toEvent({ ...row, viewer_id: viewerId }))
     );
   } catch (error: any) {
+    // Returning [] made a failed request look like "you have no events".
     console.error("Error fetching live events:", error.message);
-    return [];
+    throw new Error(error?.message || "Failed to load events");
   }
 };
 
@@ -81,6 +82,6 @@ export const fetchUserLiveBets = async () => {
     );
   } catch (error: any) {
     console.error("Error fetching live bets:", error.message);
-    return [];
+    throw new Error(error?.message || "Failed to load bets");
   }
 };

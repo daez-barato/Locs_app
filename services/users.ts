@@ -83,6 +83,7 @@ export const getFollowersList = async (username: string, offset: number = 0) : P
 
     return data.map((user: any) => SearchUser(user));
   } catch (err) {
+    console.error('Error fetching followers list:', err);
     return [];
   }
 };
@@ -95,6 +96,7 @@ export const getFollowingList = async (username: string, offset: number = 0) : P
     }
     return data.map((user: any) => SearchUser(user));
   } catch (err) {
+    console.error('Error fetching following list:', err);
     return [];
   }
 };
@@ -107,6 +109,7 @@ export const getRequestsList = async (username: string) : Promise<SearchUser[]> 
     }
     return data.map((user: any) => SearchUser(user));
   } catch (err) {
+    console.error('Error fetching follow requests:', err);
     return [];
   }
 };

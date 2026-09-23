@@ -1,5 +1,5 @@
 import { SafeAreaView } from "react-native-safe-area-context"
-import { Modal, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View, Platform, Image, Pressable, FlatList } from "react-native"
+import { Modal, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View, Platform, Image, Pressable, FlatList, Alert } from "react-native"
 
 import { useThemeConfig, Theme } from "@/components/ui/use-theme-config"
 import { useEffect, useState } from "react";
@@ -123,23 +123,28 @@ export default function Studio(){
           try {
             const templateInfo = await fetchTemplate(studio);
 
-            if (templateInfo.error) {
-              throw new Error(templateInfo.msg);
+            if (templateInfo.error || !templateInfo.template) {
+              throw new Error(templateInfo.msg || "Template not found");
             }
+
+            const loadedQuestions = templateInfo.questions ?? {};
 
             setTitle(templateInfo.template.title || "");
             setDescription(templateInfo.template.description || "");
-            setOptionsDict(templateInfo.questions || {});
-            setQuestion(templateInfo.questions ? Object.keys(templateInfo.questions)[0] || "+" : "+");
+            setOptionsDict(loadedQuestions);
             setNewQuestion("");
             setNewOption("");
-            setQuestionList(Object.keys(templateInfo.questions));
+            setQuestionList(Object.keys(loadedQuestions));
             setImage(templateInfo.template.image || undefined);
-
-            setQuestion(Object.keys(templateInfo.questions)[0] || "+");
+            setQuestion(Object.keys(loadedQuestions)[0] || "+");
 
           } catch (err: any) {
-            console.error("Erro ao buscar template:", err.message);
+            console.error("Error loading template:", err.message);
+            Alert.alert(
+              "Couldn't load template",
+              "This template couldn't be opened. It may have been removed, or you may be offline."
+            );
+            router.back();
           }
         };
         fetchTemplateData();

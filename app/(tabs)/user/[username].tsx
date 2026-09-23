@@ -88,6 +88,10 @@ export default function Profile() {
       
     } catch (err) {
       console.error("Error fetching data:", err);
+      Alert.alert(
+        "Couldn't load profile",
+        "This profile couldn't be opened. It may no longer exist, or you may be offline."
+      );
       router.back();
     } finally {
       setLoading(false);
@@ -133,6 +137,9 @@ export default function Profile() {
 
     } catch (error) {
       console.error(`Error fetching ${type}:`, error);
+      // Without this the spinner stays up forever on a failed fetch.
+      setLoadingUsers(false);
+      setLoadingMore(false);
     }
   };
 
