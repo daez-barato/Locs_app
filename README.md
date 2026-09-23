@@ -137,15 +137,66 @@ rendering is gated on `isInitializing` (true only until the first resolution) so
 the login screen can't flash over a valid session, while later transitions don't
 blank the screen.
 
-## Deploying
+## Building
 
-`eas.json` and `app.json` are configured; bundle id is `com.daez.locsapp` on both
-platforms.
+Builds run on EAS. Bundle id is `com.daez.locsapp` on both platforms, and
+`appVersionSource: "remote"` means EAS owns the version/build numbers — you don't
+bump them by hand.
 
-Outstanding before a store release:
-- Apple Developer and Google Play Console accounts
-- store listing assets: screenshots, description, privacy policy URL
-- `npx expo-doctor` should stay at 21/21
-- shared event links use the app's custom scheme, so they only open for people
-  who already have the app installed. Universal/App Links need a real domain
-  hosting `apple-app-site-association` and `assetlinks.json`.
+| Profile | Output | For |
+|---|---|---|
+| `development` | APK with dev client | debugging against a dev server |
+| `preview` | **APK** / iOS simulator build | sideloading and sharing a test build |
+| `production` | **AAB** / iOS archive | Play Store and App Store |
+
+```bash
+npx eas-cli build --platform android --profile preview     # installable APK
+npx eas-cli build --platform android --profile production  # AAB for Play
+npx eas-cli build --platform ios --profile production      # needs an Apple account
+```
+
+The first Android production build will offer to generate a keystore — let EAS
+manage it. Losing that keystore means you can never update the listing, so if you
+ever generate one yourself, back it up.
+
+### Before changing native config
+
+`app.json` changes only take effect through a new build, and some mistakes only
+appear at build time. Check them locally first — this generates the native
+projects the build would produce, without building:
+
+```bash
+npx expo prebuild --platform android --no-install --clean
+npx expo prebuild --platform ios --no-install --clean
+rm -rf android ios      # generated; not committed
+```
+
+That check is what caught iOS rejecting `#772497ff`: 8-digit hex with alpha is
+valid on Android and invalid on iOS, and it silently left the iOS project on a
+placeholder bundle id.
+
+Also note that libraries merge their own permissions into the Android manifest,
+so deleting one from `android.permissions` is not enough — it has to go in
+`android.blockedPermissions` to be stripped at merge time.
+
+## Submitting to the stores
+
+```bash
+npx eas-cli submit --platform android --profile production
+npx eas-cli submit --platform ios --profile production
+```
+
+Still needed, none of which can be done from the repo:
+
+- **Apple Developer Program** ($99/yr) and **Google Play Console** ($25 once)
+- **Store listing assets**: screenshots per device size, description, category,
+  content rating questionnaire
+- **A privacy policy URL** — both stores require one, and this app collects
+  account data (email, username, uploaded images)
+- **Play data safety form**, declaring what the app collects and why
+
+Known gap: shared event links use the app's custom scheme, so they only open for
+people who already have the app installed. Universal Links (iOS) and App Links
+(Android) need a domain you control serving `apple-app-site-association` and
+`assetlinks.json`. `app.json` currently points an intent filter at
+`Locs_app.com`, which does not resolve.
