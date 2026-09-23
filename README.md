@@ -195,8 +195,6 @@ Still needed, none of which can be done from the repo:
   account data (email, username, uploaded images)
 - **Play data safety form**, declaring what the app collects and why
 
-Known gap: shared event links use the app's custom scheme, so they only open for
-people who already have the app installed. Universal Links (iOS) and App Links
-(Android) need a domain you control serving `apple-app-site-association` and
-`assetlinks.json`. `app.json` currently points an intent filter at
-`Locs_app.com`, which does not resolve.
+Known gap: shared event links only open for people who already have the app
+installed — see [links that work without the app](../ROADMAP.md) in the roadmap,
+along with the other work that is deliberately outstanding.
