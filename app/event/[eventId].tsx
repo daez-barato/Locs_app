@@ -1,6 +1,7 @@
 import { Text, StyleSheet, View, ScrollView, TouchableOpacity, Dimensions, TextInput, RefreshControl, Modal, Alert, Share, Image } from 'react-native';
 import { useLocalSearchParams, router} from 'expo-router';
 import { Theme, useThemeConfig } from '@/components/ui/use-theme-config';
+import { useThemedStyles } from '@/hooks/use-themed-styles';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useEffect, useState } from 'react';
 import { deleteEvent, endEvent, eventInformation, fetchEventBets, lockEvent, placeBet, postTemplate, saveTemplate } from '@/api/eventFunctions';
@@ -21,6 +22,7 @@ export default function eventScreen() {
   const [refresh, setRefresh] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const theme = useThemeConfig();
+  const styles = useThemedStyles(createStyles);
   const [eventInfo, setEventInfo] = useState<EventDetails | null>(null);
   const [betInfos, setBetInfos] = useState<Record<string, Bet>>({});
   const [showConfirmModal, setShowConfirmModal] = useState(false);
@@ -311,31 +313,31 @@ export default function eventScreen() {
 
     return (
       <View style={[
-        styles(theme).optionCard,
-        hasUserBet && styles(theme).userBetCard
+        styles.optionCard,
+        hasUserBet && styles.userBetCard
       ]}>
-        <View style={styles(theme).optionHeader}>
-          <Text style={styles(theme).optionTitle} numberOfLines={3}>
+        <View style={styles.optionHeader}>
+          <Text style={styles.optionTitle} numberOfLines={3}>
             {option}
           </Text>
           {hasUserBet && (
-            <View style={styles(theme).userBetBadge}>
+            <View style={styles.userBetBadge}>
               <FontAwesome5 name="star" size={12} color="#ffffff" />
             </View>
           )}
         </View>
 
-        <View style={styles(theme).betStats}>
-          <View style={styles(theme).statRow}>
-            <Text style={styles(theme).statPercentage}>{betPercentage.toFixed(1)}%</Text>
-            <Text style={styles(theme).optionBetAmount}>
+        <View style={styles.betStats}>
+          <View style={styles.statRow}>
+            <Text style={styles.statPercentage}>{betPercentage.toFixed(1)}%</Text>
+            <Text style={styles.optionBetAmount}>
               ${optionBetAmount.toLocaleString()}
             </Text>
           </View>
-          <View style={styles(theme).progressBarContainer}>
+          <View style={styles.progressBarContainer}>
             <View 
               style={[
-                styles(theme).progressBar, 
+                styles.progressBar, 
                 { width: `${betPercentage}%` }
               ]} 
             />
@@ -344,38 +346,38 @@ export default function eventScreen() {
 
         {isLocked ? (
           <View style={[
-            styles(theme).lockedBetInfo,
-            eventInfo?.decided && styles(theme).decidedBetInfo
+            styles.lockedBetInfo,
+            eventInfo?.decided && styles.decidedBetInfo
           ]}>
             <FontAwesome5
               name={eventInfo?.decided ? "trophy" : "lock"} 
               size={16} 
               color={eventInfo?.decided ? "#F59E0B" : "#6B7280"} 
             />
-            <Text style={styles(theme).lockedBetText}>
+            <Text style={styles.lockedBetText}>
               {eventInfo?.decided ? `Payout: $${betInfo.userBet?.options[option] ?? 0}` : `Locked: $${betInfo.userBet?.options[option] ?? 0}`}
             </Text>
           </View>
         ) : hasUserBet ? (
-          <View style={styles(theme).userBetInfo}>
-            <Text style={styles(theme).userBetAmount}>
+          <View style={styles.userBetInfo}>
+            <Text style={styles.userBetAmount}>
               Your Bet: ${betInfo.userBet!.options[option]}
             </Text>
             <TouchableOpacity
-              style={styles(theme).increaseBetButton}
+              style={styles.increaseBetButton}
               onPress={() => showBetConfirmation(question, option, true)}
             >
               <FontAwesome5 name="plus" size={14} color="#ffffff" />
-              <Text style={styles(theme).increaseBetButtonText}>Increase</Text>
+              <Text style={styles.increaseBetButtonText}>Increase</Text>
             </TouchableOpacity>
           </View>
         ) : (
           <TouchableOpacity
-            style={styles(theme).betButton}
+            style={styles.betButton}
             onPress={() => showBetConfirmation(question, option, false)}
           >
             <FontAwesome5 name="chart-line" size={16} color="#ffffff" />
-            <Text style={styles(theme).betButtonText}>Place Bet</Text>
+            <Text style={styles.betButtonText}>Place Bet</Text>
           </TouchableOpacity>
         )}
       </View>
@@ -384,23 +386,23 @@ export default function eventScreen() {
 
   if (loadError) {
     return (
-      <SafeAreaView style={styles(theme).container}>
-        <View style={styles(theme).header}>
-          <TouchableOpacity style={styles(theme).backButton} onPress={() => router.back()}>
+      <SafeAreaView style={styles.container}>
+        <View style={styles.header}>
+          <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
             <FontAwesome5 name="arrow-left" size={18} color={theme.primary} />
           </TouchableOpacity>
         </View>
-        <View style={styles(theme).loadErrorContainer}>
+        <View style={styles.loadErrorContainer}>
           <FontAwesome5 name="exclamation-triangle" size={48} color={theme.destructive} />
-          <Text style={styles(theme).loadErrorTitle}>Event unavailable</Text>
-          <Text style={styles(theme).loadErrorText}>{loadError}</Text>
+          <Text style={styles.loadErrorTitle}>Event unavailable</Text>
+          <Text style={styles.loadErrorText}>{loadError}</Text>
           <TouchableOpacity
-            style={styles(theme).loadErrorButton}
+            style={styles.loadErrorButton}
             onPress={onRefresh}
             activeOpacity={0.8}
           >
             <FontAwesome5 name="redo" size={14} color="#ffffff" />
-            <Text style={styles(theme).loadErrorButtonText}>Try again</Text>
+            <Text style={styles.loadErrorButtonText}>Try again</Text>
           </TouchableOpacity>
         </View>
       </SafeAreaView>
@@ -408,31 +410,35 @@ export default function eventScreen() {
   }
 
   return (
-    <SafeAreaView style={styles(theme).container}>
+    <SafeAreaView style={styles.container}>
       {/* Enhanced Header */}
-      <View style={styles(theme).header}>
+      <View style={styles.header}>
         <TouchableOpacity 
-          style={styles(theme).backButton}
+          style={styles.backButton}
+          accessibilityRole="button"
+          accessibilityLabel="Go back"
           onPress={() => router.back()}
         >
           <FontAwesome5 name="arrow-left" size={18} color={theme.primary} />
         </TouchableOpacity>
         
-        <View style={styles(theme).headerActions}>
+        <View style={styles.headerActions}>
           
           {(isEventCreator || eventInfo?.public) && (
             <TouchableOpacity 
-              style={styles(theme).shareButton}
+              style={styles.shareButton}
               onPress={handleShareEvent}
             >
               <FontAwesome5 name="share" size={16} color={theme.primary} />
-              <Text style={styles(theme).shareButtonText}>Share</Text>
+              <Text style={styles.shareButtonText}>Share</Text>
             </TouchableOpacity>
           )}
           
           {isEventCreator && !eventInfo?.decided && (
             <TouchableOpacity
-              style={styles(theme).deleteEventButton}
+              style={styles.deleteEventButton}
+              accessibilityRole="button"
+              accessibilityLabel="Delete event"
               onPress={() => setShowDeleteModal(true)}
             >
               <FontAwesome5 name="trash" size={14} color="#ffffff" />
@@ -444,9 +450,9 @@ export default function eventScreen() {
               {(!eventInfo?.template_posted || !eventInfo.decided) && (
                 <TouchableOpacity 
                   style={[
-                    styles(theme).actionButton,
-                    eventInfo?.locked && !eventInfo?.decided && styles(theme).endButton,
-                    eventInfo?.decided && styles(theme).postTemplateButton
+                    styles.actionButton,
+                    eventInfo?.locked && !eventInfo?.decided && styles.endButton,
+                    eventInfo?.decided && styles.postTemplateButton
                   ]}
                   onPress={() => {
                     if (eventInfo?.locked) {
@@ -461,7 +467,7 @@ export default function eventScreen() {
                     size={14} 
                     color="#ffffff" 
                   />
-                  <Text style={styles(theme).actionButtonText}>
+                  <Text style={styles.actionButtonText}>
                     {eventInfo?.locked ? (eventInfo?.decided ? 'Post' : 'End') : 'Lock'}
                   </Text>
                 </TouchableOpacity>
@@ -472,7 +478,7 @@ export default function eventScreen() {
       </View>
 
       <ScrollView 
-        style={styles(theme).mainScrollView} 
+        style={styles.mainScrollView} 
         showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl
@@ -484,34 +490,34 @@ export default function eventScreen() {
         }
       >
         {/* Enhanced Event Header */}
-        <View style={styles(theme).eventHeader}>
+        <View style={styles.eventHeader}>
           {/* 16:9 Event Image */}
-          <View style={styles(theme).eventImageContainer}>
+          <View style={styles.eventImageContainer}>
             {eventInfo?.thumbnail_url ? (
               <Image 
                 source={{ uri: eventInfo.thumbnail_url }}
-                style={styles(theme).eventImage}
+                style={styles.eventImage}
                 resizeMode="cover"
               />
             ) : (
-              <View style={styles(theme).placeholderImage}>
+              <View style={styles.placeholderImage}>
                 <FontAwesome5 name="image" size={40} color={theme.primary + '40'} />
-                <Text style={styles(theme).placeholderText}>No Image</Text>
+                <Text style={styles.placeholderText}>No Image</Text>
               </View>
             )}
             
             {/* Gradient Overlay for better text readability */}
             <LinearGradient
               colors={['transparent', 'rgba(0,0,0,0.7)']}
-              style={styles(theme).imageOverlay}
+              style={styles.imageOverlay}
             />
             
             {/* Status badges overlay */}
-            <View style={styles(theme).statusOverlay}>
+            <View style={styles.statusOverlay}>
               {eventInfo?.expire_date && (
-                <View style={styles(theme).expiryBadge}>
+                <View style={styles.expiryBadge}>
                   <FontAwesome5 name="clock" size={12} color="#ffffff" />
-                  <Text style={styles(theme).expiryText}>
+                  <Text style={styles.expiryText}>
                     {new Date(eventInfo.expire_date).toLocaleDateString()}
                   </Text>
                 </View>
@@ -519,15 +525,15 @@ export default function eventScreen() {
               
               {(eventInfo?.locked || eventInfo?.decided) && (
                 <View style={[
-                  styles(theme).statusBadge,
-                  eventInfo?.decided && styles(theme).decidedBadge
+                  styles.statusBadge,
+                  eventInfo?.decided && styles.decidedBadge
                 ]}>
                   <FontAwesome5 
                     name={eventInfo?.decided ? "flag-checkered" : "lock"} 
                     size={12} 
                     color="#ffffff" 
                   />
-                  <Text style={styles(theme).statusBadgeText}>
+                  <Text style={styles.statusBadgeText}>
                     {eventInfo?.decided ? 'ENDED' : 'LOCKED'}
                   </Text>
                 </View>
@@ -536,32 +542,34 @@ export default function eventScreen() {
           </View>
           
           {/* Event Info */}
-          <View style={styles(theme).eventInfo}>
-            <Text style={styles(theme).eventTitle} numberOfLines={3}>
+          <View style={styles.eventInfo}>
+            <Text style={styles.eventTitle} numberOfLines={3}>
               {eventInfo?.title}
             </Text>
             {eventInfo?.description && (
-              <Text style={styles(theme).eventDescription} numberOfLines={4}>
+              <Text style={styles.eventDescription} numberOfLines={4}>
                 {eventInfo.description}
               </Text>
             )}
             
             {/* Creator badge */}
-            <View style={styles(theme).creatorRow}>
+            <View style={styles.creatorRow}>
               <TouchableOpacity
-                style={styles(theme).creatorBadge}
+                style={styles.creatorBadge}
                 onPress={() => router.push(`/(tabs)/user/${eventInfo?.creator?.username}`)}
               >
                 <FontAwesome5 name="user" size={12} color={theme.primary} />
-                <Text style={styles(theme).creatorText}>by {eventInfo?.creator?.username}</Text>
+                <Text style={styles.creatorText}>by {eventInfo?.creator?.username}</Text>
               </TouchableOpacity>
 
-              <View style={styles(theme).creatorActions}>
+              <View style={styles.creatorActions}>
                 {/* Follow button */}
                 {/* Following yourself is rejected by the RPC, so don't offer it. */}
                 {!isEventCreator && !eventInfo?.creator?.is_following && !eventInfo?.creator?.has_requested && (
                   <TouchableOpacity
-                    style={styles(theme).creatorActionButton}
+                    style={styles.creatorActionButton}
+                    accessibilityRole="button"
+                    accessibilityLabel="Follow this creator"
                     onPress={async () => {
                       const result = await followRequest(eventInfo?.creator?.id as string);
 
@@ -591,7 +599,7 @@ export default function eventScreen() {
                 {/* Save Template button */}
                 {eventInfo?.template_posted && !eventInfo.template_saved && (
                   <TouchableOpacity
-                    style={styles(theme).creatorActionButton}
+                    style={styles.creatorActionButton}
                     onPress={async () => {
                       try {
                         const save = await saveTemplate(eventInfo?.template_id as string);
@@ -611,26 +619,26 @@ export default function eventScreen() {
         </View>
 
         {/* Enhanced Questions Section */}
-        <View style={styles(theme).questionsContainer}>
+        <View style={styles.questionsContainer}>
           {eventInfo?.questions && Object.entries(eventInfo.questions).map(([question, options], questionIndex) => {
             const betInfo = betInfos[question];
             if (!betInfo) return null;
 
             return (
-              <View key={questionIndex} style={styles(theme).questionContainer}>
-                <View style={styles(theme).questionHeader}>
-                  <View style={styles(theme).questionTitleRow}>
-                    <View style={styles(theme).questionNumber}>
-                      <Text style={styles(theme).questionNumberText}>Q{questionIndex + 1}</Text>
+              <View key={questionIndex} style={styles.questionContainer}>
+                <View style={styles.questionHeader}>
+                  <View style={styles.questionTitleRow}>
+                    <View style={styles.questionNumber}>
+                      <Text style={styles.questionNumberText}>Q{questionIndex + 1}</Text>
                     </View>
-                    <Text style={styles(theme).questionTitle}>{question}</Text>
+                    <Text style={styles.questionTitle}>{question}</Text>
                   </View>
                   
-                  <View style={styles(theme).totalPotContainer}>
+                  <View style={styles.totalPotContainer}>
                     <FontAwesome5 name="trophy" size={16} color="#F59E0B" />
-                    <View style={styles(theme).potInfo}>
-                      <Text style={styles(theme).totalPotLabel}>Total Pool</Text>
-                      <Text style={styles(theme).totalPotAmount}>
+                    <View style={styles.potInfo}>
+                      <Text style={styles.totalPotLabel}>Total Pool</Text>
+                      <Text style={styles.totalPotAmount}>
                         ${betInfo.totalPot.toLocaleString()}
                       </Text>
                     </View>
@@ -640,8 +648,8 @@ export default function eventScreen() {
                 <ScrollView 
                   horizontal 
                   showsHorizontalScrollIndicator={false}
-                  style={styles(theme).optionsScrollView}
-                  contentContainerStyle={styles(theme).optionsScrollContent}
+                  style={styles.optionsScrollView}
+                  contentContainerStyle={styles.optionsScrollContent}
                 >
                   {options.map((option, optionIndex) => (
                     <OptionCard
@@ -665,34 +673,34 @@ export default function eventScreen() {
         animationType="slide"
         onRequestClose={cancelBet}
       >
-        <View style={styles(theme).modalOverlay}>
-          <View style={styles(theme).modalContent}>
-            <View style={styles(theme).modalHeader}>
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
               <FontAwesome5 
                 name={pendingBet?.isIncrease ? "arrow-up" : "chart-line"} 
                 size={24} 
                 color={theme.primary} 
               />
-              <Text style={styles(theme).modalTitle}>
+              <Text style={styles.modalTitle}>
                 {pendingBet?.isIncrease ? 'Increase Bet' : 'Place Bet'}
               </Text>
             </View>
             
-            <View style={styles(theme).modalOption}>
-              <Text style={styles(theme).modalOptionText}>"{pendingBet?.option}"</Text>
+            <View style={styles.modalOption}>
+              <Text style={styles.modalOptionText}>"{pendingBet?.option}"</Text>
             </View>
             
-            <View style={styles(theme).balanceContainer}>
+            <View style={styles.balanceContainer}>
               <FontAwesome5 name="wallet" size={16} color={theme.primary} />
-              <Text style={styles(theme).balanceText}>Balance: ${coins}</Text>
+              <Text style={styles.balanceText}>Balance: ${coins}</Text>
             </View>
             
-            <View style={styles(theme).betAmountContainer}>
-              <Text style={styles(theme).betAmountLabel}>Bet Amount:</Text>
-              <View style={styles(theme).inputContainer}>
-                <Text style={styles(theme).currencySymbol}>$</Text>
+            <View style={styles.betAmountContainer}>
+              <Text style={styles.betAmountLabel}>Bet Amount:</Text>
+              <View style={styles.inputContainer}>
+                <Text style={styles.currencySymbol}>$</Text>
                 <TextInput
-                  style={styles(theme).betAmountInput}
+                  style={styles.betAmountInput}
                   value={modalBetAmount}
                   onChangeText={(text) => {
                     if (text === '') {
@@ -719,20 +727,20 @@ export default function eventScreen() {
               </View>
             </View>
             
-            <View style={styles(theme).modalButtons}>
+            <View style={styles.modalButtons}>
               <TouchableOpacity 
-                style={styles(theme).modalCancelButton}
+                style={styles.modalCancelButton}
                 onPress={cancelBet}
               >
-                <Text style={styles(theme).modalCancelText}>Cancel</Text>
+                <Text style={styles.modalCancelText}>Cancel</Text>
               </TouchableOpacity>
               
               <TouchableOpacity 
-                style={styles(theme).modalConfirmButton}
+                style={styles.modalConfirmButton}
                 onPress={confirmBet}
               >
                 <FontAwesome5 name="check" size={16} color="#ffffff" />
-                <Text style={styles(theme).modalConfirmText}>Confirm</Text>
+                <Text style={styles.modalConfirmText}>Confirm</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -746,33 +754,33 @@ export default function eventScreen() {
         animationType="fade"
         onRequestClose={() => setShowDeleteModal(false)}
       >
-        <View style={styles(theme).modalOverlay}>
-          <View style={styles(theme).modalContent}>
-            <View style={styles(theme).modalHeader}>
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
               <FontAwesome5 name="trash" size={24} color={theme.destructive} />
-              <Text style={styles(theme).modalTitle}>Delete Event</Text>
+              <Text style={styles.modalTitle}>Delete Event</Text>
             </View>
-            <Text style={styles(theme).modalText}>
+            <Text style={styles.modalText}>
               This permanently deletes the event. Everyone who bet gets back exactly
               what they staked, and this can't be undone.
             </Text>
 
-            <View style={styles(theme).modalButtons}>
+            <View style={styles.modalButtons}>
               <TouchableOpacity
-                style={styles(theme).modalCancelButton}
+                style={styles.modalCancelButton}
                 onPress={() => setShowDeleteModal(false)}
                 disabled={isDeleting}
               >
-                <Text style={styles(theme).modalCancelText}>Cancel</Text>
+                <Text style={styles.modalCancelText}>Cancel</Text>
               </TouchableOpacity>
 
               <TouchableOpacity
-                style={[styles(theme).modalConfirmButton, styles(theme).modalDeleteButton]}
+                style={[styles.modalConfirmButton, styles.modalDeleteButton]}
                 onPress={confirmDeleteEvent}
                 disabled={isDeleting}
               >
                 <FontAwesome5 name="trash" size={16} color="#ffffff" />
-                <Text style={styles(theme).modalConfirmText}>
+                <Text style={styles.modalConfirmText}>
                   {isDeleting ? 'Deleting...' : 'Delete & refund'}
                 </Text>
               </TouchableOpacity>
@@ -788,30 +796,30 @@ export default function eventScreen() {
         animationType="fade"
         onRequestClose={() => setShowLockModal(false)}
       >
-        <View style={styles(theme).modalOverlay}>
-          <View style={styles(theme).modalContent}>
-            <View style={styles(theme).modalHeader}>
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
               <FontAwesome5 name="lock" size={24} color="#F59E0B" />
-              <Text style={styles(theme).modalTitle}>Lock Event</Text>
+              <Text style={styles.modalTitle}>Lock Event</Text>
             </View>
-            <Text style={styles(theme).modalText}>
+            <Text style={styles.modalText}>
               Are you sure you want to lock this event? This action cannot be undone and will prevent any new bets from being placed.
             </Text>
             
-            <View style={styles(theme).modalButtons}>
+            <View style={styles.modalButtons}>
               <TouchableOpacity 
-                style={styles(theme).modalCancelButton}
+                style={styles.modalCancelButton}
                 onPress={() => setShowLockModal(false)}
               >
-                <Text style={styles(theme).modalCancelText}>Cancel</Text>
+                <Text style={styles.modalCancelText}>Cancel</Text>
               </TouchableOpacity>
               
               <TouchableOpacity 
-                style={styles(theme).modalConfirmButton}
+                style={styles.modalConfirmButton}
                 onPress={confirmLockEvent}
               >
                 <FontAwesome5 name="lock" size={16} color="#ffffff" />
-                <Text style={styles(theme).modalConfirmText}>Lock Event</Text>
+                <Text style={styles.modalConfirmText}>Lock Event</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -825,20 +833,20 @@ export default function eventScreen() {
         animationType="fade"
         onRequestClose={() => setShowEndEventModal(false)}
       >
-        <View style={styles(theme).modalOverlay}>
-          <ScrollView contentContainerStyle={styles(theme).endEventModalContainer}>
-            <View style={styles(theme).modalContent}>
-              <View style={styles(theme).modalHeader}>
+        <View style={styles.modalOverlay}>
+          <ScrollView contentContainerStyle={styles.endEventModalContainer}>
+            <View style={styles.modalContent}>
+              <View style={styles.modalHeader}>
                 <FontAwesome5 name="flag-checkered" size={24} color="#DC2626" />
-                <Text style={styles(theme).modalTitle}>End Event</Text>
+                <Text style={styles.modalTitle}>End Event</Text>
               </View>
-              <Text style={styles(theme).modalText}>
+              <Text style={styles.modalText}>
                 Select the winning option for each question:
               </Text>
               
               {eventInfo?.questions && Object.entries(eventInfo.questions).map(([question, options], index) => (
-                <View key={index} style={styles(theme).questionSelection}>
-                  <Text style={styles(theme).questionSelectionTitle}>
+                <View key={index} style={styles.questionSelection}>
+                  <Text style={styles.questionSelectionTitle}>
                     Q{index + 1}: {question}
                   </Text>
                   
@@ -846,8 +854,8 @@ export default function eventScreen() {
                     <TouchableOpacity
                       key={optionIndex}
                       style={[
-                        styles(theme).optionSelectionButton,
-                        winningOptions[question] === option && styles(theme).selectedOptionButton
+                        styles.optionSelectionButton,
+                        winningOptions[question] === option && styles.selectedOptionButton
                       ]}
                       onPress={() => setWinningOptions(prev => ({
                         ...prev,
@@ -855,8 +863,8 @@ export default function eventScreen() {
                       }))}
                     >
                       <Text style={[
-                        styles(theme).optionSelectionText,
-                        winningOptions[question] === option && styles(theme).selectedOptionText
+                        styles.optionSelectionText,
+                        winningOptions[question] === option && styles.selectedOptionText
                       ]}>
                         {option}
                       </Text>
@@ -865,20 +873,20 @@ export default function eventScreen() {
                 </View>
               ))}
               
-              <View style={styles(theme).modalButtons}>
+              <View style={styles.modalButtons}>
                 <TouchableOpacity 
-                  style={styles(theme).modalCancelButton}
+                  style={styles.modalCancelButton}
                   onPress={() => setShowEndEventModal(false)}
                 >
-                  <Text style={styles(theme).modalCancelText}>Cancel</Text>
+                  <Text style={styles.modalCancelText}>Cancel</Text>
                 </TouchableOpacity>
                 
                 <TouchableOpacity 
-                  style={styles(theme).modalConfirmButton}
+                  style={styles.modalConfirmButton}
                   onPress={confirmEndEvent}
                 >
                   <FontAwesome5 name="flag-checkered" size={16} color="#ffffff" />
-                  <Text style={styles(theme).modalConfirmText}>End Event</Text>
+                  <Text style={styles.modalConfirmText}>End Event</Text>
                 </TouchableOpacity>
               </View>
             </View>
@@ -894,36 +902,36 @@ export default function eventScreen() {
         onRequestClose={() => setPostTemplateModal(false)}
       >
         <TouchableOpacity 
-          style={styles(theme).modalOverlay}
+          style={styles.modalOverlay}
           activeOpacity={1}
           onPress={() => setPostTemplateModal(false)}
         >
-          <View style={styles(theme).modalContent}>
+          <View style={styles.modalContent}>
             <TouchableOpacity
               activeOpacity={1}
               onPress={(e) => e.stopPropagation()}
-              style={styles(theme).modalInner}
+              style={styles.modalInner}
             >
-              <View style={styles(theme).modalHeader}>
+              <View style={styles.modalHeader}>
                 <FontAwesome5 name="upload" size={24} color={theme.primary} />
-                <Text style={styles(theme).modalTitle}>Post Template</Text>
+                <Text style={styles.modalTitle}>Post Template</Text>
               </View>
-              <Text style={styles(theme).modalText}>
+              <Text style={styles.modalText}>
                 You can now post this template for others to use.
               </Text>
-              <Text style={styles(theme).modalText}>
+              <Text style={styles.modalText}>
                 Are you sure you want to post this template?
               </Text>
-              <View style={styles(theme).modalButtons}>
+              <View style={styles.modalButtons}>
                 <TouchableOpacity 
-                  style={styles(theme).modalCancelButton}
+                  style={styles.modalCancelButton}
                   onPress={() => setPostTemplateModal(false)}
                 >
-                  <Text style={styles(theme).modalCancelText}>Cancel</Text>
+                  <Text style={styles.modalCancelText}>Cancel</Text>
                 </TouchableOpacity>
                 
                 <TouchableOpacity 
-                  style={styles(theme).modalConfirmButton}
+                  style={styles.modalConfirmButton}
                   onPress={async () => {
                     const result = await postTemplate(eventInfo?.template_id as string);
                     if (result.error) {
@@ -937,7 +945,7 @@ export default function eventScreen() {
                   }}
                 >
                   <FontAwesome5 name="upload" size={16} color="#ffffff" />
-                  <Text style={styles(theme).modalConfirmText}>Post Template</Text>
+                  <Text style={styles.modalConfirmText}>Post Template</Text>
                 </TouchableOpacity>
               </View>
             </TouchableOpacity>
@@ -948,7 +956,7 @@ export default function eventScreen() {
   );
 }
 
-const styles = (theme: Theme) => StyleSheet.create({
+const createStyles = (theme: Theme) => StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: theme.background,
@@ -1012,7 +1020,7 @@ const styles = (theme: Theme) => StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: theme.border || '#E5E5E5',
     elevation: 2,
-    shadowColor: '#000',
+    shadowColor: theme.shadow,
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.1,
     shadowRadius: 3,
@@ -1092,7 +1100,7 @@ const styles = (theme: Theme) => StyleSheet.create({
     borderBottomRightRadius: 24,
     overflow: 'hidden',
     elevation: 4,
-    shadowColor: '#000',
+    shadowColor: theme.shadow,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.15,
     shadowRadius: 8,
@@ -1223,7 +1231,7 @@ const styles = (theme: Theme) => StyleSheet.create({
     borderRadius: 24,
     overflow: 'hidden',
     elevation: 8,
-    shadowColor: '#000',
+    shadowColor: theme.shadow,
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.12,
     shadowRadius: 16,
@@ -1281,9 +1289,9 @@ const styles = (theme: Theme) => StyleSheet.create({
     gap: 12,
     padding: 16,
     borderRadius: 16,
-    backgroundColor: '#FEF3C7',
+    backgroundColor: theme.warningSurface,
     borderWidth: 1,
-    borderColor: '#F59E0B' + '30',
+    borderColor: theme.warning + '30',
   },
   
   potInfo: {
@@ -1291,14 +1299,14 @@ const styles = (theme: Theme) => StyleSheet.create({
   },
   
   totalPotLabel: {
-    color: '#92400E',
+    color: theme.warningText,
     fontSize: 14,
     fontWeight: '600',
     marginBottom: 2,
   },
   
   totalPotAmount: {
-    color: '#92400E',
+    color: theme.warningText,
     fontSize: 22,
     fontWeight: '800',
     letterSpacing: -0.5,
@@ -1323,17 +1331,17 @@ const styles = (theme: Theme) => StyleSheet.create({
     borderWidth: 2,
     borderColor: theme.border || '#E5E5E5',
     elevation: 4,
-    shadowColor: '#000',
+    shadowColor: theme.shadow,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.1,
     shadowRadius: 8,
   },
   
   userBetCard: {
-    borderColor: '#10B981',
+    borderColor: theme.success,
     backgroundColor: '#F0FDF4',
     elevation: 8,
-    shadowColor: '#10B981',
+    shadowColor: theme.success,
     shadowOpacity: 0.2,
   },
   
@@ -1354,11 +1362,11 @@ const styles = (theme: Theme) => StyleSheet.create({
   },
   
   userBetBadge: {
-    backgroundColor: '#10B981',
+    backgroundColor: theme.success,
     padding: 8,
     borderRadius: 12,
     elevation: 2,
-    shadowColor: '#10B981',
+    shadowColor: theme.success,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.3,
     shadowRadius: 4,
@@ -1436,8 +1444,8 @@ const styles = (theme: Theme) => StyleSheet.create({
   },
 
   decidedBetInfo: {
-    backgroundColor: '#FEF3C7',
-    borderColor: '#F59E0B',
+    backgroundColor: theme.warningSurface,
+    borderColor: theme.warning,
   },
 
   lockedBetText: {
@@ -1451,7 +1459,7 @@ const styles = (theme: Theme) => StyleSheet.create({
   },
   
   userBetAmount: {
-    color: '#059669',
+    color: theme.successText,
     fontSize: 16,
     fontWeight: '700',
     textAlign: 'center',
@@ -1463,11 +1471,11 @@ const styles = (theme: Theme) => StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 6,
-    backgroundColor: '#059669',
+    backgroundColor: theme.successText,
     paddingVertical: 14,
     borderRadius: 14,
     elevation: 3,
-    shadowColor: '#059669',
+    shadowColor: theme.successText,
     shadowOffset: { width: 0, height: 3 },
     shadowOpacity: 0.3,
     shadowRadius: 6,
@@ -1486,7 +1494,7 @@ const styles = (theme: Theme) => StyleSheet.create({
   // Enhanced Modal Styles
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    backgroundColor: theme.overlay,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -1499,7 +1507,7 @@ const styles = (theme: Theme) => StyleSheet.create({
     maxWidth: width * 0.9,
     minWidth: width * 0.8,
     elevation: 20,
-    shadowColor: '#000',
+    shadowColor: theme.shadow,
     shadowOffset: { width: 0, height: 12 },
     shadowOpacity: 0.3,
     shadowRadius: 24,
@@ -1703,7 +1711,7 @@ const styles = (theme: Theme) => StyleSheet.create({
     padding: 16,
     marginBottom: 12,
     elevation: 2,
-    shadowColor: '#000',
+    shadowColor: theme.shadow,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
@@ -1718,7 +1726,7 @@ const styles = (theme: Theme) => StyleSheet.create({
     borderRadius: 16,
     padding: 16,
     elevation: 2,
-    shadowColor: '#000',
+    shadowColor: theme.shadow,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
@@ -1800,9 +1808,9 @@ const styles = (theme: Theme) => StyleSheet.create({
   saveButton: {
     padding: 12,
     borderRadius: 12,
-    backgroundColor: '#10B981' + '15',
+    backgroundColor: theme.success + '15',
     borderWidth: 1,
-    borderColor: '#10B981',
+    borderColor: theme.success,
   },
 
   creatorRow: {

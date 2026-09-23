@@ -1,5 +1,6 @@
 import { Event } from "@/types/interfaces";
 import { useThemeConfig, Theme } from "@/components/ui/use-theme-config";
+import { useThemedStyles } from "@/hooks/use-themed-styles";
 import { FontAwesome } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import React from "react";
@@ -14,6 +15,7 @@ import {
 
 export default function EventCard({event}: {event: Event}) {
     const theme = useThemeConfig();
+    const styles = useThemedStyles(createStyles);
     const router = useRouter();
 
     const getStatusColor = (locked: boolean, decided: boolean) => {
@@ -41,7 +43,7 @@ export default function EventCard({event}: {event: Event}) {
     return (
         <Animated.View
             style={[
-                styles(theme).eventCard,
+                styles.eventCard,
                 { 
                     opacity: 1,
                     transform: [{ scale: 1 }]
@@ -49,53 +51,53 @@ export default function EventCard({event}: {event: Event}) {
             ]}
         >
             <TouchableOpacity
-                style={styles(theme).cardTouchable}
+                style={styles.cardTouchable}
                 onPress={() => router.push(`/event/${event.id}`)}
                 activeOpacity={0.8}
             >
                 <Image 
                     source={{ uri: event.thumbnail_url }} 
-                    style={styles(theme).eventImage}
+                    style={styles.eventImage}
                     resizeMode="cover"
                 />
-                <View style={styles(theme).eventContent}>
-                    <View style={styles(theme).eventHeader}>
-                        <Text style={styles(theme).eventTitle} numberOfLines={2}>
+                <View style={styles.eventContent}>
+                    <View style={styles.eventHeader}>
+                        <Text style={styles.eventTitle} numberOfLines={2}>
                             {event.title}
                         </Text>
-                        <View style={[styles(theme).statusBadge, { backgroundColor: getStatusColor(event.locked, event.decided) }]}>
-                            <Text style={styles(theme).statusText}>
+                        <View style={[styles.statusBadge, { backgroundColor: getStatusColor(event.locked, event.decided) }]}>
+                            <Text style={styles.statusText}>
                                 {getStatusText(event.locked, event.decided)}
                             </Text>
                         </View>
                     </View>
                     
-                    <Text style={styles(theme).eventDescription} numberOfLines={2}>
+                    <Text style={styles.eventDescription} numberOfLines={2}>
                         {event.description}
                     </Text>
                     
-                    <View style={styles(theme).eventMeta}>
-                        <View style={styles(theme).metaItem}>
+                    <View style={styles.eventMeta}>
+                        <View style={styles.metaItem}>
                             <FontAwesome name="users" size={14} color={theme.primary} />
-                            <Text style={styles(theme).metaText}>
+                            <Text style={styles.metaText}>
                                 {event.participants_count} participants
                             </Text>
                         </View>
                         
-                        <View style={styles(theme).metaItem}>
+                        <View style={styles.metaItem}>
                             <FontAwesome name="calendar" size={14} color={theme.primary} />
-                            <Text style={styles(theme).metaText}>
+                            <Text style={styles.metaText}>
                                 {formatDate(event.expire_date)}
                             </Text>
                         </View>
                     </View>
                     
-                    <View style={styles(theme).eventFooter}>
+                    <View style={styles.eventFooter}>
                         
                         {event.is_creator && (
-                            <View style={styles(theme).creatorBadge}>
+                            <View style={styles.creatorBadge}>
                                 <FontAwesome name="user" size={16} color={theme.buttonText} />
-                                <Text style={styles(theme).creatorText}>Creator</Text>
+                                <Text style={styles.creatorText}>Creator</Text>
                             </View>
                         )}
                     </View>
@@ -105,13 +107,13 @@ export default function EventCard({event}: {event: Event}) {
     );
 }
 
-const styles = (theme: Theme) => StyleSheet.create({
+const createStyles = (theme: Theme) => StyleSheet.create({
     eventCard: {
         backgroundColor: theme.card,
         marginHorizontal: 20,
         marginVertical: 6,
         borderRadius: 16,
-        shadowColor: '#000',
+        shadowColor: theme.shadow,
         shadowOffset: { width: 0, height: 2 },
         shadowOpacity: 0.1,
         shadowRadius: 6,

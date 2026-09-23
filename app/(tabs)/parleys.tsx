@@ -2,6 +2,7 @@ import { Event } from "@/types/interfaces";
 import { fetchUserLiveBets, fetchUserLiveEvents } from "@/api/parleyFunctions";
 import EventCard from "@/components/eventCard";
 import { useThemeConfig, Theme } from "@/components/ui/use-theme-config";
+import { useThemedStyles } from "@/hooks/use-themed-styles";
 import { FontAwesome } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useState, useEffect } from "react";
@@ -17,6 +18,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function Parleys() {
     const theme = useThemeConfig();
+    const styles = useThemedStyles(createStyles);
     const router = useRouter()
     const [activeTab, setActiveTab] = useState<'participating' | 'created'>('participating');
     const [participatingEvents, setParticipatingEvents] = useState<Event[]>([]);
@@ -62,28 +64,28 @@ export default function Parleys() {
     const currentEvents = activeTab === 'participating' ? participatingEvents : createdEvents;
 
     return (
-        <SafeAreaView style={styles(theme).container}>
+        <SafeAreaView style={styles.container}>
             {/* Header */}
-            <View style={styles(theme).header}>
-                <Text style={styles(theme).headerTitle}>My Parleys</Text>
+            <View style={styles.header}>
+                <Text style={styles.headerTitle}>My Parleys</Text>
             </View>
 
             {/* Stats Overview */}
-            <View style={styles(theme).statsContainer}>
-                <View style={styles(theme).statCard}>
-                    <Text style={styles(theme).statNumber}>{participatingEvents.length}</Text>
-                    <Text style={styles(theme).statLabel}>Participating</Text>
+            <View style={styles.statsContainer}>
+                <View style={styles.statCard}>
+                    <Text style={styles.statNumber}>{participatingEvents.length}</Text>
+                    <Text style={styles.statLabel}>Participating</Text>
                 </View>
-                <View style={styles(theme).statCard}>
-                    <Text style={styles(theme).statNumber}>{createdEvents.length}</Text>
-                    <Text style={styles(theme).statLabel}>Created</Text>
+                <View style={styles.statCard}>
+                    <Text style={styles.statNumber}>{createdEvents.length}</Text>
+                    <Text style={styles.statLabel}>Created</Text>
                 </View>
             </View>
 
             {/* Tabs */}
-            <View style={styles(theme).tabsContainer}>
+            <View style={styles.tabsContainer}>
                 <TouchableOpacity 
-                    style={[styles(theme).tab, activeTab === 'participating' && styles(theme).activeTab]}
+                    style={[styles.tab, activeTab === 'participating' && styles.activeTab]}
                     onPress={() => setActiveTab('participating')}
                 >
                     <FontAwesome 
@@ -92,15 +94,15 @@ export default function Parleys() {
                         color={activeTab === 'participating' ? theme.buttonText : theme.cardText} 
                     />
                     <Text style={[
-                        styles(theme).tabText, 
-                        activeTab === 'participating' && styles(theme).activeTabText
+                        styles.tabText, 
+                        activeTab === 'participating' && styles.activeTabText
                     ]}>
                         Participating
                     </Text>
                 </TouchableOpacity>
                 
                 <TouchableOpacity 
-                    style={[styles(theme).tab, activeTab === 'created' && styles(theme).activeTab]}
+                    style={[styles.tab, activeTab === 'created' && styles.activeTab]}
                     onPress={() => setActiveTab('created')}
                 >
                     <FontAwesome 
@@ -109,8 +111,8 @@ export default function Parleys() {
                         color={activeTab === 'created' ? theme.buttonText : theme.cardText} 
                     />
                     <Text style={[
-                        styles(theme).tabText, 
-                        activeTab === 'created' && styles(theme).activeTabText
+                        styles.tabText, 
+                        activeTab === 'created' && styles.activeTabText
                     ]}>
                         My Events
                     </Text>
@@ -119,7 +121,7 @@ export default function Parleys() {
 
             {/* Events List */}
             <ScrollView 
-                style={styles(theme).scrollView}
+                style={styles.scrollView}
                 showsVerticalScrollIndicator={false}
                 refreshControl={
                     <RefreshControl
@@ -130,7 +132,7 @@ export default function Parleys() {
                         progressBackgroundColor={theme.card}
                     />
                 }
-                contentContainerStyle={styles(theme).scrollContent}
+                contentContainerStyle={styles.scrollContent}
             >
                 {currentEvents.map(event => (
                     <EventCard
@@ -140,25 +142,25 @@ export default function Parleys() {
                 ))}
                 
                 {currentEvents.length === 0 && !isLoading && (
-                    <View style={styles(theme).emptyState}>
+                    <View style={styles.emptyState}>
                         <FontAwesome 
                             name={errorMessage ? "exclamation-triangle" : activeTab === 'participating' ? "calendar-o" : "star-o"} 
                             size={48} 
                             color={errorMessage ? theme.destructive : theme.text + '40'} 
                         />
-                        <Text style={styles(theme).emptyTitle}>
+                        <Text style={styles.emptyTitle}>
                             {errorMessage
                                 ? "Something went wrong"
                                 : `No ${activeTab === 'participating' ? 'events joined' : 'events created'} yet`}
                         </Text>
-                        <Text style={styles(theme).emptySubtext}>
+                        <Text style={styles.emptySubtext}>
                             {errorMessage
                                 ? errorMessage
                                 : activeTab === 'participating'
                                 ? "Discover and join exciting events in the Explore tab"
                                 : "Create your first event and bring people together"}
                         </Text>
-                        <TouchableOpacity style={styles(theme).emptyButton}
+                        <TouchableOpacity style={styles.emptyButton}
                             onPress={() => {
                                 if (errorMessage){
                                     onRefresh();
@@ -169,7 +171,7 @@ export default function Parleys() {
                                 }
                             }}
                         >
-                            <Text style={styles(theme).emptyButtonText}>
+                            <Text style={styles.emptyButtonText}>
                                 {errorMessage
                                     ? 'Try again'
                                     : activeTab === 'participating' ? 'Explore Events' : 'Create Event'}
@@ -182,7 +184,7 @@ export default function Parleys() {
     );
 }
 
-const styles = (theme: Theme) => StyleSheet.create({
+const createStyles = (theme: Theme) => StyleSheet.create({
     container: {
         flex: 1,
         backgroundColor: theme.background,
@@ -226,7 +228,7 @@ const styles = (theme: Theme) => StyleSheet.create({
         borderRadius: 12,
         padding: 16,
         alignItems: 'center',
-        shadowColor: '#000',
+        shadowColor: theme.shadow,
         shadowOffset: { width: 0, height: 1 },
         shadowOpacity: 0.1,
         shadowRadius: 2,
@@ -250,7 +252,7 @@ const styles = (theme: Theme) => StyleSheet.create({
         backgroundColor: theme.card,
         borderRadius: 12,
         padding: 4,
-        shadowColor: '#000',
+        shadowColor: theme.shadow,
         shadowOffset: { width: 0, height: 1 },
         shadowOpacity: 0.1,
         shadowRadius: 2,

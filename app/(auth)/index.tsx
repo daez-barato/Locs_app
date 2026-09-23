@@ -2,11 +2,13 @@ import React, { useState } from "react";
 import { View, TextInput, Text, StyleSheet, Image, TouchableOpacity, KeyboardAvoidingView, Platform, ScrollView } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Theme, useThemeConfig } from "@/components/ui/use-theme-config";
+import { useThemedStyles } from "@/hooks/use-themed-styles";
 import { supabase } from "@/lib/supabase";
 import { isValidEmail } from "@/utils/parsing";
 
 export default function SignIn() {
     const theme = useThemeConfig();
+    const styles = useThemedStyles(createStyles);
 
     const [isRegistering, setIsRegistering] = useState(false);
     const [username, setUsername] = useState("");
@@ -79,27 +81,27 @@ export default function SignIn() {
     };
 
     return (
-        <SafeAreaView style={[styles(theme).safeArea, { backgroundColor: theme.background }]}>
+        <SafeAreaView style={[styles.safeArea, { backgroundColor: theme.background }]}>
             <KeyboardAvoidingView
-                style={styles(theme).flex}
+                style={styles.flex}
                 behavior={Platform.OS === "ios" ? "padding" : "height"}
             >
                 <ScrollView
-                    contentContainerStyle={styles(theme).container}
+                    contentContainerStyle={styles.container}
                     keyboardShouldPersistTaps="handled"
                 >
                     <Image
                         source={require('@/assets/images/SayWhen.png')}
-                        style={styles(theme).logo}
+                        style={styles.logo}
                         resizeMode="contain"
                     />
-                    <Text style={[styles(theme).title, { color: theme.primary }]}>
+                    <Text style={[styles.title, { color: theme.primary }]}>
                         {isRegistering ? "Register" : "Login"}
                     </Text>
 
                     {isRegistering && (
                         <TextInput
-                            style={styles(theme).input}
+                            style={styles.input}
                             placeholder="Username"
                             placeholderTextColor={theme.cardText + '80'}
                             value={username}
@@ -108,7 +110,7 @@ export default function SignIn() {
                         />
                     )}
                     <TextInput
-                        style={styles(theme).input}
+                        style={styles.input}
                         placeholder="Email"
                         placeholderTextColor={theme.cardText + '80'}
                         value={email}
@@ -117,7 +119,7 @@ export default function SignIn() {
                         autoCapitalize="none"
                     />
                     <TextInput
-                        style={styles(theme).input}
+                        style={styles.input}
                         placeholder="Password"
                         placeholderTextColor={theme.cardText + '80'}
                         value={password}
@@ -127,7 +129,7 @@ export default function SignIn() {
 
                     {isRegistering && (
                         <TextInput
-                            style={styles(theme).input}
+                            style={styles.input}
                             placeholder="Confirm Password"
                             placeholderTextColor={theme.cardText + '80'}
                             value={confirmPassword}
@@ -136,27 +138,27 @@ export default function SignIn() {
                         />
                     )}
 
-                    {error ? <Text style={styles(theme).error}>{error}</Text> : null}
+                    {error ? <Text style={styles.error}>{error}</Text> : null}
 
                     <TouchableOpacity
-                        style={[styles(theme).button, { backgroundColor: theme.primary }]}
+                        style={[styles.button, { backgroundColor: theme.primary }]}
                         onPress={isRegistering ? handleRegister : handleLogin}
                         activeOpacity={0.8}
                     >
-                        <Text style={styles(theme).buttonText}>
+                        <Text style={styles.buttonText}>
                             {isRegistering ? "Register" : "Login"}
                         </Text>
                     </TouchableOpacity>
 
                     <TouchableOpacity
-                        style={[styles(theme).button, { backgroundColor: theme.secondary }]}
+                        style={[styles.button, { backgroundColor: theme.secondary }]}
                         onPress={() => {
                             setIsRegistering(!isRegistering);
                             setError("");
                         }}
                         activeOpacity={0.8}
                     >
-                        <Text style={styles(theme).buttonText}>
+                        <Text style={styles.buttonText}>
                             {isRegistering ? "Switch to Login" : "Switch to Register"}
                         </Text>
                     </TouchableOpacity>
@@ -167,7 +169,7 @@ export default function SignIn() {
     );
 }
 
-const styles = (theme: Theme) => StyleSheet.create({
+const createStyles = (theme: Theme) => StyleSheet.create({
     safeArea: {
         flex: 1,
     },

@@ -2,6 +2,7 @@ import { SafeAreaView } from "react-native-safe-area-context"
 import { Modal, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View, Platform, Image, Pressable, FlatList, Alert } from "react-native"
 
 import { useThemeConfig, Theme } from "@/components/ui/use-theme-config"
+import { useThemedStyles } from "@/hooks/use-themed-styles";
 import { useEffect, useState } from "react";
 import FontAwesome from "@expo/vector-icons/FontAwesome";
 import { useLocalSearchParams, useRouter } from "expo-router";
@@ -17,6 +18,7 @@ export default function Studio(){
     const studio = (params.studio && params.studio !== "create") ? params.studio as string : undefined;
     const isTemplate = Boolean(studio);
     const theme = useThemeConfig();
+    const styles = useThemedStyles(createStyles);
     const [question, setQuestion] = useState("+");
     const [questionMenu, expandQuestionMenu] = useState(false);
     const [questionModal, setQuestionModal] = useState(false);
@@ -286,12 +288,12 @@ export default function Studio(){
     }
 
     return (
-        <SafeAreaView style={styles(theme).backgroundContainer}>
+        <SafeAreaView style={styles.backgroundContainer}>
           {/* Enhanced Input Overlay */}
           {isInputFocused && (
-            <View style={styles(theme).inputOverlay}>
-              <View style={styles(theme).overlayContent}>
-                <Text style={styles(theme).overlayTitle}>
+            <View style={styles.inputOverlay}>
+              <View style={styles.overlayContent}>
+                <Text style={styles.overlayTitle}>
                   {inputType === "title" ? "Enter Title" : 
                    inputType === "description" ? "Enter Description" : 
                    inputType === "question" ? "Enter Question" : 
@@ -299,7 +301,7 @@ export default function Studio(){
                 </Text>
                 
                 <TextInput
-                  style={styles(theme).overlayInput}
+                  style={styles.overlayInput}
                   value={tempInputValue}
                   onChangeText={setTempInputValue}
                   placeholder={inputType === "title" ? "Enter title..." : "Enter description..."}
@@ -310,21 +312,21 @@ export default function Studio(){
                   autoFocus={true}
                 />
 
-                <View style={styles(theme).overlayButtons}>
+                <View style={styles.overlayButtons}>
                   <TouchableOpacity
-                    style={styles(theme).overlayCancelButton}
+                    style={styles.overlayCancelButton}
                     onPress={handleInputCancel}
                   >
                     <FontAwesome name="times" size={16} color="#ffffff" />
-                    <Text style={styles(theme).overlayCancelButtonText}>Cancel</Text>
+                    <Text style={styles.overlayCancelButtonText}>Cancel</Text>
                   </TouchableOpacity>
 
                   <TouchableOpacity
-                    style={styles(theme).overlayConfirmButton}
+                    style={styles.overlayConfirmButton}
                     onPress={handleInputConfirm}
                   >
                     <FontAwesome name="check" size={16} color="#ffffff" />
-                    <Text style={styles(theme).overlayConfirmButtonText}>Confirm</Text>
+                    <Text style={styles.overlayConfirmButtonText}>Confirm</Text>
                   </TouchableOpacity>
                 </View>
               </View>
@@ -332,9 +334,9 @@ export default function Studio(){
           )}
           
           {/* Header Buttons */}
-          <View style={styles(theme).headerContainer}>
+          <View style={styles.headerContainer}>
             <TouchableOpacity 
-              style={styles(theme).backButton}
+              style={styles.backButton}
               onPress={() => router.back()}
             >
               <FontAwesome
@@ -345,22 +347,22 @@ export default function Studio(){
             </TouchableOpacity>
 
             <TouchableOpacity 
-              style={styles(theme).nextButton}
+              style={styles.nextButton}
               onPress={handleNextPress}
             >
-              <Text style={styles(theme).nextButtonText}>Next</Text>
+              <Text style={styles.nextButtonText}>Next</Text>
             </TouchableOpacity>
           </View>
           {/*Extra buttons */}
-          <TouchableOpacity style={styles(theme).savedTemplates}
+          <TouchableOpacity style={styles.savedTemplates}
             onPress= {() => {setSavedTemplatesModal(true)}}
           >
-            <FontAwesome name= "bookmark" size={30} style={styles(theme).savedTemplatesIcon}/>
+            <FontAwesome name= "bookmark" size={30} style={styles.savedTemplatesIcon}/>
           </TouchableOpacity>
           {isTemplate && <FontAwesome
             name={studio && bookmarks[studio] ? "bookmark" : "bookmark-o"}
             size= {40}
-            style={styles(theme).saveTemplateIcon}
+            style={styles.saveTemplateIcon}
             onPress={async () => {
               try {
                 if(!studio)
@@ -387,20 +389,20 @@ export default function Studio(){
           />}
           {/* Main Content */}
           <View 
-            style={styles(theme).keyboardContainer}
+            style={styles.keyboardContainer}
           >
-            <ScrollView contentContainerStyle={styles(theme).scrollContainer}>             
+            <ScrollView contentContainerStyle={styles.scrollContainer}>             
               {/* Upper Section */}
-              <View style={styles(theme).upperContainer}>
+              <View style={styles.upperContainer}>
                 <TouchableOpacity 
-                  style={styles(theme).imageContainer} 
+                  style={styles.imageContainer} 
                   onPress={() => !isTemplate ? setShowMenu(true) : null}
                   disabled={isTemplate}
                 >
                   {image ? (
                     <Image 
                       source={{uri: image}}
-                      style={styles(theme).imagePreview}
+                      style={styles.imagePreview}
                       resizeMode="cover"
                     />
                   ) : (
@@ -409,24 +411,24 @@ export default function Studio(){
                 </TouchableOpacity>
           
                 <TouchableOpacity 
-                  style={styles(theme).titleContainer}
+                  style={styles.titleContainer}
                   onPress={() => !isTemplate ? handleInputFocus("title", title) : null}
                 >
                   <Text style={[
-                    styles(theme).titleText,
-                    !title && styles(theme).placeholderText
+                    styles.titleText,
+                    !title && styles.placeholderText
                   ]}>
                     {title || "Enter title..."}
                   </Text>
                 </TouchableOpacity>
                 
                 <TouchableOpacity 
-                  style={styles(theme).descriptionContainer}
+                  style={styles.descriptionContainer}
                   onPress={() => !isTemplate ? handleInputFocus("description", description) : null}
                 >
                   <Text style={[
-                    styles(theme).descriptionText,
-                    !description && styles(theme).placeholderText
+                    styles.descriptionText,
+                    !description && styles.placeholderText
                   ]}>
                     {description || "Enter description..."}
                   </Text>
@@ -434,18 +436,18 @@ export default function Studio(){
               </View>
 
               {/* Lower Section */}
-              <View style={styles(theme).lowerContainer}>
-                <Text style={styles(theme).sectionTitle}>Questions</Text>
+              <View style={styles.lowerContainer}>
+                <Text style={styles.sectionTitle}>Questions</Text>
                 
                 <TouchableOpacity 
-                  style={styles(theme).questionButton}
+                  style={styles.questionButton}
                   onPress={() => {
                     if (questions.length === 1 && !isTemplate) setQuestionModal(true);
                     else expandQuestionMenu(!questionMenu);
                   }}
                 >
-                  <View style={styles(theme).questionButtonContent}>
-                    <Text style={styles(theme).questionButtonText} numberOfLines={1}>
+                  <View style={styles.questionButtonContent}>
+                    <Text style={styles.questionButtonText} numberOfLines={1}>
                       {question === "+" ? "Add your first question" : question}
                     </Text>
                     <FontAwesome
@@ -457,22 +459,24 @@ export default function Studio(){
                 </TouchableOpacity>
 
                 {questionMenu && (
-                  <View style={styles(theme).questionDropdown}>
-                    <ScrollView style={styles(theme).questionScrollView}>
+                  <View style={styles.questionDropdown}>
+                    <ScrollView style={styles.questionScrollView}>
                       {questions.map((item, index) => (
                         <View key={index}>
                           {(index !== questions.length - 1 || isTemplate) ? (
                             <TouchableOpacity 
                               onPress={() => selectQuestion(item)}
-                              style={styles(theme).questionOptionButton}
+                              style={styles.questionOptionButton}
                             >
-                              <Text style={styles(theme).questionOptionText} numberOfLines={2}>
+                              <Text style={styles.questionOptionText} numberOfLines={2}>
                                 {item}
                               </Text>
                               {!isTemplate && (
                               <TouchableOpacity
                                 onPress={() => startEditQuestion(item)}
-                                style={styles(theme).editButton}
+                                accessibilityRole="button"
+                                accessibilityLabel={`Edit question: ${item}`}
+                                style={styles.editButton}
                               >
                                 <FontAwesome name="pencil" size={14} color={theme.primary} />
                               </TouchableOpacity>)}
@@ -491,7 +495,7 @@ export default function Studio(){
                                     expandQuestionMenu(false);
                                   }
                                 }}
-                                style={styles(theme).deleteButton}
+                                style={styles.deleteButton}
                               >
                                 <FontAwesome name="trash" size={14} color={theme.destructive} />
                               </TouchableOpacity>)}
@@ -499,10 +503,10 @@ export default function Studio(){
                           ) : (
                             <TouchableOpacity 
                               onPress={() => setQuestionModal(true)}
-                              style={styles(theme).addQuestionButton}
+                              style={styles.addQuestionButton}
                             >
                               <FontAwesome name="plus" size={16} color={theme.primary} />
-                              <Text style={styles(theme).addQuestionText}>Add Question</Text>
+                              <Text style={styles.addQuestionText}>Add Question</Text>
                             </TouchableOpacity>
                           )}
                         </View>
@@ -514,29 +518,31 @@ export default function Studio(){
                 {/* Options Section */}
                 {question !== "+" && (
                   <>
-                    <View style={styles(theme).optionsContainer}>
+                    <View style={styles.optionsContainer}>
                       <ScrollView 
                         horizontal={true}
                         showsHorizontalScrollIndicator={false}
-                        contentContainerStyle={styles(theme).optionsList}
+                        contentContainerStyle={styles.optionsList}
                       >
                         {(optionsDict[question] || []).map((item, index) => (
                           <View key={index}>
                             {(index !== (optionsDict[question]?.length || 0) - 1) || isTemplate ? (
-                              <View style={styles(theme).optionContainer}>
-                                <Text style={styles(theme).optionText} numberOfLines={3}>
+                              <View style={styles.optionContainer}>
+                                <Text style={styles.optionText} numberOfLines={3}>
                                   {item}
                                 </Text>
                                 {!isTemplate && (
                                 <TouchableOpacity
-                                  style={styles(theme).optionEditButton}
+                                  style={styles.optionEditButton}
+                                  accessibilityRole="button"
+                                  accessibilityLabel={`Edit option: ${item}`}
                                   onPress={() => startEditOption(index)}
                                 >
                                   <FontAwesome name="pencil" size={14} color="#ffffff" />
                                 </TouchableOpacity>)}
                                 {!isTemplate && (
                                 <TouchableOpacity
-                                  style={styles(theme).optionTrashButton}
+                                  style={styles.optionTrashButton}
                                   onPress={() => {
                                     setOptionsDict((prev) => {
                                       const newDict = { ...prev };
@@ -552,10 +558,10 @@ export default function Studio(){
                             ) : (
                               <TouchableOpacity
                                 onPress={() => setOptionModal(true)}
-                                style={styles(theme).addOptionButton}
+                                style={styles.addOptionButton}
                               >
                                 <FontAwesome name="plus" size={30} color={theme.primary} />
-                                <Text style={styles(theme).addOptionText}>Add Option</Text>
+                                <Text style={styles.addOptionText}>Add Option</Text>
                               </TouchableOpacity>
                             )}
                           </View>
@@ -571,9 +577,9 @@ export default function Studio(){
           {/* Question Modal */}
           {/* Edit Question / Option Modal */}
           <Modal visible={editTarget !== null} transparent animationType="slide">
-            <View style={styles(theme).modalOverlay}>
-              <View style={styles(theme).modalContainer}>
-                <Text style={styles(theme).modalTitle}>
+            <View style={styles.modalOverlay}>
+              <View style={styles.modalContainer}>
+                <Text style={styles.modalTitle}>
                   {editTarget?.kind === "question" ? "Edit Question" : "Edit Option"}
                 </Text>
 
@@ -586,7 +592,7 @@ export default function Studio(){
                     setEditText(text);
                     setCurrentInputValue(text);
                   }}
-                  style={styles(theme).modalInput}
+                  style={styles.modalInput}
                   multiline={true}
                   numberOfLines={3}
                   autoFocus={true}
@@ -594,13 +600,13 @@ export default function Studio(){
                   onBlur={handleInputBlur}
                 />
 
-                <View style={styles(theme).modalButtons}>
-                  <TouchableOpacity onPress={cancelEdit} style={styles(theme).cancelButton}>
-                    <Text style={styles(theme).cancelButtonText}>Cancel</Text>
+                <View style={styles.modalButtons}>
+                  <TouchableOpacity onPress={cancelEdit} style={styles.cancelButton}>
+                    <Text style={styles.cancelButtonText}>Cancel</Text>
                   </TouchableOpacity>
 
-                  <TouchableOpacity onPress={confirmEdit} style={styles(theme).addButton}>
-                    <Text style={styles(theme).addButtonText}>Save</Text>
+                  <TouchableOpacity onPress={confirmEdit} style={styles.addButton}>
+                    <Text style={styles.addButtonText}>Save</Text>
                   </TouchableOpacity>
                 </View>
               </View>
@@ -608,9 +614,9 @@ export default function Studio(){
           </Modal>
 
           <Modal visible={questionModal} transparent animationType="slide">
-            <View style={styles(theme).modalOverlay}>
-              <View style={styles(theme).modalContainer}>
-                <Text style={styles(theme).modalTitle}>Add New Question</Text>
+            <View style={styles.modalOverlay}>
+              <View style={styles.modalContainer}>
+                <Text style={styles.modalTitle}>Add New Question</Text>
                 
                 <TextInput
                   placeholder="Enter your question..."
@@ -619,14 +625,14 @@ export default function Studio(){
                     setNewQuestion(text);
                     setCurrentInputValue(text);
                   }}
-                  style={styles(theme).modalInput}
+                  style={styles.modalInput}
                   multiline={true}
                   numberOfLines={3}
                   onFocus={() => handleInputFocus("question", newQuestion, true)}
                   onBlur={handleInputBlur}
                 />
 
-                <View style={styles(theme).modalButtons}>
+                <View style={styles.modalButtons}>
                   <TouchableOpacity
                     onPress={() => {
                       setQuestionModal(false);
@@ -634,9 +640,9 @@ export default function Studio(){
                       expandQuestionMenu(false);
                       handleInputBlur();
                     }}
-                    style={styles(theme).cancelButton}
+                    style={styles.cancelButton}
                   >
-                    <Text style={styles(theme).cancelButtonText}>Cancel</Text>
+                    <Text style={styles.cancelButtonText}>Cancel</Text>
                   </TouchableOpacity>
 
                   <TouchableOpacity
@@ -660,9 +666,9 @@ export default function Studio(){
                         handleInputBlur();
                       }
                     }}
-                    style={styles(theme).addButton}
+                    style={styles.addButton}
                   >
-                    <Text style={styles(theme).addButtonText}>Add Question</Text>
+                    <Text style={styles.addButtonText}>Add Question</Text>
                   </TouchableOpacity>
                 </View>
               </View>
@@ -671,9 +677,9 @@ export default function Studio(){
 
           {/* Option Modal */}
           <Modal visible={optionModal} transparent animationType="slide">
-            <View style={styles(theme).modalOverlay}>
-              <View style={styles(theme).modalContainer}>
-                <Text style={styles(theme).modalTitle}>Add New Option</Text>
+            <View style={styles.modalOverlay}>
+              <View style={styles.modalContainer}>
+                <Text style={styles.modalTitle}>Add New Option</Text>
 
                 <TextInput
                   placeholder="Enter option..."
@@ -682,23 +688,23 @@ export default function Studio(){
                     setNewOption(text);
                     setCurrentInputValue(text);
                   }}
-                  style={styles(theme).modalInput}
+                  style={styles.modalInput}
                   multiline={true}
                   numberOfLines={2}
                   onFocus={() => handleInputFocus("option", newOption, true)}
                   onBlur={handleInputBlur}
                 />
 
-                <View style={styles(theme).modalButtons}>
+                <View style={styles.modalButtons}>
                   <TouchableOpacity
                     onPress={() => {
                       setOptionModal(false);
                       setNewOption("");
                       handleInputBlur();
                     }}
-                    style={styles(theme).cancelButton}
+                    style={styles.cancelButton}
                   >
-                    <Text style={styles(theme).cancelButtonText}>Cancel</Text>
+                    <Text style={styles.cancelButtonText}>Cancel</Text>
                   </TouchableOpacity>
 
                   <TouchableOpacity
@@ -719,9 +725,9 @@ export default function Studio(){
                         handleInputBlur();
                       }
                     }}
-                    style={styles(theme).addButton}
+                    style={styles.addButton}
                   >
-                    <Text style={styles(theme).addButtonText}>Add Option</Text>
+                    <Text style={styles.addButtonText}>Add Option</Text>
                   </TouchableOpacity>
                 </View>
               </View>
@@ -730,8 +736,8 @@ export default function Studio(){
 
           {/*Saved Templates Modal*/}
           <Modal visible={savedTemplatesModal} transparent animationType="slide" onRequestClose={() => {setSavedTemplatesModal(false)}}>
-              <View style={styles(theme).modalOverlay}>
-                  <View style={styles(theme).templatesModalContainer}>
+              <View style={styles.modalOverlay}>
+                  <View style={styles.templatesModalContainer}>
                     <View>
                       <FlatList style={{height: '75%', borderBottomWidth: 2, borderColor: theme.button_darker_primary}}
                         data={savedTemplates}
@@ -767,30 +773,30 @@ export default function Studio(){
                           </View>
                           }
                         ListEmptyComponent={
-                          <View style={styles(theme).emptyTemplates}>
+                          <View style={styles.emptyTemplates}>
                             <FontAwesome name="bookmark-o" size={40} color={theme.text + '40'} />
-                            <Text style={styles(theme).emptyTemplatesTitle}>No saved templates</Text>
-                            <Text style={styles(theme).emptyTemplatesText}>
+                            <Text style={styles.emptyTemplatesTitle}>No saved templates</Text>
+                            <Text style={styles.emptyTemplatesText}>
                               Templates you bookmark from events will show up here.
                             </Text>
                           </View>
                         }
                       />
                     </View>
-                    <TouchableOpacity style= {styles(theme).cleanButton}
+                    <TouchableOpacity style= {styles.cleanButton}
                       onPress={() => {
                         router.push(`/studio/create`)
                         setSavedTemplatesModal(false);
                       }}
                     >
-                      <Text style= {styles(theme).cleanButtonText}> Clean Template</Text>
+                      <Text style= {styles.cleanButtonText}> Clean Template</Text>
                     </TouchableOpacity>
-                    <TouchableOpacity style= {styles(theme).cancelTemplateButton}
+                    <TouchableOpacity style= {styles.cancelTemplateButton}
                       onPress={() => {
                         setSavedTemplatesModal(false);
                       }}
                     >
-                      <Text style= {styles(theme).cancelTemplateButtonText}>Cancel</Text>
+                      <Text style= {styles.cancelTemplateButtonText}>Cancel</Text>
                     </TouchableOpacity>
                   </View>
               </View>
@@ -815,41 +821,41 @@ export default function Studio(){
             onRequestClose={() => setShowMenu(false)}
           >
             <Pressable 
-              style={styles(theme).imageModalOverlay} 
+              style={styles.imageModalOverlay} 
               onPress={() => setShowMenu(false)} 
             />
-            <View style={styles(theme).imageModalContainer}>
+            <View style={styles.imageModalContainer}>
               <TouchableOpacity 
-                style={styles(theme).imageMenuOption} 
+                style={styles.imageMenuOption} 
                 onPress={() => { setShowMenu(false); takePhotoAsync(); }}
               >
                 <FontAwesome name="camera" size={20} color={theme.primary} />
-                <Text style={styles(theme).imageMenuText}>Take Photo</Text>
+                <Text style={styles.imageMenuText}>Take Photo</Text>
               </TouchableOpacity>
 
               <TouchableOpacity 
-                style={styles(theme).imageMenuOption} 
+                style={styles.imageMenuOption} 
                 onPress={() => { setShowMenu(false); pickImageAsync(); }}
               >
                 <FontAwesome name="image" size={20} color={theme.primary} />
-                <Text style={styles(theme).imageMenuText}>Choose from Gallery</Text>
+                <Text style={styles.imageMenuText}>Choose from Gallery</Text>
               </TouchableOpacity>
 
               {image && (
                 <TouchableOpacity 
-                  style={styles(theme).imageMenuOption} 
+                  style={styles.imageMenuOption} 
                   onPress={removeImage}
                 >
                   <FontAwesome name="trash" size={20} color={theme.destructive} />
-                  <Text style={[styles(theme).imageMenuText, {color: theme.destructive}]}>Remove Image</Text>
+                  <Text style={[styles.imageMenuText, {color: theme.destructive}]}>Remove Image</Text>
                 </TouchableOpacity>
               )}
 
               <TouchableOpacity 
-                style={[styles(theme).imageMenuOption, styles(theme).imageMenuCancel]} 
+                style={[styles.imageMenuOption, styles.imageMenuCancel]} 
                 onPress={() => setShowMenu(false)}
               >
-                <Text style={[styles(theme).imageMenuText, {color: theme.destructive}]}>Cancel</Text>
+                <Text style={[styles.imageMenuText, {color: theme.destructive}]}>Cancel</Text>
               </TouchableOpacity>
             </View>
           </Modal>
@@ -858,7 +864,7 @@ export default function Studio(){
     )
 }
 
-const styles = (theme: Theme) => StyleSheet.create({
+const createStyles = (theme: Theme) => StyleSheet.create({
   backgroundContainer: {
     flex: 1,
     backgroundColor: theme.background,
@@ -880,7 +886,7 @@ const styles = (theme: Theme) => StyleSheet.create({
     borderRadius: 20,
     width: '90%',
     maxWidth: 400,
-    shadowColor: '#000',
+    shadowColor: theme.shadow,
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.3,
     shadowRadius: 12,
@@ -959,7 +965,7 @@ const styles = (theme: Theme) => StyleSheet.create({
     height: 50,
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: '#000',
+    shadowColor: theme.shadow,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
@@ -970,7 +976,7 @@ const styles = (theme: Theme) => StyleSheet.create({
     borderRadius: 20,
     paddingHorizontal: 20,
     paddingVertical: 10,
-    shadowColor: '#000',
+    shadowColor: theme.shadow,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
@@ -1001,7 +1007,7 @@ const styles = (theme: Theme) => StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 25,
-    shadowColor: '#000',
+    shadowColor: theme.shadow,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.1,
     shadowRadius: 6,
@@ -1020,7 +1026,7 @@ const styles = (theme: Theme) => StyleSheet.create({
     paddingHorizontal: 15,
     marginBottom: 15,
     justifyContent: 'center',
-    shadowColor: '#000',
+    shadowColor: theme.shadow,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
@@ -1039,7 +1045,7 @@ const styles = (theme: Theme) => StyleSheet.create({
     backgroundColor: theme.button_darker_primary,
     paddingHorizontal: 15,
     paddingTop: 15,
-    shadowColor: '#000',
+    shadowColor: theme.shadow,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
@@ -1071,7 +1077,7 @@ const styles = (theme: Theme) => StyleSheet.create({
     borderRadius: 12,
     padding: 15,
     marginBottom: 10,
-    shadowColor: '#000',
+    shadowColor: theme.shadow,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
@@ -1095,7 +1101,7 @@ const styles = (theme: Theme) => StyleSheet.create({
     borderRadius: 12,
     marginBottom: 20,
     maxHeight: 200,
-    shadowColor: '#000',
+    shadowColor: theme.shadow,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
@@ -1151,7 +1157,7 @@ const styles = (theme: Theme) => StyleSheet.create({
     borderRadius: 12,
     backgroundColor: theme.background,
     padding: 10,
-    shadowColor: '#000',
+    shadowColor: theme.shadow,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
@@ -1168,7 +1174,7 @@ const styles = (theme: Theme) => StyleSheet.create({
     marginRight: 15,
     padding: 15,
     justifyContent: 'space-between',
-    shadowColor: '#000',
+    shadowColor: theme.shadow,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
@@ -1234,7 +1240,7 @@ const styles = (theme: Theme) => StyleSheet.create({
     borderRadius: 15,
     width: '85%',
     maxWidth: 400,
-    shadowColor: '#000',
+    shadowColor: theme.shadow,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.2,
     shadowRadius: 8,
@@ -1314,7 +1320,7 @@ const styles = (theme: Theme) => StyleSheet.create({
     width: '95%',
     maxWidth: 400,
     height: '70%',
-    shadowColor: '#000',
+    shadowColor: theme.shadow,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.2,
     shadowRadius: 8,
@@ -1396,7 +1402,7 @@ const styles = (theme: Theme) => StyleSheet.create({
     position: "absolute",
     bottom: 0,
     width: "100%",
-    shadowColor: '#000',
+    shadowColor: theme.shadow,
     shadowOffset: { width: 0, height: -4 },
     shadowOpacity: 0.1,
     shadowRadius: 8,

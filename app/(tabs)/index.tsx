@@ -3,6 +3,7 @@ import { fetchFollowingPosts } from "@/services/events";
 import { Event } from "@/types/interfaces";
 import EventCard from "@/components/eventCard";
 import { useThemeConfig, Theme } from "@/components/ui/use-theme-config"
+import { useThemedStyles } from "@/hooks/use-themed-styles";
 import { FontAwesome } from "@expo/vector-icons";
 import { useEffect, useState } from "react"
 import { useRouter } from "expo-router"
@@ -17,6 +18,7 @@ export default function Home(){
   const [hasMore, setHasMore] = useState(true);
   const [loadingMore, setLoadingMore] = useState(true);
   const theme = useThemeConfig()
+  const styles = useThemedStyles(createStyles);
   const router = useRouter()
   const [followingPostsList, updateFollowingPostsList] = useState<Event[]>([]);
   const [activeTab, setActiveTab] = useState<'Following' | 'Shop'>('Following');
@@ -59,26 +61,26 @@ export default function Home(){
   }, [refresh])
 
   return (
-    <SafeAreaView style={styles(theme).backgroundContainer}>
-      <View style= {[styles(theme).topTabs]}>
+    <SafeAreaView style={styles.backgroundContainer}>
+      <View style= {[styles.topTabs]}>
         <TouchableOpacity
-          style={[styles(theme).tabButton, activeTab === 'Following' && styles(theme).selectedTabButton]}
+          style={[styles.tabButton, activeTab === 'Following' && styles.selectedTabButton]}
           onPress={() => setActiveTab('Following')}
         >
-          <Text style={[styles(theme).tabText, activeTab === 'Following' && styles(theme).selectedTabText]}>
+          <Text style={[styles.tabText, activeTab === 'Following' && styles.selectedTabText]}>
             Following
           </Text>
         </TouchableOpacity>
-        <TouchableOpacity style={[styles(theme).tabButton, activeTab === 'Shop' && styles(theme).selectedTabButton]}
+        <TouchableOpacity style={[styles.tabButton, activeTab === 'Shop' && styles.selectedTabButton]}
           onPress={() => setActiveTab('Shop')}
         >
-          <Text style={[styles(theme).tabText, activeTab === 'Shop' && styles(theme).selectedTabText]}>
+          <Text style={[styles.tabText, activeTab === 'Shop' && styles.selectedTabText]}>
             Shop
           </Text>
         </TouchableOpacity>
       </View>
       { activeTab === 'Following' ? (
-        <View style={styles(theme).followingEventsContainer}>
+        <View style={styles.followingEventsContainer}>
           <FlatList
             data={followingPostsList}
             keyExtractor={(item) => item.id.toString()}
@@ -99,22 +101,22 @@ export default function Home(){
             }
             ListEmptyComponent={
               loadingMore || refresh ? null : (
-                <View style={styles(theme).emptyState}>
+                <View style={styles.emptyState}>
                   <FontAwesome
                     name={errorMessage ? "exclamation-triangle" : "users"}
                     size={48}
                     color={errorMessage ? theme.destructive : theme.text + '40'}
                   />
-                  <Text style={styles(theme).emptyTitle}>
+                  <Text style={styles.emptyTitle}>
                     {errorMessage ? "Something went wrong" : "Your feed is empty"}
                   </Text>
-                  <Text style={styles(theme).emptySubtext}>
+                  <Text style={styles.emptySubtext}>
                     {errorMessage
                       ? errorMessage
                       : "Follow people to see the events they create here."}
                   </Text>
                   <TouchableOpacity
-                    style={styles(theme).emptyAction}
+                    style={styles.emptyAction}
                     onPress={() => (errorMessage ? activateRefresh(true) : router.push("/explore"))}
                     activeOpacity={0.8}
                   >
@@ -123,7 +125,7 @@ export default function Home(){
                       size={14}
                       color={theme.buttonText}
                     />
-                    <Text style={styles(theme).emptyActionText}>
+                    <Text style={styles.emptyActionText}>
                       {errorMessage ? "Try again" : "Find people to follow"}
                     </Text>
                   </TouchableOpacity>
@@ -133,9 +135,9 @@ export default function Home(){
           />
         </View>
       ) : (
-        <View style={styles(theme).shopContainer}>
+        <View style={styles.shopContainer}>
           <FontAwesome name="shopping-cart" size={50} color={theme.primary} />
-          <Text style={styles(theme).shopText}>
+          <Text style={styles.shopText}>
             Shop coming soon!
           </Text>
         </View>
@@ -144,7 +146,7 @@ export default function Home(){
   )
 }
 
-const styles = (theme: Theme) => StyleSheet.create({
+const createStyles = (theme: Theme) => StyleSheet.create({
   backgroundContainer: {
     flex: 1,
     backgroundColor: theme.background

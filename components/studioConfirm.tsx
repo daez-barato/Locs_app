@@ -1,5 +1,6 @@
 import { postEvent } from "@/services/events";
 import { Theme, useThemeConfig } from "@/components/ui/use-theme-config";
+import { useThemedStyles } from "@/hooks/use-themed-styles";
 import FontAwesome from "@expo/vector-icons/FontAwesome";
 import { useRouter } from "expo-router";
 import { useState } from "react";
@@ -21,6 +22,7 @@ type Props = {
 
 export default function StudioConfirm({optionsDict, visible, setVisible, title, description, image, templateId, onPosted}: Props) {
   const theme = useThemeConfig();
+  const styles = useThemedStyles(createStyles);
   const [privacy, setPrivacy] = useState("Private");
   const [time, setTime] = useState("1 hour");
   const [durationMinutes, setDurationMinutes] = useState(60);
@@ -70,12 +72,12 @@ export default function StudioConfirm({optionsDict, visible, setVisible, title, 
     label: string
   ) => {
     return (
-      <View style={styles(theme).scrollPickerContainer}>
-        <Text style={styles(theme).scrollPickerLabel}>{label}</Text>
-        <View style={styles(theme).scrollPickerWrapper}>
+      <View style={styles.scrollPickerContainer}>
+        <Text style={styles.scrollPickerLabel}>{label}</Text>
+        <View style={styles.scrollPickerWrapper}>
           <ScrollView 
-            style={styles(theme).scrollPicker}
-            contentContainerStyle={styles(theme).scrollPickerContent}
+            style={styles.scrollPicker}
+            contentContainerStyle={styles.scrollPickerContent}
             showsVerticalScrollIndicator={false}
             snapToInterval={50}
             decelerationRate="fast"
@@ -84,14 +86,14 @@ export default function StudioConfirm({optionsDict, visible, setVisible, title, 
               <TouchableOpacity
                 key={value}
                 style={[
-                  styles(theme).scrollPickerItem,
-                  selectedValue === value && styles(theme).scrollPickerItemSelected
+                  styles.scrollPickerItem,
+                  selectedValue === value && styles.scrollPickerItemSelected
                 ]}
                 onPress={() => onValueChange(value)}
               >
                 <Text style={[
-                  styles(theme).scrollPickerItemText,
-                  selectedValue === value && styles(theme).scrollPickerItemTextSelected
+                  styles.scrollPickerItemText,
+                  selectedValue === value && styles.scrollPickerItemTextSelected
                 ]}>
                   {value.toString().padStart(2, '0')}
                 </Text>
@@ -158,99 +160,99 @@ export default function StudioConfirm({optionsDict, visible, setVisible, title, 
         presentationStyle="fullScreen"
         onRequestClose={() => setVisible(false)}
     >
-        <SafeAreaView style={styles(theme).container}>
+        <SafeAreaView style={styles.container}>
             {/* Header with back button */}
-            <View style={styles(theme).header}>
+            <View style={styles.header}>
                 <TouchableOpacity 
-                    style={styles(theme).backButton}
+                    style={styles.backButton}
                     onPress={() => setVisible(false)}
                 >
                     <FontAwesome name="angle-left" size={28} color={theme.primary} />
                 </TouchableOpacity>
-                <Text style={styles(theme).headerTitle}>Event Preview</Text>
-                <View style={styles(theme).headerSpacer} />
+                <Text style={styles.headerTitle}>Event Preview</Text>
+                <View style={styles.headerSpacer} />
             </View>
 
             <ScrollView 
-                style={styles(theme).scrollContainer}
-                contentContainerStyle={styles(theme).scrollContent}
+                style={styles.scrollContainer}
+                contentContainerStyle={styles.scrollContent}
                 showsVerticalScrollIndicator={false}
             >
                 {/* Image Preview */}
-                <View style={styles(theme).imageContainer}>
+                <View style={styles.imageContainer}>
                     {image ? (
                         <Image 
                             source={{uri: image}}
-                            style={styles(theme).imagePreview}
+                            style={styles.imagePreview}
                             resizeMode="cover"
                         />
                     ) : (
-                        <View style={styles(theme).placeholderImage}>
+                        <View style={styles.placeholderImage}>
                             <FontAwesome name="image" size={50} color="rgba(255,255,255,0.3)" />
-                            <Text style={styles(theme).placeholderText}>No image selected</Text>
+                            <Text style={styles.placeholderText}>No image selected</Text>
                         </View>
                     )}
                 </View>
 
                 {/* Content Card */}
-                <View style={styles(theme).contentCard}>
-                    <Text style={styles(theme).title}>{title || "Untitled Event"}</Text>
+                <View style={styles.contentCard}>
+                    <Text style={styles.title}>{title || "Untitled Event"}</Text>
                     {description && (
-                        <Text style={styles(theme).description}>{description}</Text>
+                        <Text style={styles.description}>{description}</Text>
                     )}
 
                     {/* Event Stats */}
-                    <View style={styles(theme).statsContainer}>
-                        <View style={styles(theme).statItem}>
+                    <View style={styles.statsContainer}>
+                        <View style={styles.statItem}>
                             <FontAwesome name="question-circle" size={18} color={theme.primary} />
-                            <Text style={styles(theme).statText}>{getQuestionCount()} Questions</Text>
+                            <Text style={styles.statText}>{getQuestionCount()} Questions</Text>
                         </View>
-                        <View style={styles(theme).statItem}>
+                        <View style={styles.statItem}>
                             <FontAwesome name="list" size={18} color={theme.primary} />
-                            <Text style={styles(theme).statText}>{getTotalOptions()} Total Options</Text>
+                            <Text style={styles.statText}>{getTotalOptions()} Total Options</Text>
                         </View>
                     </View>
 
                     {/* Settings Section */}
-                    <View style={styles(theme).settingsSection}>
-                        <Text style={styles(theme).sectionTitle}>Event Settings</Text>
+                    <View style={styles.settingsSection}>
+                        <Text style={styles.sectionTitle}>Event Settings</Text>
                         
                         {/* Privacy Setting */}
-                        <View style={styles(theme).settingRow}>
-                            <View style={styles(theme).settingInfo}>
+                        <View style={styles.settingRow}>
+                            <View style={styles.settingInfo}>
                                 <FontAwesome name={privacy === "Private" ? "lock" : "globe"} size={20} color={theme.primary} />
-                                <Text style={styles(theme).settingLabel}>Privacy</Text>
+                                <Text style={styles.settingLabel}>Privacy</Text>
                             </View>
                             <TouchableOpacity
-                                style={[styles(theme).settingButton, privacy === "Public" && styles(theme).settingButtonActive]}
+                                style={[styles.settingButton, privacy === "Public" && styles.settingButtonActive]}
                                 onPress={() => setPrivacy(privacy === "Private" ? "Public" : "Private")}
                             >
-                                <Text style={[styles(theme).settingButtonText, privacy === "Public" && styles(theme).settingButtonTextActive]}>
+                                <Text style={[styles.settingButtonText, privacy === "Public" && styles.settingButtonTextActive]}>
                                     {privacy}
                                 </Text>
                             </TouchableOpacity>
                         </View>
 
                         {/* Duration Setting */}
-                        <View style={styles(theme).settingRow}>
-                            <View style={styles(theme).settingInfo}>
+                        <View style={styles.settingRow}>
+                            <View style={styles.settingInfo}>
                                 <FontAwesome name="clock-o" size={20} color={theme.primary} />
-                                <Text style={styles(theme).settingLabel}>Duration</Text>
+                                <Text style={styles.settingLabel}>Duration</Text>
                             </View>
                             <TouchableOpacity
-                                style={styles(theme).settingButton}
+                                style={styles.settingButton}
                                 onPress={() => setPickTimer(true)}
                             >
-                                <Text style={styles(theme).settingButtonText}>{time}</Text>
+                                <Text style={styles.settingButtonText}>{time}</Text>
                                 <FontAwesome name="chevron-right" size={12} color="#ffffff" />
                             </TouchableOpacity>
                         </View>
                     </View>
 
                     {/* Quick Duration Buttons */}
-                    <View style={styles(theme).quickTimeContainer}>
-                        <Text style={styles(theme).quickTimeTitle}>Quick Select</Text>
-                        <View style={styles(theme).quickTimeButtons}>
+                    <View style={styles.quickTimeContainer}>
+                        <Text style={styles.quickTimeTitle}>Quick Select</Text>
+                        <View style={styles.quickTimeButtons}>
                             {[
                                 { label: "30m", d: 0, h: 0, m: 30 },
                                 { label: "1h", d: 0, h: 1, m: 0 },
@@ -261,8 +263,8 @@ export default function StudioConfirm({optionsDict, visible, setVisible, title, 
                                 <TouchableOpacity
                                     key={timeOption.label}
                                     style={[
-                                        styles(theme).quickTimeButton,
-                                        time === formatTime(timeOption.d, timeOption.h, timeOption.m) && styles(theme).quickTimeButtonActive
+                                        styles.quickTimeButton,
+                                        time === formatTime(timeOption.d, timeOption.h, timeOption.m) && styles.quickTimeButtonActive
                                     ]}
                                     onPress={() => handleQuickTime(
                                         formatTime(timeOption.d, timeOption.h, timeOption.m),
@@ -272,8 +274,8 @@ export default function StudioConfirm({optionsDict, visible, setVisible, title, 
                                     )}
                                 >
                                     <Text style={[
-                                        styles(theme).quickTimeButtonText,
-                                        time === formatTime(timeOption.d, timeOption.h, timeOption.m) && styles(theme).quickTimeButtonTextActive
+                                        styles.quickTimeButtonText,
+                                        time === formatTime(timeOption.d, timeOption.h, timeOption.m) && styles.quickTimeButtonTextActive
                                     ]}>
                                         {timeOption.label}
                                     </Text>
@@ -285,18 +287,18 @@ export default function StudioConfirm({optionsDict, visible, setVisible, title, 
             </ScrollView>
 
             {/* Bottom Action Button */}
-            <View style={styles(theme).bottomContainer}>
+            <View style={styles.bottomContainer}>
                 <TouchableOpacity 
-                    style={[styles(theme).postButton, isPosting && styles(theme).postButtonDisabled]}
+                    style={[styles.postButton, isPosting && styles.postButtonDisabled]}
                     onPress={handlePostEvent}
                     disabled={isPosting}
                 >
                     {isPosting ? (
-                        <Text style={styles(theme).postButtonText}>Creating Event...</Text>
+                        <Text style={styles.postButtonText}>Creating Event...</Text>
                     ) : (
                         <>
                             <FontAwesome name="rocket" size={20} color="#ffffff" />
-                            <Text style={styles(theme).postButtonText}>Create Event</Text>
+                            <Text style={styles.postButtonText}>Create Event</Text>
                         </>
                     )}
                 </TouchableOpacity>
@@ -309,31 +311,31 @@ export default function StudioConfirm({optionsDict, visible, setVisible, title, 
                 visible={pickTimer}
                 onRequestClose={() => setPickTimer(false)}
             >
-                <View style={styles(theme).modalOverlay}>
-                    <View style={styles(theme).timerModalContainer}>
-                        <Text style={styles(theme).timerTitle}>Select Duration</Text>
+                <View style={styles.modalOverlay}>
+                    <View style={styles.timerModalContainer}>
+                        <Text style={styles.timerTitle}>Select Duration</Text>
 
-                        <View style={styles(theme).pickerContainer}>
+                        <View style={styles.pickerContainer}>
                             {renderScrollPicker(dayOptions, days, setDays, "Days")}
-                            <View style={styles(theme).pickerDivider} />
+                            <View style={styles.pickerDivider} />
                             {renderScrollPicker(hourOptions, hours, setHours, "Hours")}
-                            <View style={styles(theme).pickerDivider} />
+                            <View style={styles.pickerDivider} />
                             {renderScrollPicker(minuteOptions, minutes, setMinutes, "Min")}
                         </View>
 
-                        <View style={styles(theme).timerButtonContainer}>
+                        <View style={styles.timerButtonContainer}>
                             <TouchableOpacity
-                                style={[styles(theme).timerButton, styles(theme).timerCancelButton]}
+                                style={[styles.timerButton, styles.timerCancelButton]}
                                 onPress={() => setPickTimer(false)}
                             >
-                                <Text style={styles(theme).timerButtonText}>Cancel</Text>
+                                <Text style={styles.timerButtonText}>Cancel</Text>
                             </TouchableOpacity>
 
                             <TouchableOpacity
-                                style={[styles(theme).timerButton, styles(theme).timerConfirmButton]}
+                                style={[styles.timerButton, styles.timerConfirmButton]}
                                 onPress={handleTimerConfirm}
                             >
-                                <Text style={styles(theme).timerButtonText}>Confirm</Text>
+                                <Text style={styles.timerButtonText}>Confirm</Text>
                             </TouchableOpacity>
                         </View>
                     </View>
@@ -344,7 +346,7 @@ export default function StudioConfirm({optionsDict, visible, setVisible, title, 
   );
 }
 
-const styles = (theme: Theme) => StyleSheet.create({
+const createStyles = (theme: Theme) => StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: theme.background,
@@ -387,7 +389,7 @@ const styles = (theme: Theme) => StyleSheet.create({
     borderRadius: 15,
     backgroundColor: theme.button_darker_primary,
     overflow: 'hidden',
-    shadowColor: '#000',
+    shadowColor: theme.shadow,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.1,
     shadowRadius: 8,
@@ -413,7 +415,7 @@ const styles = (theme: Theme) => StyleSheet.create({
     marginTop: 0,
     borderRadius: 20,
     padding: 25,
-    shadowColor: '#000',
+    shadowColor: theme.shadow,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.1,
     shadowRadius: 8,
@@ -558,7 +560,7 @@ const styles = (theme: Theme) => StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: '#000',
+    shadowColor: theme.shadow,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.2,
     shadowRadius: 8,
@@ -577,7 +579,7 @@ const styles = (theme: Theme) => StyleSheet.create({
   // Timer Modal Styles
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    backgroundColor: theme.overlay,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -587,7 +589,7 @@ const styles = (theme: Theme) => StyleSheet.create({
     padding: 25,
     width: '90%',
     maxHeight: screenHeight * 0.7,
-    shadowColor: '#000',
+    shadowColor: theme.shadow,
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.3,
     shadowRadius: 12,
@@ -669,7 +671,7 @@ const styles = (theme: Theme) => StyleSheet.create({
     borderRadius: 15,
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: '#000',
+    shadowColor: theme.shadow,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.2,
     shadowRadius: 4,

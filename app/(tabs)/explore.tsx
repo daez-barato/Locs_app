@@ -1,5 +1,6 @@
 import { fetchTrending, search } from "@/api/exploreFunctions";
 import { Theme, useThemeConfig } from "@/components/ui/use-theme-config";
+import { useThemedStyles } from "@/hooks/use-themed-styles";
 import TemplateCard from "@/components/templateCard";
 import UserCard from "@/components/userCard";
 import { FontAwesome } from "@expo/vector-icons";
@@ -20,6 +21,7 @@ import { SearchObject ,SearchUser, SearchTemplate, SearchEvent } from "@/types/i
 
 export default function Explore() {
     const theme = useThemeConfig();
+    const styles = useThemedStyles(createStyles);
     const [query, setQuery] = useState<string>("");
     const [activeTab, setActiveTab] = useState<'events' | 'templates' | 'users'>('events');
     const [events, setEvents] = useState<SearchEvent[]>([]);
@@ -125,27 +127,27 @@ export default function Explore() {
         (activeTab === 'events' ? events as SearchObject[] : templates as SearchObject[]);
 
     return (
-        <SafeAreaView style={styles(theme).container}>
-            <View style={styles(theme).searchHeader}>
-                <View style={styles(theme).searchBar}>
+        <SafeAreaView style={styles.container}>
+            <View style={styles.searchHeader}>
+                <View style={styles.searchBar}>
                     <FontAwesome 
                         name="search"
                         size={18}
                         color={theme.text}
-                        style={styles(theme).searchIcon}
+                        style={styles.searchIcon}
                     />
                     <TextInput
                         placeholder="Search for events, templates, users..."
                         placeholderTextColor={theme.text + '60'}
                         value={query}
                         onChangeText={handleQueryChange}
-                        style={styles(theme).searchInput}
+                        style={styles.searchInput}
                         onSubmitEditing={handleSearch}
                     />
                     {query.length > 0 && (
                         <TouchableOpacity
                             onPress={() => setQuery("")}
-                            style={styles(theme).clearButton}
+                            style={styles.clearButton}
                         >
                             <FontAwesome name="times" size={16} color={theme.text + '80'} />
                         </TouchableOpacity>
@@ -153,33 +155,33 @@ export default function Explore() {
                 </View>
             </View>
 
-            <View style={styles(theme).headerSection}>
-                <Text style={styles(theme).headerText}>
+            <View style={styles.headerSection}>
+                <Text style={styles.headerText}>
                     {isSearching ? 'Search Results' : 'Trending'}
                 </Text>
-                <View style={styles(theme).tabs}>
+                <View style={styles.tabs}>
                     <TouchableOpacity 
-                        style={[styles(theme).tab, activeTab === 'events' && styles(theme).activeTab]}
+                        style={[styles.tab, activeTab === 'events' && styles.activeTab]}
                         onPress={() => setActiveTab('events')}
                     >
-                        <Text style={[styles(theme).tabText, activeTab === 'events' && styles(theme).activeTabText]}>
+                        <Text style={[styles.tabText, activeTab === 'events' && styles.activeTabText]}>
                             Events
                         </Text>
                     </TouchableOpacity>
                     <TouchableOpacity 
-                        style={[styles(theme).tab, activeTab === 'templates' && styles(theme).activeTab]}
+                        style={[styles.tab, activeTab === 'templates' && styles.activeTab]}
                         onPress={() => setActiveTab('templates')}
                     >
-                        <Text style={[styles(theme).tabText, activeTab === 'templates' && styles(theme).activeTabText]}>
+                        <Text style={[styles.tabText, activeTab === 'templates' && styles.activeTabText]}>
                             Templates
                         </Text>
                     </TouchableOpacity>
                     {isSearching && (
                         <TouchableOpacity 
-                            style={[styles(theme).tab, activeTab === 'users' && styles(theme).activeTab]}
+                            style={[styles.tab, activeTab === 'users' && styles.activeTab]}
                             onPress={() => setActiveTab('users')}
                         >
-                            <Text style={[styles(theme).tabText, activeTab === 'users' && styles(theme).activeTabText]}>
+                            <Text style={[styles.tabText, activeTab === 'users' && styles.activeTabText]}>
                                 Users
                             </Text>
                         </TouchableOpacity>
@@ -202,21 +204,21 @@ export default function Explore() {
             ListEmptyComponent={
                 <>
                     {isLoading && (
-                    <View style={styles(theme).emptyState}>
+                    <View style={styles.emptyState}>
                         <ActivityIndicator size="large" color={theme.primary} />
                     </View>
                     )}
                     {!isLoading && (
-                    <View style={styles(theme).emptyState}>
+                    <View style={styles.emptyState}>
                         <FontAwesome
                         name={errorMessage ? "exclamation-triangle" : isSearching ? "search" : "compass"}
                         size={48}
                         color={errorMessage ? theme.destructive : theme.text + '40'}
                         />
-                        <Text style={styles(theme).emptyText}>
+                        <Text style={styles.emptyText}>
                         {errorMessage ? "Something went wrong" : `No ${activeTab} found`}
                         </Text>
-                        <Text style={styles(theme).emptySubtext}>
+                        <Text style={styles.emptySubtext}>
                         {errorMessage
                             ? errorMessage
                             : isSearching
@@ -225,12 +227,12 @@ export default function Explore() {
                         </Text>
                         {errorMessage && (
                             <TouchableOpacity
-                                style={styles(theme).retryButton}
+                                style={styles.retryButton}
                                 onPress={onRefresh}
                                 activeOpacity={0.8}
                             >
                                 <FontAwesome name="refresh" size={14} color={theme.buttonText} />
-                                <Text style={styles(theme).retryButtonText}>Try again</Text>
+                                <Text style={styles.retryButtonText}>Try again</Text>
                             </TouchableOpacity>
                         )}
                     </View>
@@ -321,14 +323,14 @@ export default function Explore() {
                 setIsLoading(false);
                 }
             }}
-            contentContainerStyle={styles(theme).scrollContent}
+            contentContainerStyle={styles.scrollContent}
             />
 
         </SafeAreaView>
     );
 }
 
-const styles = (theme: Theme) => StyleSheet.create({
+const createStyles = (theme: Theme) => StyleSheet.create({
     container: {
         flex: 1,
         backgroundColor: theme.background,
@@ -347,7 +349,7 @@ const styles = (theme: Theme) => StyleSheet.create({
         paddingHorizontal: 16,
         alignItems: "center",
         flexDirection: "row",
-        shadowColor: '#000',
+        shadowColor: theme.shadow,
         shadowOffset: {
             width: 0,
             height: 2,
@@ -387,7 +389,7 @@ const styles = (theme: Theme) => StyleSheet.create({
         backgroundColor: theme.card,
         borderRadius: 12,
         padding: 4,
-        shadowColor: '#000',
+        shadowColor: theme.shadow,
         shadowOffset: {
             width: 0,
             height: 1,

@@ -2,12 +2,14 @@ import { Tabs, useRouter} from "expo-router";
 
 import FontAwesome from "@expo/vector-icons/FontAwesome";
 import { Theme, useThemeConfig } from "@/components/ui/use-theme-config";
+import { useThemedStyles } from "@/hooks/use-themed-styles";
 import { StyleSheet, TouchableOpacity } from "react-native";
 import { useAuthContext } from "@/hooks/use-auth-context";
 
 
 export default function TabLayout(){
     const theme = useThemeConfig();
+    const styles = useThemedStyles(createStyles);
     const router = useRouter();
     const { user } = useAuthContext();
 
@@ -18,10 +20,10 @@ export default function TabLayout(){
 
     return (
         <>
-            <TouchableOpacity style= {styles(theme).studioButton}
+            <TouchableOpacity style= {styles.studioButton}
                 onPress={() => {router.push('/studio/create')}}
             >
-                <FontAwesome style= {styles(theme).studioPlus}
+                <FontAwesome style= {styles.studioPlus}
                     name= "plus"
                     size={27}
                 />
@@ -120,7 +122,7 @@ export default function TabLayout(){
     )
 };
 
-const styles = (theme: Theme) => StyleSheet.create({
+const createStyles = (theme: Theme) => StyleSheet.create({
     studioButton: {
         zIndex: 1,
         position: "absolute",

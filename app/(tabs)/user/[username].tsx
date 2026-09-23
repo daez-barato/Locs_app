@@ -1,4 +1,5 @@
 import { Theme, useThemeConfig } from "@/components/ui/use-theme-config";
+import { useThemedStyles } from "@/hooks/use-themed-styles";
 import { 
   View, 
   StyleSheet, 
@@ -45,6 +46,7 @@ export default function Profile() {
   const hero = useAuthContext().user;
 
   const theme = useThemeConfig();
+  const styles = useThemedStyles(createStyles);
   const { username } = useLocalSearchParams();
   const router = useRouter();
 
@@ -257,24 +259,24 @@ export default function Profile() {
       case "settings":
         return (
           <Modal {...modalProps}>
-            <SafeAreaView style={styles(theme).modalContainer}>
-              <View style={styles(theme).modalHeader}>
-                <Text style={styles(theme).modalTitle}>Settings</Text>
+            <SafeAreaView style={styles.modalContainer}>
+              <View style={styles.modalHeader}>
+                <Text style={styles.modalTitle}>Settings</Text>
                 <TouchableOpacity
                   onPress={() => setActiveModal(null)}
-                  style={styles(theme).closeButton}
+                  style={styles.closeButton}
                 >
                   <FontAwesome name="times" size={24} color={theme.text} />
                 </TouchableOpacity>
               </View>
               
-              <ScrollView style={styles(theme).settingsContent}>
+              <ScrollView style={styles.settingsContent}>
                 {settingsOptions.map((option, index) => (
                   <TouchableOpacity
                     key={index}
                     style={[
-                      styles(theme).settingItem,
-                      option.isDestructive && styles(theme).destructiveItem
+                      styles.settingItem,
+                      option.isDestructive && styles.destructiveItem
                     ]}
                     onPress={option.onPress}
                   >
@@ -282,12 +284,12 @@ export default function Profile() {
                       name="gear"
                       size={20}
                       color={option.isDestructive ? '#FF3B30' : theme.text}
-                      style={styles(theme).settingIcon}
+                      style={styles.settingIcon}
                     />
                     <Text
                       style={[
-                        styles(theme).settingText,
-                        option.isDestructive && styles(theme).destructiveText
+                        styles.settingText,
+                        option.isDestructive && styles.destructiveText
                       ]}
                     >
                       {option.title}
@@ -306,26 +308,26 @@ export default function Profile() {
         
         return (
           <Modal {...modalProps}>
-            <SafeAreaView style={styles(theme).modalContainer}>
-              <View style={styles(theme).modalHeader}>
+            <SafeAreaView style={styles.modalContainer}>
+              <View style={styles.modalHeader}>
                 <TouchableOpacity
                   onPress={() => setActiveModal(null)}
-                  style={styles(theme).closeButton}
+                  style={styles.closeButton}
                 >
                   <FontAwesome name="times" size={24} color={theme.text} />
                 </TouchableOpacity>
-                <Text style={styles(theme).modalTitle}>{title}</Text>
-                <View style={styles(theme).closeButton} />
+                <Text style={styles.modalTitle}>{title}</Text>
+                <View style={styles.closeButton} />
               </View>
               
               {loadingUsers ? (
-                <View style={styles(theme).loadingContainer}>
+                <View style={styles.loadingContainer}>
                   <ActivityIndicator size="large" color={theme.primary} />
-                  <Text style={styles(theme).loadingText}>Loading {title.toLowerCase()}...</Text>
+                  <Text style={styles.loadingText}>Loading {title.toLowerCase()}...</Text>
                 </View>
               ) : userList.length === 0 ? (
-                <View style={styles(theme).emptyContainer}>
-                  <Text style={styles(theme).emptyText}>
+                <View style={styles.emptyContainer}>
+                  <Text style={styles.emptyText}>
                     No {title.toLowerCase()} yet
                   </Text>
                 </View>
@@ -334,7 +336,7 @@ export default function Profile() {
                   data={userList}
                   renderItem={({ item }) => <UserCard user={item} />}
                   keyExtractor={(item) => item.id}
-                  style={styles(theme).userList}
+                  style={styles.userList}
                   showsVerticalScrollIndicator={false}
                   onEndReached={() => {
                     if (!loadingMore 
@@ -362,9 +364,9 @@ export default function Profile() {
             presentationStyle="pageSheet"
             onRequestClose={() => setActiveModal(null)}
           >
-            <SafeAreaView style={styles(theme).modalContainer}>
-              <View style={styles(theme).modalHeader}>
-                <Text style={styles(theme).modalTitle}>Follow Requests</Text>
+            <SafeAreaView style={styles.modalContainer}>
+              <View style={styles.modalHeader}>
+                <Text style={styles.modalTitle}>Follow Requests</Text>
                 <TouchableOpacity
                   onPress={async () => {
                     setActiveModal(null);
@@ -377,15 +379,15 @@ export default function Profile() {
                       console.error(`Error updating requestList:`, error);
                     }
                   }}
-                  style={styles(theme).closeButton}
+                  style={styles.closeButton}
                 >
                   <FontAwesome name="times" size={24} color={theme.text} />
                 </TouchableOpacity>
               </View>
 
               {requestsList.length === 0 ? (
-                <View style={styles(theme).emptyContainer}>
-                  <Text style={styles(theme).emptyText}>No pending requests</Text>
+                <View style={styles.emptyContainer}>
+                  <Text style={styles.emptyText}>No pending requests</Text>
                 </View>
               ) : (
                 <FlatList
@@ -407,20 +409,20 @@ export default function Profile() {
             presentationStyle="pageSheet"
             onRequestClose={() => setActiveModal(null)}
           >
-            <SafeAreaView style={styles(theme).modalContainer}>
-              <View style={styles(theme).modalHeader}>
-                <Text style={styles(theme).modalTitle}>Update Profile Image</Text>
+            <SafeAreaView style={styles.modalContainer}>
+              <View style={styles.modalHeader}>
+                <Text style={styles.modalTitle}>Update Profile Image</Text>
                 <TouchableOpacity
                   onPress={() => setActiveModal(null)}
-                  style={styles(theme).closeButton}
+                  style={styles.closeButton}
                 >
                   <FontAwesome name="times" size={24} color={theme.text} />
                 </TouchableOpacity>
               </View>
 
               {/* Placeholder content */}
-              <View style={styles(theme).emptyContainer}>
-                <Text style={styles(theme).emptyText}>Profile image update functionality coming soon!</Text>
+              <View style={styles.emptyContainer}>
+                <Text style={styles.emptyText}>Profile image update functionality coming soon!</Text>
               </View>
             </SafeAreaView>
           </Modal>
@@ -433,10 +435,10 @@ export default function Profile() {
 
   if (loading) {
     return (
-      <SafeAreaView style={styles(theme).container}>
-        <View style={styles(theme).loadingContainer}>
+      <SafeAreaView style={styles.container}>
+        <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={theme.primary} />
-          <Text style={styles(theme).loadingText}>Loading profile...</Text>
+          <Text style={styles.loadingText}>Loading profile...</Text>
         </View>
       </SafeAreaView>
     );
@@ -496,9 +498,9 @@ export default function Profile() {
   const currentBetList = (user?.public || user?.is_following || user?.owner) ? (activeList === "created") ? createdEvents : participatedEvents : undefined;
 
   return (
-    <SafeAreaView style={styles(theme).container}>
+    <SafeAreaView style={styles.container}>
       <ScrollView 
-        style={styles(theme).scrollContainer}
+        style={styles.scrollContainer}
         showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl
@@ -511,15 +513,15 @@ export default function Profile() {
       >
         {/* Header with Settings */}
         {user?.owner && (
-          <View style={styles(theme).header}>
-            <TouchableOpacity style={styles(theme).requestsButton} onPress={() => openModal("requests")}>
+          <View style={styles.header}>
+            <TouchableOpacity style={styles.requestsButton} onPress={() => openModal("requests")}>
               <FontAwesome name="inbox" size={24} color={theme.text} />
-              <View style={styles(theme).alert}>
-                <Text style={styles(theme).alertNumber}>{user.requests}</Text>   
+              <View style={styles.alert}>
+                <Text style={styles.alertNumber}>{user.requests}</Text>   
               </View>
             </TouchableOpacity>
             <TouchableOpacity 
-              style={styles(theme).settingsButton} 
+              style={styles.settingsButton} 
               onPress={() => openModal("settings")}
             >
               <FontAwesome name="cog" size={24} color={theme.text} />
@@ -528,39 +530,39 @@ export default function Profile() {
         )}
 
         {/* Profile Section */}
-        <View style={styles(theme).profileSection}>
-          <View style={styles(theme).profileImageContainer}>
+        <View style={styles.profileSection}>
+          <View style={styles.profileImageContainer}>
             <Image
               source={userImage ? { uri: userImage } : require("@/assets/images/placeholder-user-image.png")}
-              style={styles(theme).profileImage}
+              style={styles.profileImage}
             />
           </View>
 
-          <Text style={styles(theme).username}>{user?.username}</Text>
+          <Text style={styles.username}>{user?.username}</Text>
 
           {/* Stats Container */}
-          <View style={styles(theme).statsContainer}>
+          <View style={styles.statsContainer}>
             <TouchableOpacity 
-              style={styles(theme).statItem} 
+              style={styles.statItem} 
               onPress={() => openModal("followers")}
             >
-              <Text style={styles(theme).statNumber}>{user?.follower_count}</Text>
-              <Text style={styles(theme).statLabel}>Followers</Text>
+              <Text style={styles.statNumber}>{user?.follower_count}</Text>
+              <Text style={styles.statLabel}>Followers</Text>
             </TouchableOpacity>
             
-            <View style={styles(theme).statDivider} />
+            <View style={styles.statDivider} />
             
             <TouchableOpacity 
-              style={styles(theme).statItem} 
+              style={styles.statItem} 
               onPress={() => openModal("following")}
             >
-              <Text style={styles(theme).statNumber}>{user?.following_count}</Text>
-              <Text style={styles(theme).statLabel}>Following</Text>
+              <Text style={styles.statNumber}>{user?.following_count}</Text>
+              <Text style={styles.statLabel}>Following</Text>
             </TouchableOpacity>
-              <View style={styles(theme).statDivider} />
-              <View style={styles(theme).statItem}>
-                <Text style={styles(theme).statNumber}>${user?.coins}</Text>
-                <Text style={styles(theme).statLabel}>Balance</Text>
+              <View style={styles.statDivider} />
+              <View style={styles.statItem}>
+                <Text style={styles.statNumber}>${user?.coins}</Text>
+                <Text style={styles.statLabel}>Balance</Text>
               </View>
           </View>
 
@@ -568,14 +570,14 @@ export default function Profile() {
           {!user?.owner && (
             <TouchableOpacity
               style={[
-                styles(theme).followButton,
-                (user?.is_following || user?.has_requested) && styles(theme).followingButton
+                styles.followButton,
+                (user?.is_following || user?.has_requested) && styles.followingButton
               ]}
               onPress={handleFollowToggle}
             >
               <Text style={[
-                styles(theme).followButtonText,
-                (user?.is_following || user?.has_requested) && styles(theme).followingButtonText
+                styles.followButtonText,
+                (user?.is_following || user?.has_requested) && styles.followingButtonText
               ]}>
                 {user?.is_following ? 'Following' : (user?.has_requested) ? "Requested" : 'Follow'}
               </Text>
@@ -586,18 +588,18 @@ export default function Profile() {
         {/* Tabs Section */}
         {currentBetList ? (
         <>
-          <View style={styles(theme).tabsContainer}>
+          <View style={styles.tabsContainer}>
             <TouchableOpacity
               style={[
-                styles(theme).tab,
-                activeList === "created" && styles(theme).activeTab,
+                styles.tab,
+                activeList === "created" && styles.activeTab,
               ]}
               onPress={() => setActiveList("created")}
             >
               <Text
                 style={[
-                  styles(theme).tabText,
-                  activeList === "created" && styles(theme).activeTabText,
+                  styles.tabText,
+                  activeList === "created" && styles.activeTabText,
                 ]}
               >
                 Created
@@ -606,15 +608,15 @@ export default function Profile() {
             
             <TouchableOpacity
               style={[
-                styles(theme).tab,
-                activeList === "participated" && styles(theme).activeTab,
+                styles.tab,
+                activeList === "participated" && styles.activeTab,
               ]}
               onPress={() => setActiveList("participated")}
             >
               <Text
                 style={[
-                  styles(theme).tabText,
-                  activeList === "participated" && styles(theme).activeTabText,
+                  styles.tabText,
+                  activeList === "participated" && styles.activeTabText,
                 ]}
               >
                 Participated
@@ -623,10 +625,10 @@ export default function Profile() {
           </View>
 
           {/* Bets List */}
-          <View style={styles(theme).listContainer}>
+          <View style={styles.listContainer}>
             {currentBetList.length === 0 ? (
-              <View style={styles(theme).emptyContainer}>
-                <Text style={styles(theme).emptyText}>
+              <View style={styles.emptyContainer}>
+                <Text style={styles.emptyText}>
                   No {activeList === "created" ? "created" : "participated"} events yet
                 </Text>
               </View>
@@ -643,8 +645,8 @@ export default function Profile() {
           </View>
         </>
         ) : (
-          <View style={styles(theme).emptyContainer}>
-            <Text style={styles(theme).emptyText}>
+          <View style={styles.emptyContainer}>
+            <Text style={styles.emptyText}>
               Follow this user to see their events
             </Text>
           </View>
@@ -658,7 +660,7 @@ export default function Profile() {
   );
 }
 
-const styles = (theme: Theme) => StyleSheet.create({
+const createStyles = (theme: Theme) => StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: theme.background,
@@ -736,7 +738,7 @@ const styles = (theme: Theme) => StyleSheet.create({
     paddingHorizontal: 20,
     marginBottom: 16,
     elevation: 2,
-    shadowColor: '#000',
+    shadowColor: theme.shadow,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
@@ -836,7 +838,7 @@ const styles = (theme: Theme) => StyleSheet.create({
     borderRadius: 12,
     marginBottom: 8,
     elevation: 1,
-    shadowColor: '#000',
+    shadowColor: theme.shadow,
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.05,
     shadowRadius: 2,

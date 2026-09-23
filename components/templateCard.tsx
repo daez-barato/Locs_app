@@ -1,5 +1,6 @@
 import { SearchTemplate } from "@/types/interfaces";
 import { useThemeConfig, Theme } from "@/components/ui/use-theme-config";
+import { useThemedStyles } from "@/hooks/use-themed-styles";
 import { FontAwesome } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import React from "react";
@@ -15,6 +16,7 @@ import {
 
 export default function TemplateCard({ item }: {item: SearchTemplate}) {
     const theme = useThemeConfig();
+    const styles = useThemedStyles(createStyles);
     const router = useRouter();
 
     const getTypeColor = (type?: string) => {
@@ -50,7 +52,7 @@ export default function TemplateCard({ item }: {item: SearchTemplate}) {
     return (
         <Animated.View
             style={[
-                styles(theme).card,
+                styles.card,
                 {
                     opacity: 1,
                     transform: [{ scale: 1 }]
@@ -58,19 +60,19 @@ export default function TemplateCard({ item }: {item: SearchTemplate}) {
             ]}
         >
             <TouchableOpacity
-                style={styles(theme).cardTouchable}
+                style={styles.cardTouchable}
                 onPress={() => router.push(`/studio/${item.id}`)}
                 activeOpacity={0.8}
             >
-                <View style={styles(theme).thumbnailContainer}>
+                <View style={styles.thumbnailContainer}>
                     <Image
                         source={{ uri: item.thumbnail }}
-                        style={styles(theme).thumbnail}
+                        style={styles.thumbnail}
                         resizeMode="cover"
                     />
                     {item.type && (
                         <View style={[
-                            styles(theme).typeOverlay,
+                            styles.typeOverlay,
                             { backgroundColor: getTypeColor(item.type) }
                         ]}>
                             <FontAwesome 
@@ -82,10 +84,10 @@ export default function TemplateCard({ item }: {item: SearchTemplate}) {
                     )}
                 </View>
                 
-                <View style={styles(theme).cardContent}>
-                    <View style={styles(theme).cardHeader}>
+                <View style={styles.cardContent}>
+                    <View style={styles.cardHeader}>
                         <Text 
-                            style={styles(theme).cardTitle}
+                            style={styles.cardTitle}
                             numberOfLines={1}
                             ellipsizeMode="tail"
                         >
@@ -93,11 +95,11 @@ export default function TemplateCard({ item }: {item: SearchTemplate}) {
                         </Text>
                         {item.type && (
                             <View style={[
-                                styles(theme).typeBadge,
+                                styles.typeBadge,
                                 { backgroundColor: getTypeColor(item.type) + '20' }
                             ]}>
                                 <Text style={[
-                                    styles(theme).typeText,
+                                    styles.typeText,
                                     { color: getTypeColor(item.type) }
                                 ]}>
                                     {item.type}
@@ -108,7 +110,7 @@ export default function TemplateCard({ item }: {item: SearchTemplate}) {
                     
                     {item.description && (
                         <Text 
-                            style={styles(theme).cardDescription}
+                            style={styles.cardDescription}
                             numberOfLines={2}
                             ellipsizeMode="tail"
                         >
@@ -116,10 +118,10 @@ export default function TemplateCard({ item }: {item: SearchTemplate}) {
                         </Text>
                     )}
                     
-                    <View style={styles(theme).cardFooter}>
-                        <View style={styles(theme).actionIndicator}>
+                    <View style={styles.cardFooter}>
+                        <View style={styles.actionIndicator}>
                             <FontAwesome name="chevron-right" size={12} color={theme.primary} />
-                            <Text style={styles(theme).actionText}>Use Template</Text>
+                            <Text style={styles.actionText}>Use Template</Text>
                         </View>
                     </View>
                 </View>
@@ -128,13 +130,13 @@ export default function TemplateCard({ item }: {item: SearchTemplate}) {
     );
 }
 
-const styles = (theme: Theme) => StyleSheet.create({
+const createStyles = (theme: Theme) => StyleSheet.create({
     card: {
         backgroundColor: theme.card,
         marginHorizontal: 16,
         marginVertical: 8,
         borderRadius: 16,
-        shadowColor: '#000',
+        shadowColor: theme.shadow,
         shadowOffset: {
             width: 0,
             height: 2,

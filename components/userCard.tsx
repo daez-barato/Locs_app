@@ -1,6 +1,7 @@
 import { acceptFollowRequest, rejectFollowRequest, followRequest, unfollowRequest  } from "@/api/followers/followers";
 import { SearchUser } from "@/types/interfaces";
 import { useThemeConfig, Theme } from "@/components/ui/use-theme-config";
+import { useThemedStyles } from "@/hooks/use-themed-styles";
 import { FontAwesome } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useAuthContext } from "@/hooks/use-auth-context";
@@ -17,6 +18,7 @@ import {
 
 export default function UserCard({ user }: { user: SearchUser }) {
   const theme = useThemeConfig();
+  const styles = useThemedStyles(createStyles);
   const router = useRouter();
   const currentUserId = useAuthContext().user?.id;
   const isSelf = !!currentUserId && currentUserId === user.id;
@@ -89,7 +91,7 @@ export default function UserCard({ user }: { user: SearchUser }) {
   return (
     <Animated.View
       style={[
-        styles(theme).userCard,
+        styles.userCard,
         {
           opacity: 1,
           transform: [{ scale: 1 }],
@@ -97,26 +99,26 @@ export default function UserCard({ user }: { user: SearchUser }) {
       ]}
     >
       <TouchableOpacity
-        style={styles(theme).userCardTouchable}
+        style={styles.userCardTouchable}
         onPress={() => router.push(`/user/${user.id}`)}
         activeOpacity={0.8}
       >
-        <View style={styles(theme).avatarContainer}>
+        <View style={styles.avatarContainer}>
           <Image
             source={
               userState.avatar_url
                 ? { uri: userState.avatar_url }
                 : require("@/assets/images/placeholder-user-image.png")
             }
-            style={styles(theme).avatar}
+            style={styles.avatar}
             resizeMode="cover"
           />
         </View>
 
-        <View style={styles(theme).userInfo}>
-          <View style={styles(theme).userHeader}>
+        <View style={styles.userInfo}>
+          <View style={styles.userHeader}>
             <Text
-              style={styles(theme).username}
+              style={styles.username}
               numberOfLines={1}
               ellipsizeMode="tail"
             >
@@ -127,13 +129,17 @@ export default function UserCard({ user }: { user: SearchUser }) {
             {!isSelf && userState.requester !== undefined && (
               <View style={{ flexDirection: "row", gap: 8 }}>
                 <TouchableOpacity
-                  style={styles(theme).acceptButton}
+                  style={styles.acceptButton}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Accept follow request from ${userState.username}`}
                   onPress={handleAccept}
                 >
                   <Text>Accept</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
-                  style={styles(theme).refuseButton}
+                  style={styles.refuseButton}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Reject follow request from ${userState.username}`}
                   onPress={handleRefuse}
                 >
                   <FontAwesome name="times" size={18} color={theme.void} />
@@ -142,16 +148,16 @@ export default function UserCard({ user }: { user: SearchUser }) {
             )}
             {/* --- Case 3: Normal follow/following states --- */}
             {!isSelf && userState.requester === undefined && userState.is_following !== undefined && (
-              <View style={styles(theme).userFooter}>
+              <View style={styles.userFooter}>
                   <TouchableOpacity
                     onPress={handleFollowLabel}
-                    style={(followLabel === "Following" || followLabel === "Requested") ? styles(theme).followingIndicator : styles(theme).actionIndicator}
+                    style={(followLabel === "Following" || followLabel === "Requested") ? styles.followingIndicator : styles.actionIndicator}
                   >
                     {(followLabel === "Following" || followLabel === "Requested") ?
                     <FontAwesome name="check" size={12} color="#4CAF50" />
                     : <FontAwesome name="user-plus" size={12} color={theme.primary} />}
 
-                    <Text style={(followLabel === "Following" || followLabel === "Requested") ? styles(theme).followingText : styles(theme).actionText}>
+                    <Text style={(followLabel === "Following" || followLabel === "Requested") ? styles.followingText : styles.actionText}>
                       {followLabel}
                     </Text>                    
                   </TouchableOpacity>
@@ -164,13 +170,13 @@ export default function UserCard({ user }: { user: SearchUser }) {
   );
 }
 
-const styles = (theme: Theme) => StyleSheet.create({
+const createStyles = (theme: Theme) => StyleSheet.create({
     userCard: {
         backgroundColor: theme.card,
         marginHorizontal: 16,
         marginVertical: 8,
         borderRadius: 16,
-        shadowColor: '#000',
+        shadowColor: theme.shadow,
         shadowOffset: {
             width: 0,
             height: 2,
