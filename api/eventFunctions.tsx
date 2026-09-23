@@ -1,4 +1,5 @@
 import { supabase } from "@/lib/supabase";
+import { EventBetPayload, EventDetails, EventInformationPayload, RpcQuestion } from "@/types/rpc";
 
 type QuestionIdMap = Record<string, { questionId: number; options: Record<string, number> }>;
 
@@ -8,7 +9,7 @@ type QuestionIdMap = Record<string, { questionId: number; options: Record<string
 const eventQuestionMaps = new Map<string, QuestionIdMap>();
 
 function splitQuestionsPayload(
-  raw: Record<string, { question_id: number; options: { option_id: number; title: string }[] }> | undefined
+  raw: Record<string, RpcQuestion> | undefined
 ): { flat: Record<string, string[]>; map: QuestionIdMap } {
   const flat: Record<string, string[]> = {};
   const map: QuestionIdMap = {};
@@ -24,7 +25,9 @@ function splitQuestionsPayload(
   return { flat, map };
 }
 
-export const eventInformation = async (eventId: string) => {
+export const eventInformation = async (
+  eventId: string
+): Promise<EventDetails | { error: true; msg: string }> => {
   try {
     const { data, error } = await supabase.rpc("get_event_information_db", { p_event_id: eventId });
 
@@ -32,7 +35,10 @@ export const eventInformation = async (eventId: string) => {
       throw new Error(error?.message || "Event not found");
     }
 
-    const { flat, map } = splitQuestionsPayload(data.questions);
+    // jsonb returns arrive as Json; assert the documented shape once, here.
+    const event = data as unknown as EventInformationPayload;
+
+    const { flat, map } = splitQuestionsPayload(event.questions);
     eventQuestionMaps.set(eventId, map);
 
     const { data: userAuth } = await supabase.auth.getUser();
@@ -42,29 +48,29 @@ export const eventInformation = async (eventId: string) => {
     // path in a private bucket. The screen wants a nested creator and a URL it
     // can render, so shape it here rather than in every consumer.
     let thumbnailUrl: string | null = null;
-    if (data.image_url) {
+    if (event.image_url) {
       const { data: signed } = await supabase.storage
         .from("event-thumbnail")
-        .createSignedUrl(data.image_url, 60 * 60);
+        .createSignedUrl(event.image_url, 60 * 60);
       thumbnailUrl = signed?.signedUrl ?? null;
     }
 
     return {
-      ...data,
+      ...event,
       questions: flat,
       thumbnail_url: thumbnailUrl,
-      is_creator: !!viewerId && data.event_creator_id === viewerId,
+      is_creator: !!viewerId && event.event_creator_id === viewerId,
       creator: {
-        id: data.event_creator_id,
-        username: data.event_creator,
-        avatar_url: data.avatar_url,
-        is_following: data.is_following,
-        has_requested: data.has_requested,
+        id: event.event_creator_id,
+        username: event.event_creator,
+        avatar_url: event.avatar_url,
+        is_following: event.is_following,
+        has_requested: event.has_requested,
       },
     };
   } catch (err: any) {
     console.error("Error fetching event information:", err);
-    return { error: true, msg: err.message };
+    return { error: true as const, msg: err.message };
   }
 };
 
@@ -76,10 +82,12 @@ export const fetchEventBets = async (eventId: string) => {
       throw new Error(error.message);
     }
 
-    return data;
+    // Returns null when the caller isn't authenticated; the screen iterates
+    // this directly, so never hand back a non-array.
+    return (data ?? []) as unknown as EventBetPayload[];
   } catch (err: any) {
     console.error("Error fetching event bets:", err);
-    return { error: true, msg: err.message };
+    return { error: true as const, msg: err.message };
   }
 };
 
@@ -106,7 +114,7 @@ export const placeBet = async (eventId: string, question: string, option: string
     return { success: true };
   } catch (err: any) {
     console.error("Error placing bet:", err);
-    return { error: true, msg: err.message };
+    return { error: true as const, msg: err.message };
   }
 };
 
@@ -121,7 +129,7 @@ export const lockEvent = async (eventId: string) => {
     return { success: true };
   } catch (err: any) {
     console.error("Error locking event:", err);
-    return { error: true, msg: err.message };
+    return { error: true as const, msg: err.message };
   }
 };
 
@@ -153,7 +161,7 @@ export const endEvent = async (eventId: string, winningOptions: Record<string, s
     return { success: true };
   } catch (err: any) {
     console.error("Error ending event:", err);
-    return { error: true, msg: err.message };
+    return { error: true as const, msg: err.message };
   }
 };
 
@@ -168,7 +176,7 @@ export const saveTemplate = async (templateId: string) => {
     return { success: true };
   } catch (err: any) {
     console.error("Error saving template:", err);
-    return { error: true, msg: err.message };
+    return { error: true as const, msg: err.message };
   }
 };
 
@@ -183,7 +191,7 @@ export const postTemplate = async (templateId: string) => {
     return { success: true };
   } catch (err: any) {
     console.error("Error posting template:", err);
-    return { error: true, msg: err.message };
+    return { error: true as const, msg: err.message };
   }
 };
 
@@ -203,6 +211,6 @@ export const deleteEvent = async (eventId: string) => {
     };
   } catch (err: any) {
     console.error("Error deleting event:", err);
-    return { error: true, msg: err.message };
+    return { error: true as const, msg: err.message };
   }
 };

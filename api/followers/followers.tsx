@@ -17,7 +17,7 @@ export const followRequest = async (followed: string) => {
     };
   } catch (err: any) {
     console.error("Error Following:", err);
-    return { error: true, message: err.message };
+    return { error: true as const, message: err.message };
   }
 };
 
@@ -29,10 +29,10 @@ export const unfollowRequest = async (unfollowed: string) => {
       throw new Error(error.message);
     }
 
-    return { error: false };
+    return { error: false as const };
   } catch (err: any) {
     console.error("Error unfollowing:", err);
-    return { error: true, message: err.message };
+    return { error: true as const, message: err.message };
   }
 };
 
@@ -44,10 +44,10 @@ export const acceptFollowRequest = async (requester: string) => {
       throw new Error(error.message);
     }
 
-    return { error: false };
+    return { error: false as const };
   } catch (err: any) {
     console.error("Error accepting:", err);
-    return { error: true, message: err.message };
+    return { error: true as const, message: err.message };
   }
 };
 
@@ -59,9 +59,9 @@ export const rejectFollowRequest = async (requester: string) => {
       throw new Error(error.message);
     }
 
-    return { error: false };
+    return { error: false as const };
   } catch (err: any) {
     console.error("Error accepting:", err);
-    return { error: true, message: err.message };
+    return { error: true as const, message: err.message };
   }
 };

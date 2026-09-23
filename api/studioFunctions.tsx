@@ -1,5 +1,6 @@
 import { supabase } from "@/lib/supabase";
 import { signThumbnails } from "@/utils/image-upload";
+import { TemplatePayload } from "@/types/rpc";
 
 export const fetchTemplate = async (templateId: string) => {
   try {
@@ -9,36 +10,39 @@ export const fetchTemplate = async (templateId: string) => {
       throw new Error(error?.message || "Template not found");
     }
 
+    // jsonb returns arrive as Json; assert the documented shape once, here.
     // The RPC returns a flat object with questions as
     // { title: { question_id, options: [{ option_id, title }] } }, while the
     // studio wants a nested template and a plain title -> option titles map.
+    const template = data as unknown as TemplatePayload;
+
     const questions: Record<string, string[]> = {};
-    for (const [title, question] of Object.entries<any>(data.questions || {})) {
-      questions[title] = (question?.options ?? []).map((o: any) => o.title);
+    for (const [title, question] of Object.entries(template.questions || {})) {
+      questions[title] = (question?.options ?? []).map((o) => o.title);
     }
 
     // event-thumbnail is private, so the stored path needs signing to render.
     let image: string | undefined;
-    if (data.thumbnail_url) {
+    if (template.thumbnail_url) {
       const { data: signed } = await supabase.storage
         .from("event-thumbnail")
-        .createSignedUrl(data.thumbnail_url, 60 * 60);
+        .createSignedUrl(template.thumbnail_url, 60 * 60);
       image = signed?.signedUrl ?? undefined;
     }
 
     return {
       template: {
-        id: data.template_id,
-        title: data.title,
-        description: data.description,
+        id: template.template_id,
+        title: template.title,
+        description: template.description,
         image,
-        creator_id: data.creator_id,
-        is_public: data.is_public,
+        creator_id: template.creator_id,
+        is_public: template.is_public,
       },
       questions,
     };
   } catch (err: any) {
-    return { error: true, msg: err.message };
+    return { error: true as const, msg: err.message };
   }
 };
 
@@ -57,7 +61,7 @@ export const fetchSavedTemplates = async () => {
     // raw storage path, and carries no type of its own.
     return signed.map((t: any) => ({ ...t, thumbnail: t.thumbnail_url, type: "template" }));
   } catch (err: any) {
-    return { error: true, msg: err.message };
+    return { error: true as const, msg: err.message };
   }
 };
 
@@ -71,6 +75,6 @@ export const deleteSavedTemplate = async (templateId: string) => {
 
     return { success: true, message: "Template removed from saved list" };
   } catch (err: any) {
-    return { error: true, msg: err.message };
+    return { error: true as const, msg: err.message };
   }
 };

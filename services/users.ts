@@ -1,6 +1,7 @@
 import { UserProfile, Event, SearchUser } from "../types/interfaces";
 import { supabase } from "@/lib/supabase";
 import { signThumbnails } from "@/utils/image-upload";
+import { CreatedEventRow, ParticipatedEventRow } from "@/types/rpc";
 
 
 export const getUserProfile = async (username: string): Promise<UserProfile | null> => {
@@ -25,7 +26,10 @@ export const getUserProfile = async (username: string): Promise<UserProfile | nu
 // template_title and template_image_url, but Event() reads id/title/
 // thumbnail_url — mapping straight through left every row with id undefined,
 // which routed taps to /event/undefined and gave every card the same React key.
-function profileRowToEvent(row: any, viewerId?: string): Event {
+function profileRowToEvent(
+  row: CreatedEventRow | ParticipatedEventRow,
+  viewerId?: string
+): Event {
   return Event({
     id: row.event_id,
     template_id: row.template_id,
@@ -53,7 +57,7 @@ export const fetchUserCreatedEvents = async (username: string, offset: number = 
     };
 
     const { data: userAuth } = await supabase.auth.getUser();
-    return await signThumbnails<Event>(data.map((e: any) => profileRowToEvent(e, userAuth.user?.id)));
+    return await signThumbnails<Event>(data.map((e) => profileRowToEvent(e, userAuth.user?.id)));
   } catch (err) {
     console.error('Error fetching user created events:', err);
     return []
@@ -67,7 +71,7 @@ export const fetchUserParticipatedEvents = async (username: string, offset: numb
       throw new Error(error.message);
     }
     const { data: userAuth } = await supabase.auth.getUser();
-    return await signThumbnails<Event>(data.map((e: any) => profileRowToEvent(e, userAuth.user?.id)));
+    return await signThumbnails<Event>(data.map((e) => profileRowToEvent(e, userAuth.user?.id)));
   } catch (err) {
     console.error('Error fetching user participated events:', err);
     return [];
@@ -122,10 +126,10 @@ export const changePrivacy = async (isPublic: boolean) => {
       throw new Error(error?.message || "Failed to update privacy");
     }
 
-    return { error: false, public: data[0].public };
+    return { error: false as const, public: data[0].public };
   } catch (err: any) {
     console.error("Error changing privacy:", err);
-    return { error: true, msg: err.message };
+    return { error: true as const, msg: err.message };
   }
 };
 

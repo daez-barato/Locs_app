@@ -10,7 +10,8 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { followRequest } from '@/api/followers/followers';
 import { useAuthContext } from '@/hooks/use-auth-context';
 import { useCoinContext } from '@/hooks/use-coin-context';
-import { Bet, ExpandedEvent } from '@/types/interfaces';
+import { Bet } from '@/types/interfaces';
+import { EventDetails } from '@/types/rpc';
 
 const { width } = Dimensions.get('window');
 
@@ -20,7 +21,7 @@ export default function eventScreen() {
   const [refresh, setRefresh] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const theme = useThemeConfig();
-  const [eventInfo, setEventInfo] = useState<ExpandedEvent | null>(null);
+  const [eventInfo, setEventInfo] = useState<EventDetails | null>(null);
   const [betInfos, setBetInfos] = useState<Record<string, Bet>>({});
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [showLockModal, setShowLockModal] = useState(false);
@@ -50,7 +51,9 @@ export default function eventScreen() {
       try {
         const event = await eventInformation(eventId);
 
-        if (event.error) {
+        // Explicit return type means no implicit optional-prop merging, so
+        // narrow the union with `in` rather than a truthiness check.
+        if ("error" in event) {
           throw new Error(event.msg);
         }
 
@@ -63,7 +66,7 @@ export default function eventScreen() {
 
         const bets = await fetchEventBets(eventId);
 
-        if (bets.error) {
+        if (!Array.isArray(bets)) {
           console.error('Failed to fetch bets:', bets.msg);
           return;
         }
@@ -83,7 +86,7 @@ export default function eventScreen() {
         for (const bet of bets) {
           const question = bet.question;
           const option = bet.option;
-          const amount = parseInt(bet.amount);
+          const amount = bet.amount;
 
           if (bet_infos[question]) {
             bet_infos[question].totalPot += amount;
@@ -93,7 +96,7 @@ export default function eventScreen() {
               bet_infos[question].userBet = {
                 options: {
                   ...bet_infos[question].userBet?.options,
-                  [option]: bet?.payout != null ? parseInt(bet.payout) : amount
+                  [option]: bet?.payout != null ? bet.payout : amount
                 }
               };
             }

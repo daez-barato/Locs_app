@@ -1,8 +1,11 @@
 import { supabase } from "@/lib/supabase";
 import { Event } from "@/types/interfaces";
 import { signThumbnails } from "@/utils/image-upload";
+import { CreatedEventRow, ParticipatedEventRow } from "@/types/rpc";
 
-function toEvent(row: any): Event {
+function toEvent(
+  row: (CreatedEventRow | ParticipatedEventRow) & { viewer_id?: string }
+): Event {
   return Event({
     id: row.event_id,
     template_id: row.template_id,
@@ -49,8 +52,8 @@ export const fetchUserLiveEvents = async () => {
 
     return await signThumbnails<Event>(
       (data ?? [])
-        .filter((row: any) => !row.decided)
-        .map((row: any) => toEvent({ ...row, viewer_id: viewerId }))
+        .filter((row) => !row.decided)
+        .map((row) => toEvent({ ...row, viewer_id: viewerId }))
     );
   } catch (error: any) {
     // Returning [] made a failed request look like "you have no events".
@@ -77,8 +80,8 @@ export const fetchUserLiveBets = async () => {
 
     return await signThumbnails<Event>(
       (data ?? [])
-        .filter((row: any) => !row.decided)
-        .map((row: any) => toEvent({ ...row, viewer_id: viewerId }))
+        .filter((row) => !row.decided)
+        .map((row) => toEvent({ ...row, viewer_id: viewerId }))
     );
   } catch (error: any) {
     console.error("Error fetching live bets:", error.message);
