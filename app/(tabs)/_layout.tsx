@@ -1,11 +1,11 @@
 import { Tabs, useRouter} from "expo-router";
 
 import FontAwesome from "@expo/vector-icons/FontAwesome";
+import { DefaultTheme } from "@react-navigation/native";
 import { Theme, useThemeConfig } from "@/components/ui/use-theme-config";
 import { useThemedStyles } from "@/hooks/use-themed-styles";
 import { StyleSheet, TouchableOpacity } from "react-native";
 import { useAuthContext } from "@/hooks/use-auth-context";
-
 
 export default function TabLayout(){
     const theme = useThemeConfig();
@@ -14,117 +14,78 @@ export default function TabLayout(){
     const { user } = useAuthContext();
 
     if (!user) {
-        
-        return null; // or a loading indicator, or redirect to login
+        return null;
     }
 
     return (
         <>
             <TouchableOpacity style= {styles.studioButton}
                 onPress={() => {router.push('/studio/create')}}
+                accessibilityRole="button"
+                accessibilityLabel="Create an event"
             >
                 <FontAwesome style= {styles.studioPlus}
                     name= "plus"
                     size={27}
                 />
             </TouchableOpacity>
-            <Tabs>
-                <Tabs.Screen 
-                    name= "index" 
-                    options = {{
-                        title: "home",
-                        tabBarIcon: ({ focused }: { focused: boolean }) => (
-                            <FontAwesome 
-                                size={28} 
-                                name="home" 
-                                color={focused? theme.primary : theme.text} 
-                            />
+            {/* Options every tab shares. The label is the screen's title,
+                tinted by the navigator. labelStyle keeps what the old per-tab
+                labels rendered: 12pt in the platform's regular system font
+                (they were FontAwesome text nodes, whose font has no letters,
+                so the text fell back to the system font at the icon's default
+                size). */}
+            <Tabs
+                screenOptions={{
+                    headerShown: false,
+                    tabBarStyle: styles.tabBar,
+                    tabBarActiveTintColor: theme.primary,
+                    tabBarInactiveTintColor: theme.text,
+                    tabBarLabelStyle: styles.tabBarLabel,
+                }}
+            >
+                <Tabs.Screen
+                    name="index"
+                    options={{
+                        title: "Home",
+                        tabBarIcon: ({ color }) => (
+                            <FontAwesome size={28} name="home" color={color} />
                         ),
-                        tabBarStyle: { backgroundColor: theme.background },
-                        tabBarLabel: ({ focused }: {focused: boolean}) => (
-                            <FontAwesome style={{ color: focused ? theme.primary : theme.text }}>
-                                Home
-                            </FontAwesome>
-                        ),
-                        headerShown: false,
-                    }}
-                />
-                <Tabs.Screen 
-                    name= "explore"
-                    options = {{
-                        title: "Explore",
-                        tabBarIcon: ({ focused }: { focused: boolean }) => (
-                            <FontAwesome 
-                                size={28} 
-                                name="search" 
-                                color={focused? theme.primary : theme.text} 
-                            />
-                        ),
-                        tabBarStyle: { backgroundColor: theme.background },
-                        tabBarLabel: ({ focused }: {focused: boolean}) => (
-                            <FontAwesome style={{ color: focused ? theme.primary : theme.text }}>
-                                Explore
-                            </FontAwesome>
-                        ),
-                        headerShown: false,
-                    }}
-                />
-                <Tabs.Screen 
-                    name= "parleys" 
-                    options = {{
-                        title: "parleys",
-                        tabBarIcon: ({ focused }: { focused: boolean }) => (
-                            <FontAwesome 
-                                size={28} 
-                                name="list" 
-                                color={focused? theme.primary : theme.text} 
-                            />
-                        ),
-                        tabBarStyle: { backgroundColor: theme.background },
-                        tabBarLabel: ({ focused }: {focused: boolean}) => (
-                            <FontAwesome style={{ color: focused ? theme.primary : theme.text }}>
-                                Parleys
-                            </FontAwesome>
-                        ),
-                        headerShown: false,
                     }}
                 />
                 <Tabs.Screen
-                    name= "shop"
-                    options = {{
+                    name="explore"
+                    options={{
+                        title: "Explore",
+                        tabBarIcon: ({ color }) => (
+                            <FontAwesome size={28} name="search" color={color} />
+                        ),
+                    }}
+                />
+                <Tabs.Screen
+                    name="parleys"
+                    options={{
+                        title: "Parleys",
+                        tabBarIcon: ({ color }) => (
+                            <FontAwesome size={28} name="list" color={color} />
+                        ),
+                    }}
+                />
+                <Tabs.Screen
+                    name="shop"
+                    options={{
                         title: "Shop",
-                        tabBarIcon: ({ focused }: { focused: boolean }) => (
-                            <FontAwesome
-                                size={28}
-                                name="shopping-bag"
-                                color={focused? theme.primary : theme.text}
-                            />
+                        tabBarIcon: ({ color }) => (
+                            <FontAwesome size={28} name="shopping-bag" color={color} />
                         ),
-                        tabBarStyle: { backgroundColor: theme.background },
-                        tabBarLabel: ({ focused }: {focused: boolean}) => (
-                            <FontAwesome style={{ color: focused ? theme.primary : theme.text }}>
-                                Shop
-                            </FontAwesome>
-                        ),
-                        headerShown: false,
                     }}
                 />
                 <Tabs.Screen
                     name="user/[username]"
-                    options = {{
-                        title:"Profile",
-                        tabBarIcon: ({ focused }: {focused: boolean}) => (
-                            <FontAwesome 
-                                size={28} 
-                                name="user" 
-                                color={focused? theme.primary : theme.text} 
-                            />
-                        ),
-                        tabBarStyle: { backgroundColor: theme.background },
-                        tabBarLabel: ({ focused }: {focused: boolean}) => (
-                            <FontAwesome style={{ color: focused ? theme.primary : theme.text }}>
-                                Profile
-                            </FontAwesome>
+                    options={{
+                        title: "Profile",
+                        tabBarIcon: ({ color }) => (
+                            <FontAwesome size={28} name="user" color={color} />
                         ),
                         href: {
                             pathname: '/user/[username]',
@@ -132,17 +93,21 @@ export default function TabLayout(){
                                 username: user.username,
                             }
                         },
-                        
-                        headerShown: false,
                     }}
                 />
-
             </Tabs>
         </>
     )
 };
 
 const createStyles = (theme: Theme) => StyleSheet.create({
+    tabBar: {
+        backgroundColor: theme.background,
+    },
+    tabBarLabel: {
+        ...DefaultTheme.fonts.regular,
+        fontSize: 12,
+    },
     studioButton: {
         zIndex: 1,
         position: "absolute",
