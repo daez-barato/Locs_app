@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { Image, ImageProps } from "react-native";
+import { Image, ImageProps } from "expo-image";
 
 const PLACEHOLDER = require("@/assets/images/placeholder-user-image.png");
 

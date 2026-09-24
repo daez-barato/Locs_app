@@ -1,5 +1,6 @@
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context"
-import { Modal, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View, Platform, Image, Pressable, FlatList, Alert } from "react-native"
+import { Modal, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View, Platform, Pressable, FlatList, Alert } from "react-native"
+import { Image } from "expo-image"
 
 import { useThemeConfig, Theme } from "@/components/ui/use-theme-config"
 import { useThemedStyles } from "@/hooks/use-themed-styles";
@@ -326,7 +327,7 @@ export default function Studio(){
                     style={styles.overlayConfirmButton}
                     onPress={handleInputConfirm}
                   >
-                    <FontAwesome name="check" size={16} color={theme.onAccent} />
+                    <FontAwesome name="check" size={16} color={theme.onPrimary} />
                     <Text style={styles.overlayConfirmButtonText}>Confirm</Text>
                   </TouchableOpacity>
                 </View>
@@ -349,22 +350,25 @@ export default function Studio(){
               />
             </TouchableOpacity>
 
-            <TouchableOpacity 
-              style={styles.nextButton}
-              onPress={handleNextPress}
-              accessibilityRole="button"
-            >
-              <Text style={styles.nextButtonText}>Next</Text>
-            </TouchableOpacity>
+            {/* Saved templates sits in the header row; it used to float at a
+                fixed offset that landed on top of Next and the image. */}
+            <View style={styles.headerActions}>
+              <TouchableOpacity style={styles.savedTemplates}
+                onPress= {() => {setSavedTemplatesModal(true)}}
+                accessibilityRole="button"
+                accessibilityLabel="Saved templates"
+              >
+                <FontAwesome name= "bookmark" size={20} style={styles.savedTemplatesIcon}/>
+              </TouchableOpacity>
+              <TouchableOpacity 
+                style={styles.nextButton}
+                onPress={handleNextPress}
+                accessibilityRole="button"
+              >
+                <Text style={styles.nextButtonText}>Next</Text>
+              </TouchableOpacity>
+            </View>
           </View>
-          {/*Extra buttons */}
-          <TouchableOpacity style={styles.savedTemplates}
-            onPress= {() => {setSavedTemplatesModal(true)}}
-            accessibilityRole="button"
-            accessibilityLabel="Saved templates"
-          >
-            <FontAwesome name= "bookmark" size={30} style={styles.savedTemplatesIcon}/>
-          </TouchableOpacity>
           {isTemplate && <FontAwesome
             name={studio && bookmarks[studio] ? "bookmark" : "bookmark-o"}
             size= {40}
@@ -413,10 +417,14 @@ export default function Studio(){
                     <Image 
                       source={{uri: image}}
                       style={styles.imagePreview}
-                      resizeMode="cover"
+                      contentFit="cover"
                     />
                   ) : (
-                    <FontAwesome name="camera" size={40} color={theme.background} />
+                    // Was drawn in the background colour, barely visible on the card.
+                    <View style={styles.imagePrompt}>
+                      <FontAwesome name="camera" size={36} color={theme.cardTextMuted} />
+                      {!isTemplate && <Text style={styles.imagePromptText}>Add a cover photo</Text>}
+                    </View>
                   )}
                 </TouchableOpacity>
           
@@ -509,7 +517,7 @@ export default function Studio(){
                                 accessibilityRole="button"
                                 accessibilityLabel={`Delete question: ${item}`}
                               >
-                                <FontAwesome name="trash" size={14} color={theme.destructive} />
+                                <FontAwesome name="trash" size={14} color={theme.destructiveLabel} />
                               </TouchableOpacity>)}
                             </TouchableOpacity>
                           ) : (
@@ -866,7 +874,7 @@ export default function Studio(){
                   style={styles.imageMenuOption} 
                   onPress={removeImage}
                 >
-                  <FontAwesome name="trash" size={20} color={theme.destructive} />
+                  <FontAwesome name="trash" size={20} color={theme.destructiveLabel} />
                   <Text style={[styles.imageMenuText, styles.imageMenuTextDestructive]}>Remove Image</Text>
                 </TouchableOpacity>
               )}
@@ -906,11 +914,7 @@ const createStyles = (theme: Theme) => StyleSheet.create({
     borderRadius: 20,
     width: '90%',
     maxWidth: 400,
-    shadowColor: theme.shadow,
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.3,
-    shadowRadius: 12,
-    elevation: 10,
+    boxShadow: "0 8px 24px rgba(0, 0, 0, 0.3)",
   },
   overlayTitle: {
     fontSize: 20,
@@ -965,7 +969,7 @@ const createStyles = (theme: Theme) => StyleSheet.create({
     gap: 8,
   },
   overlayConfirmButtonText: {
-    color: theme.onAccent,
+    color: theme.onPrimary,
     fontWeight: '600',
     fontSize: 16,
     fontFamily: "Roboto",
@@ -985,27 +989,19 @@ const createStyles = (theme: Theme) => StyleSheet.create({
     height: 50,
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: theme.shadow,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    boxShadow: "0 2px 8px rgba(0, 0, 0, 0.1)",
   },
   nextButton: {
     backgroundColor: theme.primary,
     borderRadius: 20,
     paddingHorizontal: 20,
     paddingVertical: 10,
-    shadowColor: theme.shadow,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    boxShadow: "0 2px 8px rgba(0, 0, 0, 0.1)",
   },
   nextButtonText: {
     fontFamily: "Roboto",
-    fontWeight: "bold",
-    color: theme.onAccent,
+    fontWeight: "700",
+    color: theme.onPrimary,
     fontSize: 16,
   },
   keyboardContainer: {
@@ -1027,11 +1023,7 @@ const createStyles = (theme: Theme) => StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 25,
-    shadowColor: theme.shadow,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 6,
-    elevation: 4,
+    boxShadow: "0 4px 12px rgba(0, 0, 0, 0.1)",
     overflow: 'hidden', // Ensures image fits within rounded container
   },
   imagePreview: {
@@ -1046,11 +1038,7 @@ const createStyles = (theme: Theme) => StyleSheet.create({
     paddingHorizontal: 15,
     marginBottom: 15,
     justifyContent: 'center',
-    shadowColor: theme.shadow,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    boxShadow: "0 2px 8px rgba(0, 0, 0, 0.1)",
   },
   titleText: {
     fontSize: 18,
@@ -1065,11 +1053,7 @@ const createStyles = (theme: Theme) => StyleSheet.create({
     backgroundColor: theme.button_darker_primary,
     paddingHorizontal: 15,
     paddingTop: 15,
-    shadowColor: theme.shadow,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    boxShadow: "0 2px 8px rgba(0, 0, 0, 0.1)",
   },
   descriptionText: {
     fontFamily: "Roboto",
@@ -1097,11 +1081,7 @@ const createStyles = (theme: Theme) => StyleSheet.create({
     borderRadius: 12,
     padding: 15,
     marginBottom: 10,
-    shadowColor: theme.shadow,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    boxShadow: "0 2px 8px rgba(0, 0, 0, 0.1)",
   },
   questionButtonContent: {
     flexDirection: 'row',
@@ -1111,7 +1091,7 @@ const createStyles = (theme: Theme) => StyleSheet.create({
   questionButtonText: {
     fontFamily: "Roboto",
     fontWeight: "600",
-    color: theme.background,
+    color: theme.onPrimary,
     fontSize: 16,
     flex: 1,
     marginRight: 10,
@@ -1121,11 +1101,7 @@ const createStyles = (theme: Theme) => StyleSheet.create({
     borderRadius: 12,
     marginBottom: 20,
     maxHeight: 200,
-    shadowColor: theme.shadow,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    boxShadow: "0 2px 8px rgba(0, 0, 0, 0.1)",
   },
   questionScrollView: {
     maxHeight: 200,
@@ -1171,11 +1147,7 @@ const createStyles = (theme: Theme) => StyleSheet.create({
     borderRadius: 12,
     backgroundColor: theme.background,
     padding: 10,
-    shadowColor: theme.shadow,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    boxShadow: "0 2px 8px rgba(0, 0, 0, 0.1)",
   },
   optionsList: {
     paddingVertical: 10,
@@ -1188,11 +1160,7 @@ const createStyles = (theme: Theme) => StyleSheet.create({
     marginRight: 15,
     padding: 15,
     justifyContent: 'space-between',
-    shadowColor: theme.shadow,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    boxShadow: "0 2px 8px rgba(0, 0, 0, 0.1)",
   },
   optionText: {
     color: theme.cardText,
@@ -1254,11 +1222,7 @@ const createStyles = (theme: Theme) => StyleSheet.create({
     borderRadius: 15,
     width: '85%',
     maxWidth: 400,
-    shadowColor: theme.shadow,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 8,
-    elevation: 5,
+    boxShadow: "0 4px 16px rgba(0, 0, 0, 0.2)",
   },
   modalTitle: {
     fontSize: 20,
@@ -1306,26 +1270,35 @@ const createStyles = (theme: Theme) => StyleSheet.create({
     alignItems: 'center',
   },
   addButtonText: {
-    color: theme.onAccent,
+    color: theme.onPrimary,
     fontWeight: '600',
     fontSize: 16,
     fontFamily: "Roboto",
   },
+  imagePrompt: {
+    alignItems: 'center',
+    gap: 8,
+  },
+  imagePromptText: {
+    color: theme.cardTextMuted,
+    fontSize: 15,
+    fontWeight: '600',
+  },
+  headerActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
   savedTemplates: {
-    position: "absolute",
-    right: 30,
-    top: 100,
     backgroundColor: theme.primary,
-    borderRadius: 360,
-    width: 50,
-    height: 50,
-    alignContent: "center",
+    borderRadius: 22,
+    width: 44,
+    height: 44,
     alignItems: "center",
     justifyContent: "center",
-    zIndex: 2,
   },
   savedTemplatesIcon: {
-    color: theme.cardText,
+    color: theme.onPrimary,
   },
   templatesModalContainer: {
     backgroundColor: theme.background,
@@ -1334,11 +1307,7 @@ const createStyles = (theme: Theme) => StyleSheet.create({
     width: '95%',
     maxWidth: 400,
     height: '70%',
-    shadowColor: theme.shadow,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 8,
-    elevation: 5,
+    boxShadow: "0 4px 16px rgba(0, 0, 0, 0.2)",
   },
   templatesList: {
     height: '75%',
@@ -1384,14 +1353,11 @@ const createStyles = (theme: Theme) => StyleSheet.create({
     alignSelf: "center",
     alignItems: "center",
     justifyContent: "center",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 8,
-    elevation: 5,
+    boxShadow: "0 4px 16px rgba(0, 0, 0, 0.2)",
   },
   cleanButtonText: {
-    color: theme.cardText,
-    fontWeight: "bold",
+    color: theme.onPrimary,
+    fontWeight: "700",
   },
   cancelTemplateButton: {
     backgroundColor: theme.destructive,
@@ -1402,14 +1368,11 @@ const createStyles = (theme: Theme) => StyleSheet.create({
     alignSelf: "center",
     alignItems: "center",
     justifyContent: "center",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 8,
-    elevation: 5,
+    boxShadow: "0 4px 16px rgba(0, 0, 0, 0.2)",
   },
   cancelTemplateButtonText: {
     color: theme.destructiveText,
-    fontWeight: "bold",
+    fontWeight: "700",
   },
   saveTemplateIcon: {
     position: "absolute",
@@ -1431,11 +1394,7 @@ const createStyles = (theme: Theme) => StyleSheet.create({
     position: "absolute",
     bottom: 0,
     width: "100%",
-    shadowColor: theme.shadow,
-    shadowOffset: { width: 0, height: -4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 8,
+    boxShadow: "0 -4px 16px rgba(0, 0, 0, 0.1)",
   },
   imageMenuOption: {
     flexDirection: 'row',
@@ -1452,7 +1411,7 @@ const createStyles = (theme: Theme) => StyleSheet.create({
     marginLeft: 15,
   },
   imageMenuTextDestructive: {
-    color: theme.destructive,
+    color: theme.destructiveLabel,
   },
   imageMenuCancel: {
     borderBottomWidth: 0,

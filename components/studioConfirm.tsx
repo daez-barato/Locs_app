@@ -1,13 +1,14 @@
 import { postEvent } from "@/services/events";
 import { Theme, useThemeConfig } from "@/components/ui/use-theme-config";
+import { withAlpha } from "@/theme";
 import { useThemedStyles } from "@/hooks/use-themed-styles";
 import FontAwesome from "@expo/vector-icons/FontAwesome";
 import { useRouter } from "expo-router";
 import { useState } from "react";
-import { Modal, StyleSheet, Text, TouchableOpacity, View, ScrollView, Dimensions, Image, Alert } from "react-native";
+import { Modal, StyleSheet, Text, TouchableOpacity, View, ScrollView, Alert } from "react-native";
+import { Image } from "expo-image";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-const { height: screenHeight } = Dimensions.get('window');
 
 type Props = {
   optionsDict: { [key: string]: string[] };
@@ -186,7 +187,7 @@ export default function StudioConfirm({optionsDict, visible, setVisible, title, 
                         <Image 
                             source={{uri: image}}
                             style={styles.imagePreview}
-                            resizeMode="cover"
+                            contentFit="cover"
                         />
                     ) : (
                         <View style={styles.placeholderImage}>
@@ -299,7 +300,7 @@ export default function StudioConfirm({optionsDict, visible, setVisible, title, 
                         <Text style={styles.postButtonText}>Creating Event...</Text>
                     ) : (
                         <>
-                            <FontAwesome name="rocket" size={20} color={theme.onAccent} />
+                            <FontAwesome name="rocket" size={20} color={theme.onPrimary} />
                             <Text style={styles.postButtonText}>Create Event</Text>
                         </>
                     )}
@@ -337,7 +338,7 @@ export default function StudioConfirm({optionsDict, visible, setVisible, title, 
                                 style={[styles.timerButton, styles.timerConfirmButton]}
                                 onPress={handleTimerConfirm}
                             >
-                                <Text style={styles.timerButtonText}>Confirm</Text>
+                                <Text style={[styles.timerButtonText, styles.timerConfirmText]}>Confirm</Text>
                             </TouchableOpacity>
                         </View>
                     </View>
@@ -372,7 +373,7 @@ const createStyles = (theme: Theme) => StyleSheet.create({
   },
   headerTitle: {
     fontSize: 18,
-    fontWeight: 'bold',
+    fontWeight: '700',
     color: theme.primary,
     fontFamily: "Roboto",
   },
@@ -391,11 +392,7 @@ const createStyles = (theme: Theme) => StyleSheet.create({
     borderRadius: 15,
     backgroundColor: theme.button_darker_primary,
     overflow: 'hidden',
-    shadowColor: theme.shadow,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 5,
+    boxShadow: "0 4px 16px rgba(0, 0, 0, 0.1)",
   },
   imagePreview: {
     width: '100%',
@@ -417,15 +414,11 @@ const createStyles = (theme: Theme) => StyleSheet.create({
     marginTop: 0,
     borderRadius: 20,
     padding: 25,
-    shadowColor: theme.shadow,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 5,
+    boxShadow: "0 4px 16px rgba(0, 0, 0, 0.1)",
   },
   title: {
     fontSize: 28,
-    fontWeight: 'bold',
+    fontWeight: '700',
     color: theme.cardText,
     fontFamily: "Roboto",
     marginBottom: 10,
@@ -462,7 +455,7 @@ const createStyles = (theme: Theme) => StyleSheet.create({
   },
   sectionTitle: {
     fontSize: 18,
-    fontWeight: 'bold',
+    fontWeight: '700',
     color: theme.cardText,
     fontFamily: "Roboto",
     marginBottom: 15,
@@ -505,7 +498,8 @@ const createStyles = (theme: Theme) => StyleSheet.create({
     marginRight: 4,
   },
   settingButtonTextActive: {
-    fontWeight: 'bold',
+    fontWeight: '700',
+    color: theme.onPrimary,
   },
   quickTimeContainer: {
     marginTop: 10,
@@ -540,8 +534,8 @@ const createStyles = (theme: Theme) => StyleSheet.create({
     fontWeight: '500',
   },
   quickTimeButtonTextActive: {
-    color: theme.onAccent,
-    fontWeight: 'bold',
+    color: theme.onPrimary,
+    fontWeight: '700',
   },
   // In normal flow below the ScrollView rather than absolutely positioned: an
   // absolute child ignores its parent's padding, so the SafeAreaView's bottom
@@ -563,19 +557,15 @@ const createStyles = (theme: Theme) => StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
-    shadowColor: theme.shadow,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 8,
-    elevation: 5,
+    boxShadow: "0 4px 16px rgba(0, 0, 0, 0.2)",
   },
   postButtonDisabled: {
     backgroundColor: theme.disabledFill,
   },
   postButtonText: {
-    color: theme.onAccent,
+    color: theme.onPrimary,
     fontSize: 18,
-    fontWeight: 'bold',
+    fontWeight: '700',
     fontFamily: "Roboto",
   },
   // Timer Modal Styles
@@ -590,16 +580,13 @@ const createStyles = (theme: Theme) => StyleSheet.create({
     borderRadius: 20,
     padding: 25,
     width: '90%',
-    maxHeight: screenHeight * 0.7,
-    shadowColor: theme.shadow,
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.3,
-    shadowRadius: 12,
-    elevation: 10,
+    // Of the full-screen overlay, so it follows the current window size.
+    maxHeight: '70%',
+    boxShadow: "0 8px 24px rgba(0, 0, 0, 0.3)",
   },
   timerTitle: {
     fontSize: 22,
-    fontWeight: 'bold',
+    fontWeight: '700',
     color: theme.cardText,
     textAlign: 'center',
     marginBottom: 25,
@@ -622,7 +609,7 @@ const createStyles = (theme: Theme) => StyleSheet.create({
   },
   scrollPickerLabel: {
     fontSize: 16,
-    fontWeight: 'bold',
+    fontWeight: '700',
     color: theme.cardText,
     marginBottom: 15,
     fontFamily: "Roboto",
@@ -646,11 +633,7 @@ const createStyles = (theme: Theme) => StyleSheet.create({
   },
   scrollPickerItemSelected: {
     backgroundColor: theme.primary,
-    shadowColor: theme.primary,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
-    elevation: 3,
+    boxShadow: `0 2px 8px ${withAlpha(theme.primary, 0.3)}`,
   },
   scrollPickerItemText: {
     fontSize: 18,
@@ -659,8 +642,8 @@ const createStyles = (theme: Theme) => StyleSheet.create({
     fontWeight: '500',
   },
   scrollPickerItemTextSelected: {
-    color: theme.onAccent,
-    fontWeight: 'bold',
+    color: theme.onPrimary,
+    fontWeight: '700',
     fontSize: 20,
   },
   timerButtonContainer: {
@@ -673,11 +656,7 @@ const createStyles = (theme: Theme) => StyleSheet.create({
     borderRadius: 15,
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: theme.shadow,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
-    elevation: 3,
+    boxShadow: "0 2px 8px rgba(0, 0, 0, 0.2)",
   },
   timerCancelButton: {
     backgroundColor: theme.neutralFill,
@@ -685,9 +664,12 @@ const createStyles = (theme: Theme) => StyleSheet.create({
   timerConfirmButton: {
     backgroundColor: theme.primary,
   },
+  timerConfirmText: {
+    color: theme.onPrimary,
+  },
   timerButtonText: {
     fontSize: 16,
-    fontWeight: 'bold',
+    fontWeight: '700',
     color: theme.onAccent,
     fontFamily: "Roboto",
   },

@@ -1,15 +1,14 @@
-import { DefaultTheme, Tabs, useRouter } from "expo-router";
+import { DefaultTheme, Tabs } from "expo-router";
 
 import FontAwesome from "@expo/vector-icons/FontAwesome";
 import { Theme, useThemeConfig } from "@/components/ui/use-theme-config";
 import { useThemedStyles } from "@/hooks/use-themed-styles";
-import { StyleSheet, TouchableOpacity } from "react-native";
+import { StyleSheet } from "react-native";
 import { useAuthContext } from "@/hooks/use-auth-context";
 
 export default function TabLayout(){
     const theme = useThemeConfig();
     const styles = useThemedStyles(createStyles);
-    const router = useRouter();
     const { user } = useAuthContext();
 
     if (!user) {
@@ -18,16 +17,6 @@ export default function TabLayout(){
 
     return (
         <>
-            <TouchableOpacity style= {styles.studioButton}
-                onPress={() => {router.push('/studio/create')}}
-                accessibilityRole="button"
-                accessibilityLabel="Create an event"
-            >
-                <FontAwesome style= {styles.studioPlus}
-                    name= "plus"
-                    size={27}
-                />
-            </TouchableOpacity>
             {/* Options every tab shares. The label is the screen's title,
                 tinted by the navigator. labelStyle keeps what the old per-tab
                 labels rendered: 12pt in the platform's regular system font
@@ -39,7 +28,9 @@ export default function TabLayout(){
                     headerShown: false,
                     tabBarStyle: styles.tabBar,
                     tabBarActiveTintColor: theme.primary,
-                    tabBarInactiveTintColor: theme.text,
+                    // Was theme.text, the same teal as the active tint, so the bar
+                    // gave no sign of which tab was selected.
+                    tabBarInactiveTintColor: theme.muted,
                     tabBarLabelStyle: styles.tabBarLabel,
                 }}
             >
@@ -107,21 +98,4 @@ const createStyles = (theme: Theme) => StyleSheet.create({
         ...DefaultTheme.fonts.regular,
         fontSize: 12,
     },
-    studioButton: {
-        zIndex: 1,
-        position: "absolute",
-        padding: 10,
-        width: 50,
-        height: 50,
-        borderRadius: 360,
-        backgroundColor: theme.darker_primary,
-        bottom: 150,
-        right: 40,
-        alignItems: "center",
-        alignContent: "center",
-        justifyContent: "center"
-    },
-    studioPlus: {
-        color: theme.buttonText
-    }
 })

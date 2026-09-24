@@ -28,8 +28,10 @@ export interface Theme {
   warning: string;
   warningSurface: string;
   warningText: string;
-  /** legible on primary/destructive/success fills */
+  /** legible on destructive/success fills */
   onAccent: string;
+  /** legible on `primary` (teal) fills, where white measured 2:1 */
+  onPrimary: string;
   /** shadows and scrims */
   shadow: string;
   overlay: string;
@@ -50,6 +52,7 @@ export interface Theme {
   /** background of a card the user has a stake in */
   successSurface: string;
   successTint: string;
+  successLabel: string;
   /** destructive copy drawn straight on `background`, where `destructive` is too dark */
   destructiveLabel: string;
   /** event lifecycle: the Lock action / LOCKED badge, the End action / ENDED badge */

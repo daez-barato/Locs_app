@@ -8,9 +8,9 @@ import {
     Text, 
     View, 
     StyleSheet, 
-    TouchableOpacity, 
-    Image
+    TouchableOpacity
 } from "react-native";
+import { Image } from "expo-image";
 
 export default function EventCard({event}: {event: Event}) {
     const theme = useThemeConfig();
@@ -21,6 +21,10 @@ export default function EventCard({event}: {event: Event}) {
         if (decided) return theme.destructive;
         return locked ? theme.secondary : theme.primary;
     };
+
+    // Open is drawn on teal, which needs dark text; the other two are dark fills.
+    const getStatusTextColor = (locked: boolean, decided: boolean) =>
+        !locked && !decided ? theme.onPrimary : theme.onAccent;
 
     const getStatusText = (locked: boolean, decided: boolean) => {
         if (decided) return 'Decided';
@@ -47,18 +51,26 @@ export default function EventCard({event}: {event: Event}) {
                 activeOpacity={0.8}
                 accessibilityRole="button"
             >
-                <Image 
-                    source={{ uri: event.thumbnail_url }} 
-                    style={styles.eventImage}
-                    resizeMode="cover"
-                />
+                {/* Thumbnails are optional; without one the card showed an
+                    empty box. */}
+                {event.thumbnail_url ? (
+                    <Image 
+                        source={{ uri: event.thumbnail_url }} 
+                        style={styles.eventImage}
+                        contentFit="cover"
+                    />
+                ) : (
+                    <View style={[styles.eventImage, styles.eventImagePlaceholder]}>
+                        <FontAwesome name="ticket" size={28} color={theme.cardTextFaint} />
+                    </View>
+                )}
                 <View style={styles.eventContent}>
                     <View style={styles.eventHeader}>
                         <Text style={styles.eventTitle} numberOfLines={2}>
                             {event.title}
                         </Text>
                         <View style={[styles.statusBadge, { backgroundColor: getStatusColor(event.locked, event.decided) }]}>
-                            <Text style={styles.statusText}>
+                            <Text style={[styles.statusText, { color: getStatusTextColor(event.locked, event.decided) }]}>
                                 {getStatusText(event.locked, event.decided)}
                             </Text>
                         </View>
@@ -72,7 +84,7 @@ export default function EventCard({event}: {event: Event}) {
                         <View style={styles.metaItem}>
                             <FontAwesome name="users" size={14} color={theme.primary} />
                             <Text style={styles.metaText}>
-                                {event.participants_count} participants
+                                {event.participants_count} {event.participants_count === 1 ? "participant" : "participants"}
                             </Text>
                         </View>
                         
@@ -89,7 +101,7 @@ export default function EventCard({event}: {event: Event}) {
                     {event.is_creator && (
                         <View style={styles.eventFooter}>
                             <View style={styles.creatorBadge}>
-                                <FontAwesome name="user" size={16} color={theme.buttonText} />
+                                <FontAwesome name="user" size={16} color={theme.onPrimary} />
                                 <Text style={styles.creatorText}>Creator</Text>
                             </View>
                         </View>
@@ -106,11 +118,7 @@ const createStyles = (theme: Theme) => StyleSheet.create({
         marginHorizontal: 20,
         marginVertical: 6,
         borderRadius: 16,
-        shadowColor: theme.shadow,
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 6,
-        elevation: 3,
+        boxShadow: "0 2px 6px rgba(0, 0, 0, 0.1)",
         overflow: 'hidden',
         borderWidth: 1,
         borderColor: theme.cardOutline,
@@ -125,6 +133,10 @@ const createStyles = (theme: Theme) => StyleSheet.create({
         borderRadius: 12,
         marginRight: 16,
         backgroundColor: theme.cardBorder,
+    },
+    eventImagePlaceholder: {
+        alignItems: 'center',
+        justifyContent: 'center',
     },
     eventContent: {
         flex: 1,
@@ -149,9 +161,8 @@ const createStyles = (theme: Theme) => StyleSheet.create({
         borderRadius: 12,
     },
     statusText: {
-        fontSize: 10,
-        fontWeight: '600',
-        color: theme.onAccent,
+        fontSize: 11,
+        fontWeight: '700',
     },
     eventDescription: {
         fontSize: 13,
@@ -171,6 +182,7 @@ const createStyles = (theme: Theme) => StyleSheet.create({
     },
     metaText: {
         fontSize: 12,
+        fontVariant: ['tabular-nums'],
         color: theme.cardText,
         opacity: 0.8,
     },
@@ -191,7 +203,7 @@ const createStyles = (theme: Theme) => StyleSheet.create({
     },
     creatorText: {
         fontSize: 12,
-        color: theme.buttonText,
+        color: theme.onPrimary,
         fontWeight: '600',
     },
 });

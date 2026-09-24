@@ -193,7 +193,7 @@ export default function Shop() {
   const renderItem = ({ item }: { item: ShopItem }) => (
     <View style={[styles.card, item.equipped && styles.cardEquipped]}>
       <View style={styles.imageWrapper}>
-        <AvatarImage uri={item.imageUrl} style={styles.image} resizeMode="cover" />
+        <AvatarImage uri={item.imageUrl} style={styles.image} contentFit="cover" />
         {item.equipped && (
           <View style={styles.badge}>
             <Text style={styles.badgeText}>Equipped</Text>
@@ -307,6 +307,7 @@ const createStyles = (theme: Theme) =>
       borderColor: theme.cardBorder,
     },
     balanceText: {
+      fontVariant: ['tabular-nums'],
       color: theme.cardText,
       fontSize: 16,
       fontWeight: "700",
@@ -355,7 +356,7 @@ const createStyles = (theme: Theme) =>
     },
     badgeText: {
       color: theme.onAccent,
-      fontSize: 10,
+      fontSize: 11,
       fontWeight: "700",
       textTransform: "uppercase",
     },
@@ -365,6 +366,7 @@ const createStyles = (theme: Theme) =>
       fontWeight: "700",
     },
     price: {
+      fontVariant: ['tabular-nums'],
       color: theme.muted,
       fontSize: 13,
       marginTop: 2,

@@ -1,6 +1,8 @@
-import { ActivityIndicator, Text, StyleSheet, View, ScrollView, TouchableOpacity, Dimensions, TextInput, RefreshControl, Modal, Alert, Share, Image } from 'react-native';
+import { ActivityIndicator, Text, StyleSheet, View, ScrollView, TouchableOpacity, useWindowDimensions, TextInput, RefreshControl, Modal, Alert, Share } from 'react-native';
+import { Image } from 'expo-image';
 import { useLocalSearchParams, router} from 'expo-router';
 import { Theme, useThemeConfig } from '@/components/ui/use-theme-config';
+import { withAlpha } from "@/theme";
 import { useThemedStyles } from '@/hooks/use-themed-styles';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useEffect, useState } from 'react';
@@ -14,13 +16,15 @@ import { useCoinContext } from '@/hooks/use-coin-context';
 import { Bet } from '@/types/interfaces';
 import { EventDetails } from '@/types/rpc';
 
-const { width } = Dimensions.get('window');
 
 export default function eventScreen() {
   const { eventId } = useLocalSearchParams() as { eventId: string };
   const coins = useCoinContext().coins;
   const [refreshing, setRefreshing] = useState(false);
   const theme = useThemeConfig();
+  // Read per render so cards resize on rotation and iPad split view; the old
+  // module-level Dimensions.get froze the launch-time width.
+  const { width: windowWidth } = useWindowDimensions();
   const styles = useThemedStyles(createStyles);
   const [eventInfo, setEventInfo] = useState<EventDetails | null>(null);
   const [betInfos, setBetInfos] = useState<Record<string, Bet>>({});
@@ -38,6 +42,8 @@ export default function eventScreen() {
   const url = Linking.createURL(`event/${eventId}`);
 
   const isEventCreator = eventInfo?.is_creator;
+  // Locked but not yet decided: the creator action is End, on a red fill.
+  const endable = !!eventInfo?.locked && !eventInfo?.decided;
 
   async function fetchData() {
     try {
@@ -310,6 +316,7 @@ export default function eventScreen() {
     return (
       <View key={option} style={[
         styles.optionCard,
+        { width: windowWidth * 0.75 },
         hasUserBet && styles.userBetCard
       ]}>
         <View style={styles.optionHeader}>
@@ -327,7 +334,7 @@ export default function eventScreen() {
           <View style={styles.statRow}>
             <Text style={styles.statPercentage}>{betPercentage.toFixed(1)}%</Text>
             <Text style={styles.optionBetAmount}>
-              ${optionBetAmount.toLocaleString()}
+              {optionBetAmount.toLocaleString()} coins
             </Text>
           </View>
           <View style={styles.progressBarContainer}>
@@ -351,13 +358,13 @@ export default function eventScreen() {
               color={eventInfo?.decided ? theme.warning : theme.neutral} 
             />
             <Text style={styles.lockedBetText}>
-              {eventInfo?.decided ? `Payout: $${betInfo.userBet?.options[option] ?? 0}` : `Locked: $${betInfo.userBet?.options[option] ?? 0}`}
+              {eventInfo?.decided ? `Payout: ${betInfo.userBet?.options[option] ?? 0} coins` : `Locked: ${betInfo.userBet?.options[option] ?? 0} coins`}
             </Text>
           </View>
         ) : hasUserBet ? (
           <View style={styles.userBetInfo}>
             <Text style={styles.userBetAmount}>
-              Your Bet: ${betInfo.userBet!.options[option]}
+              Your Bet: {betInfo.userBet!.options[option]} coins
             </Text>
             <TouchableOpacity
               style={styles.increaseBetButton}
@@ -372,7 +379,7 @@ export default function eventScreen() {
             style={styles.betButton}
             onPress={() => showBetConfirmation(question, option, false)}
           >
-            <FontAwesome5 name="chart-line" size={16} color={theme.onAccent} />
+            <FontAwesome5 name="chart-line" size={16} color={theme.onPrimary} />
             <Text style={styles.betButtonText}>Place Bet</Text>
           </TouchableOpacity>
         )}
@@ -394,7 +401,7 @@ export default function eventScreen() {
           </TouchableOpacity>
         </View>
         <View style={styles.loadErrorContainer}>
-          <FontAwesome5 name="exclamation-triangle" size={48} color={theme.destructive} />
+          <FontAwesome5 name="exclamation-triangle" size={48} color={theme.destructiveLabel} />
           <Text style={styles.loadErrorTitle}>Event unavailable</Text>
           <Text style={styles.loadErrorText}>{loadError}</Text>
           <TouchableOpacity
@@ -402,7 +409,7 @@ export default function eventScreen() {
             onPress={onRefresh}
             activeOpacity={0.8}
           >
-            <FontAwesome5 name="redo" size={14} color={theme.onAccent} />
+            <FontAwesome5 name="redo" size={14} color={theme.onPrimary} />
             <Text style={styles.loadErrorButtonText}>Try again</Text>
           </TouchableOpacity>
         </View>
@@ -475,7 +482,7 @@ export default function eventScreen() {
                 <TouchableOpacity 
                   style={[
                     styles.actionButton,
-                    eventInfo?.locked && !eventInfo?.decided && styles.endButton,
+                    endable && styles.endButton,
                     eventInfo?.decided && styles.postTemplateButton
                   ]}
                   onPress={() => {
@@ -489,9 +496,9 @@ export default function eventScreen() {
                   <FontAwesome5 
                     name={eventInfo?.locked ? (eventInfo?.decided ? "upload" : "flag-checkered") : "lock"} 
                     size={14} 
-                    color={theme.onAccent} 
+                    color={endable ? theme.onAccent : theme.onPrimary} 
                   />
-                  <Text style={styles.actionButtonText}>
+                  <Text style={[styles.actionButtonText, !endable && styles.actionButtonTextDark]}>
                     {eventInfo?.locked ? (eventInfo?.decided ? 'Post' : 'End') : 'Lock'}
                   </Text>
                 </TouchableOpacity>
@@ -521,7 +528,7 @@ export default function eventScreen() {
               <Image 
                 source={{ uri: eventInfo.thumbnail_url }}
                 style={styles.eventImage}
-                resizeMode="cover"
+                contentFit="cover"
               />
             ) : (
               <View style={styles.placeholderImage}>
@@ -668,7 +675,7 @@ export default function eventScreen() {
                     <View style={styles.potInfo}>
                       <Text style={styles.totalPotLabel}>Total Pool</Text>
                       <Text style={styles.totalPotAmount}>
-                        ${betInfo.totalPot.toLocaleString()}
+                        {betInfo.totalPot.toLocaleString()} coins
                       </Text>
                     </View>
                   </View>
@@ -714,7 +721,7 @@ export default function eventScreen() {
             
             <View style={styles.balanceContainer}>
               <FontAwesome5 name="wallet" size={16} color={theme.primary} />
-              <Text style={styles.balanceText}>Balance: ${coins}</Text>
+              <Text style={styles.balanceText}>Balance: {coins} coins</Text>
             </View>
             
             <View style={styles.betAmountContainer}>
@@ -761,7 +768,7 @@ export default function eventScreen() {
                 style={styles.modalConfirmButton}
                 onPress={confirmBet}
               >
-                <FontAwesome5 name="check" size={16} color={theme.onAccent} />
+                <FontAwesome5 name="check" size={16} color={theme.onPrimary} />
                 <Text style={styles.modalConfirmText}>Confirm</Text>
               </TouchableOpacity>
             </View>
@@ -779,7 +786,7 @@ export default function eventScreen() {
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
-              <FontAwesome5 name="trash" size={24} color={theme.destructive} />
+              <FontAwesome5 name="trash" size={24} color={theme.destructiveLabel} />
               <Text style={styles.modalTitle}>Delete Event</Text>
             </View>
             <Text style={styles.modalText}>
@@ -802,7 +809,7 @@ export default function eventScreen() {
                 disabled={isDeleting}
               >
                 <FontAwesome5 name="trash" size={16} color={theme.destructiveText} />
-                <Text style={styles.modalConfirmText}>
+                <Text style={[styles.modalConfirmText, styles.modalDeleteText]}>
                   {isDeleting ? 'Deleting...' : 'Delete & refund'}
                 </Text>
               </TouchableOpacity>
@@ -840,7 +847,7 @@ export default function eventScreen() {
                 style={styles.modalConfirmButton}
                 onPress={confirmLockEvent}
               >
-                <FontAwesome5 name="lock" size={16} color={theme.onAccent} />
+                <FontAwesome5 name="lock" size={16} color={theme.onPrimary} />
                 <Text style={styles.modalConfirmText}>Lock Event</Text>
               </TouchableOpacity>
             </View>
@@ -907,7 +914,7 @@ export default function eventScreen() {
                   style={styles.modalConfirmButton}
                   onPress={confirmEndEvent}
                 >
-                  <FontAwesome5 name="flag-checkered" size={16} color={theme.onAccent} />
+                  <FontAwesome5 name="flag-checkered" size={16} color={theme.onPrimary} />
                   <Text style={styles.modalConfirmText}>End Event</Text>
                 </TouchableOpacity>
               </View>
@@ -965,7 +972,7 @@ export default function eventScreen() {
                     }
                   }}
                 >
-                  <FontAwesome5 name="upload" size={16} color={theme.onAccent} />
+                  <FontAwesome5 name="upload" size={16} color={theme.onPrimary} />
                   <Text style={styles.modalConfirmText}>Post Template</Text>
                 </TouchableOpacity>
               </View>
@@ -993,6 +1000,9 @@ const createStyles = (theme: Theme) => StyleSheet.create({
   },
   modalDeleteButton: {
     backgroundColor: theme.destructive,
+  },
+  modalDeleteText: {
+    color: theme.destructiveText,
   },
   loadErrorContainer: {
     flex: 1,
@@ -1031,7 +1041,7 @@ const createStyles = (theme: Theme) => StyleSheet.create({
     backgroundColor: theme.primary,
   },
   loadErrorButtonText: {
-    color: theme.onAccent,
+    color: theme.onPrimary,
     fontSize: 16,
     fontWeight: '600',
   },
@@ -1046,11 +1056,7 @@ const createStyles = (theme: Theme) => StyleSheet.create({
     backgroundColor: theme.background,
     borderBottomWidth: 1,
     borderBottomColor: theme.border,
-    elevation: 2,
-    shadowColor: theme.shadow,
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 3,
+    boxShadow: "0 1px 6px rgba(0, 0, 0, 0.1)",
   },
   
   backButton: {
@@ -1101,6 +1107,11 @@ const createStyles = (theme: Theme) => StyleSheet.create({
     backgroundColor: theme.primary,
   },
 
+  // Lock (orange) and Post (teal) are light fills and take dark text; End is
+  // red and keeps white.
+  actionButtonTextDark: {
+    color: theme.onPrimary,
+  },
   actionButtonText: {
     color: theme.onAccent,
     fontSize: 14,
@@ -1120,11 +1131,7 @@ const createStyles = (theme: Theme) => StyleSheet.create({
     borderBottomLeftRadius: 24,
     borderBottomRightRadius: 24,
     overflow: 'hidden',
-    elevation: 4,
-    shadowColor: theme.shadow,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15,
-    shadowRadius: 8,
+    boxShadow: "0 4px 16px rgba(0, 0, 0, 0.15)",
   },
   
   eventImage: {
@@ -1250,11 +1257,7 @@ const createStyles = (theme: Theme) => StyleSheet.create({
     backgroundColor: theme.card,
     borderRadius: 24,
     overflow: 'hidden',
-    elevation: 8,
-    shadowColor: theme.shadow,
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.12,
-    shadowRadius: 16,
+    boxShadow: "0 8px 32px rgba(0, 0, 0, 0.12)",
     borderWidth: 1,
     borderColor: theme.border,
   },
@@ -1280,15 +1283,11 @@ const createStyles = (theme: Theme) => StyleSheet.create({
     borderRadius: 16,
     minWidth: 48,
     alignItems: 'center',
-    elevation: 2,
-    shadowColor: theme.primary,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
+    boxShadow: `0 2px 8px ${withAlpha(theme.primary, 0.3)}`,
   },
   
   questionNumberText: {
-    color: theme.onAccent,
+    color: theme.onPrimary,
     fontSize: 14,
     fontWeight: '800',
     letterSpacing: 0.5,
@@ -1326,6 +1325,8 @@ const createStyles = (theme: Theme) => StyleSheet.create({
   },
   
   totalPotAmount: {
+  
+    fontVariant: ['tabular-nums'],
     color: theme.warningText,
     fontSize: 22,
     fontWeight: '800',
@@ -1344,25 +1345,19 @@ const createStyles = (theme: Theme) => StyleSheet.create({
   },
   
   optionCard: {
-    width: width * 0.75,
     backgroundColor: theme.card,
     borderRadius: 20,
     padding: 20,
     borderWidth: 2,
     borderColor: theme.border,
-    elevation: 4,
-    shadowColor: theme.shadow,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
+    boxShadow: "0 4px 16px rgba(0, 0, 0, 0.1)",
   },
   
+  // Keeps the card's purple: the pale mint it used to switch to left the
+  // teal title and percentage, written for purple, near-unreadable.
   userBetCard: {
     borderColor: theme.success,
-    backgroundColor: theme.successSurface,
-    elevation: 8,
-    shadowColor: theme.success,
-    shadowOpacity: 0.2,
+    boxShadow: `0 0 6px ${withAlpha(theme.success, 0.2)}`,
   },
   
   optionHeader: {
@@ -1385,11 +1380,7 @@ const createStyles = (theme: Theme) => StyleSheet.create({
     backgroundColor: theme.success,
     padding: 8,
     borderRadius: 12,
-    elevation: 2,
-    shadowColor: theme.success,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
+    boxShadow: `0 2px 8px ${withAlpha(theme.success, 0.3)}`,
   },
   
   betStats: {
@@ -1415,9 +1406,11 @@ const createStyles = (theme: Theme) => StyleSheet.create({
     fontWeight: '600',
   },
   
+  // The track was theme.border, the same teal as the fill, so every bar read
+  // as full.
   progressBarContainer: {
     height: 8,
-    backgroundColor: theme.border,
+    backgroundColor: theme.insetFill,
     borderRadius: 4,
     overflow: 'hidden',
   },
@@ -1438,15 +1431,11 @@ const createStyles = (theme: Theme) => StyleSheet.create({
     backgroundColor: theme.primary,
     paddingVertical: 16,
     borderRadius: 16,
-    elevation: 4,
-    shadowColor: theme.primary,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
+    boxShadow: `0 4px 16px ${withAlpha(theme.primary, 0.3)}`,
   },
   
   betButtonText: {
-    color: theme.onAccent,
+    color: theme.onPrimary,
     fontSize: 16,
     fontWeight: '700',
   },
@@ -1469,6 +1458,8 @@ const createStyles = (theme: Theme) => StyleSheet.create({
   },
 
   lockedBetText: {
+
+    fontVariant: ['tabular-nums'],
     color: theme.neutral,
     fontSize: 15,
     fontWeight: '600',
@@ -1479,7 +1470,9 @@ const createStyles = (theme: Theme) => StyleSheet.create({
   },
   
   userBetAmount: {
-    color: theme.successText,
+  
+    fontVariant: ['tabular-nums'],
+    color: theme.successLabel,
     fontSize: 16,
     fontWeight: '700',
     textAlign: 'center',
@@ -1493,11 +1486,7 @@ const createStyles = (theme: Theme) => StyleSheet.create({
     backgroundColor: theme.successText,
     paddingVertical: 14,
     borderRadius: 14,
-    elevation: 3,
-    shadowColor: theme.successText,
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.3,
-    shadowRadius: 6,
+    boxShadow: `0 3px 12px ${withAlpha(theme.successText, 0.3)}`,
   },
   
   increaseBetButtonText: {
@@ -1523,13 +1512,10 @@ const createStyles = (theme: Theme) => StyleSheet.create({
     borderRadius: 24,
     padding: 24,
     margin: 20,
-    maxWidth: width * 0.9,
-    minWidth: width * 0.8,
-    elevation: 20,
-    shadowColor: theme.shadow,
-    shadowOffset: { width: 0, height: 12 },
-    shadowOpacity: 0.3,
-    shadowRadius: 24,
+    // Percentages of the full-screen overlay, i.e. of the window.
+    maxWidth: '90%',
+    minWidth: '80%',
+    boxShadow: "0 12px 48px rgba(0, 0, 0, 0.3)",
   },
 
   modalHeader: {
@@ -1582,6 +1568,8 @@ const createStyles = (theme: Theme) => StyleSheet.create({
   },
 
   balanceText: {
+
+    fontVariant: ['tabular-nums'],
     color: theme.primary,
     fontSize: 16,
     fontWeight: '600',
@@ -1655,15 +1643,11 @@ const createStyles = (theme: Theme) => StyleSheet.create({
     backgroundColor: theme.primary,
     paddingVertical: 16,
     borderRadius: 16,
-    elevation: 4,
-    shadowColor: theme.primary,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
+    boxShadow: `0 4px 16px ${withAlpha(theme.primary, 0.3)}`,
   },
   
   modalConfirmText: {
-    color: theme.onAccent,
+    color: theme.onPrimary,
     fontSize: 16,
     fontWeight: '700',
   },

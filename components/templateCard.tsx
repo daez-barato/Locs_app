@@ -4,13 +4,13 @@ import { useThemedStyles } from "@/hooks/use-themed-styles";
 import { FontAwesome } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import React from "react";
-import {
-    Text,
-    View,
-    StyleSheet,
-    TouchableOpacity,
-    Image
+import { 
+    Text, 
+    View, 
+    StyleSheet, 
+    TouchableOpacity
 } from "react-native";
+import { Image } from "expo-image";
 
 
 export default function TemplateCard({ item }: {item: SearchTemplate}) {
@@ -42,17 +42,23 @@ export default function TemplateCard({ item }: {item: SearchTemplate}) {
                 accessibilityRole="button"
             >
                 <View style={styles.thumbnailContainer}>
-                    <Image
-                        source={{ uri: item.thumbnail }}
-                        style={styles.thumbnail}
-                        resizeMode="cover"
-                    />
+                    {item.thumbnail ? (
+                        <Image
+                            source={{ uri: item.thumbnail }}
+                            style={styles.thumbnail}
+                            contentFit="cover"
+                        />
+                    ) : (
+                        <View style={[styles.thumbnail, styles.thumbnailPlaceholder]}>
+                            <FontAwesome name="clone" size={28} color={theme.cardTextFaint} />
+                        </View>
+                    )}
                     {item.type && (
                         <View style={styles.typeOverlay}>
                             <FontAwesome 
                                 name={getTypeIcon(item.type)} 
                                 size={14} 
-                                color={theme.onAccent}
+                                color={theme.onPrimary}
                             />
                         </View>
                     )}
@@ -104,14 +110,7 @@ const createStyles = (theme: Theme) => StyleSheet.create({
         marginHorizontal: 16,
         marginVertical: 8,
         borderRadius: 16,
-        shadowColor: theme.shadow,
-        shadowOffset: {
-            width: 0,
-            height: 2,
-        },
-        shadowOpacity: 0.1,
-        shadowRadius: 8,
-        elevation: 4,
+        boxShadow: "0 2px 16px rgba(0, 0, 0, 0.1)",
         overflow: 'hidden',
         borderWidth: 1,
         borderColor: theme.cardOutline,
@@ -119,6 +118,11 @@ const createStyles = (theme: Theme) => StyleSheet.create({
     cardTouchable: {
         flexDirection: 'row',
         padding: 16,
+    },
+    thumbnailPlaceholder: {
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: theme.cardBorder,
     },
     thumbnailContainer: {
         position: 'relative',
@@ -169,7 +173,7 @@ const createStyles = (theme: Theme) => StyleSheet.create({
     },
     typeText: {
         color: theme.primary,
-        fontSize: 10,
+        fontSize: 11,
         fontWeight: '600',
         textTransform: 'uppercase',
     },

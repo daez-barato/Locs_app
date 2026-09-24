@@ -1,5 +1,6 @@
 import { fetchTrending, search } from "@/api/exploreFunctions";
 import { Theme, useThemeConfig } from "@/components/ui/use-theme-config";
+import { withAlpha } from "@/theme";
 import { useThemedStyles } from "@/hooks/use-themed-styles";
 import TemplateCard from "@/components/templateCard";
 import UserCard from "@/components/userCard";
@@ -17,6 +18,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import EventCard from "@/components/eventCard";
+import CreateEventButton from "@/components/create-event-button";
 import { SearchObject ,SearchUser, SearchTemplate, SearchEvent } from "@/types/interfaces";
 
 export default function Explore() {
@@ -231,7 +233,7 @@ export default function Explore() {
                         <FontAwesome
                         name={errorMessage ? "exclamation-triangle" : isSearching ? "search" : "compass"}
                         size={48}
-                        color={errorMessage ? theme.destructive : theme.textFaint}
+                        color={errorMessage ? theme.destructiveLabel : theme.textFaint}
                         />
                         <Text style={styles.emptyTitle}>
                         {errorMessage ? "Something went wrong" : `No ${activeTab} found`}
@@ -250,7 +252,7 @@ export default function Explore() {
                                 activeOpacity={0.8}
                                 accessibilityRole="button"
                             >
-                                <FontAwesome name="refresh" size={14} color={theme.buttonText} />
+                                <FontAwesome name="refresh" size={14} color={theme.onPrimary} />
                                 <Text style={styles.retryButtonText}>Try again</Text>
                             </TouchableOpacity>
                         )}
@@ -344,6 +346,7 @@ export default function Explore() {
             contentContainerStyle={styles.scrollContent}
             />
 
+            <CreateEventButton />
         </SafeAreaView>
     );
 }
@@ -367,14 +370,7 @@ const createStyles = (theme: Theme) => StyleSheet.create({
         paddingHorizontal: 16,
         alignItems: "center",
         flexDirection: "row",
-        shadowColor: theme.shadow,
-        shadowOffset: {
-            width: 0,
-            height: 2,
-        },
-        shadowOpacity: 0.1,
-        shadowRadius: 4,
-        elevation: 3,
+        boxShadow: "0 2px 8px rgba(0, 0, 0, 0.1)",
     },
     searchIcon: {
         marginRight: 12,
@@ -394,11 +390,12 @@ const createStyles = (theme: Theme) => StyleSheet.create({
         backgroundColor: theme.background,
         paddingBottom: 8,
     },
+    // Left-aligned like the other tabs' titles.
     headerText: {
-        color: theme.primary,
+        color: theme.text,
         fontWeight: "700",
         fontSize: 22,
-        textAlign: "center",
+        paddingHorizontal: 20,
         marginVertical: 16,
     },
     tabs: {
@@ -407,14 +404,7 @@ const createStyles = (theme: Theme) => StyleSheet.create({
         backgroundColor: theme.card,
         borderRadius: 12,
         padding: 4,
-        shadowColor: theme.shadow,
-        shadowOffset: {
-            width: 0,
-            height: 1,
-        },
-        shadowOpacity: 0.1,
-        shadowRadius: 2,
-        elevation: 2,
+        boxShadow: "0 1px 4px rgba(0, 0, 0, 0.1)",
     },
     tab: {
         flex: 1,
@@ -426,14 +416,7 @@ const createStyles = (theme: Theme) => StyleSheet.create({
     },
     activeTab: {
         backgroundColor: theme.primary,
-        shadowColor: theme.primary,
-        shadowOffset: {
-            width: 0,
-            height: 2,
-        },
-        shadowOpacity: 0.3,
-        shadowRadius: 4,
-        elevation: 4,
+        boxShadow: `0 2px 8px ${withAlpha(theme.primary, 0.3)}`,
     },
     tabText: {
         color: theme.cardText,
@@ -442,11 +425,12 @@ const createStyles = (theme: Theme) => StyleSheet.create({
         textAlign: "center",
     },
     activeTabText: {
-        color: theme.buttonText,
+        color: theme.onPrimary,
         fontWeight: "700",
     },
     scrollContent: {
-        paddingBottom: 20,
+        // Room for the create button, which floats over the end of the list.
+        paddingBottom: 96,
     },
     emptyState: {
         alignItems: 'center',
@@ -465,7 +449,7 @@ const createStyles = (theme: Theme) => StyleSheet.create({
         backgroundColor: theme.primary,
     },
     retryButtonText: {
-        color: theme.buttonText,
+        color: theme.onPrimary,
         fontSize: 15,
         fontWeight: '600',
     },

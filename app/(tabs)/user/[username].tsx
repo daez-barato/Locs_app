@@ -1,4 +1,5 @@
 import { Theme, useThemeConfig } from "@/components/ui/use-theme-config";
+import { withAlpha } from "@/theme";
 import { useThemedStyles } from "@/hooks/use-themed-styles";
 import { 
   View, 
@@ -505,9 +506,12 @@ export default function Profile() {
               accessibilityLabel={`Follow requests: ${user.requests}`}
             >
               <FontAwesome name="inbox" size={24} color={theme.text} />
-              <View style={styles.alert}>
-                <Text style={styles.alertNumber}>{user.requests}</Text>   
-              </View>
+              {/* Only when there's something to act on; it used to show "0". */}
+              {user.requests > 0 && (
+                <View style={styles.alert}>
+                  <Text style={styles.alertNumber}>{user.requests}</Text>
+                </View>
+              )}
             </TouchableOpacity>
             <TouchableOpacity 
               style={styles.settingsButton} 
@@ -560,8 +564,8 @@ export default function Profile() {
             </TouchableOpacity>
               <View style={styles.statDivider} />
               <View style={styles.statItem}>
-                <Text style={styles.statNumber}>${user?.coins}</Text>
-                <Text style={styles.statLabel}>Balance</Text>
+                <Text style={styles.statNumber}>{user?.coins}</Text>
+                <Text style={styles.statLabel}>Coins</Text>
               </View>
           </View>
 
@@ -704,26 +708,23 @@ const createStyles = (theme: Theme) => StyleSheet.create({
     paddingHorizontal: 20,
     paddingVertical: 12,
   },
+  // A circle: the image used to be a 226x140 rectangle that cropped the
+  // square avatars, under a halo shaped for a circle.
   profileImageContainer: {
     marginBottom: 12,
     borderRadius: 70,
-    shadowRadius: 10,
-    shadowColor: theme.glow,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 1,
-    elevation: 10,
+    boxShadow: `0 4px 20px ${withAlpha(theme.glow, 0.35)}`,
   },
   profileImage: {
-    width: 226,
+    width: 140,
     height: 140,
-    borderWidth: 1,
+    borderRadius: 70,
+    borderWidth: 2,
     borderColor: theme.primary,
-    elevation: 10,
-    opacity: 0.95,
   },
   username: {
     fontSize: 24,
-    fontWeight: 'bold',
+    fontWeight: '700',
     color: theme.text,
     marginBottom: 12,
   },
@@ -737,19 +738,16 @@ const createStyles = (theme: Theme) => StyleSheet.create({
     paddingVertical: 14,
     paddingHorizontal: 20,
     marginBottom: 16,
-    elevation: 2,
-    shadowColor: theme.shadow,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
+    boxShadow: "0 2px 8px rgba(0, 0, 0, 0.1)",
   },
   statItem: {
     alignItems: 'center',
     flex: 1,
   },
   statNumber: {
+    fontVariant: ['tabular-nums'],
     fontSize: 18,
-    fontWeight: 'bold',
+    fontWeight: '700',
     color: theme.primary,
   },
   statLabel: {
@@ -760,7 +758,7 @@ const createStyles = (theme: Theme) => StyleSheet.create({
   statDivider: {
     width: 1,
     height: 30,
-    backgroundColor: theme.void,
+    backgroundColor: theme.cardDividerStrong,
     marginHorizontal: 16,
   },
 
@@ -778,7 +776,7 @@ const createStyles = (theme: Theme) => StyleSheet.create({
     borderColor: theme.primary,
   },
   followButtonText: {
-    color: theme.buttonText,
+    color: theme.onPrimary,
     fontSize: 16,
     fontWeight: '600',
     textAlign: 'center',
@@ -808,10 +806,11 @@ const createStyles = (theme: Theme) => StyleSheet.create({
   tabText: {
     fontSize: 14,
     fontWeight: '500',
-    color: theme.void,
+    // Was theme.void: near-black on the purple track.
+    color: theme.cardText,
   },
   activeTabText: {
-    color: theme.buttonText,
+    color: theme.onPrimary,
   },
 
   // Bet List
@@ -849,7 +848,7 @@ const createStyles = (theme: Theme) => StyleSheet.create({
   },
   modalTitle: {
     fontSize: 18,
-    fontWeight: 'bold',
+    fontWeight: '700',
     color: theme.text,
   },
   closeButton: {
@@ -907,7 +906,7 @@ const createStyles = (theme: Theme) => StyleSheet.create({
   },
   alertNumber: {
     color: theme.cardText,
-    fontWeight: "bold",
+    fontWeight: "700",
     textAlign: "center",
     position: "absolute",
   }

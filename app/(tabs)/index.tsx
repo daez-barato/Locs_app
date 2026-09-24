@@ -2,6 +2,7 @@
 import { fetchFollowingPosts } from "@/services/events";
 import { Event } from "@/types/interfaces";
 import EventCard from "@/components/eventCard";
+import CreateEventButton from "@/components/create-event-button";
 import { useThemeConfig, Theme } from "@/components/ui/use-theme-config"
 import { useThemedStyles } from "@/hooks/use-themed-styles";
 import { FontAwesome } from "@expo/vector-icons";
@@ -61,24 +62,9 @@ export default function Home(){
 
   return (
     <SafeAreaView style={styles.backgroundContainer}>
-      <View style= {[styles.topTabs]}>
-        <View style={[styles.tabButton, styles.selectedTabButton]}>
-          <Text style={[styles.tabText, styles.selectedTabText]}>
-            Following
-          </Text>
-        </View>
-        {/* The shop is its own tab now; this shortcut just goes there. */}
-        <TouchableOpacity
-          style={styles.tabButton}
-          onPress={() => router.push("/shop")}
-          accessibilityRole="button"
-          accessibilityLabel="Open the shop"
-        >
-          <Text style={styles.tabText}>
-            Shop
-          </Text>
-        </TouchableOpacity>
-      </View>
+      {/* A plain title: the "Shop" half of the old two-tab header only
+          opened the Shop tab that's already in the tab bar. */}
+      <Text style={styles.title} accessibilityRole="header">Following</Text>
       <View style={styles.followingEventsContainer}>
         <FlatList
           data={followingPostsList}
@@ -104,7 +90,7 @@ export default function Home(){
                 <FontAwesome
                   name={errorMessage ? "exclamation-triangle" : "users"}
                   size={48}
-                  color={errorMessage ? theme.destructive : theme.textFaint}
+                  color={errorMessage ? theme.destructiveLabel : theme.textFaint}
                 />
                 <Text style={styles.emptyTitle}>
                   {errorMessage ? "Something went wrong" : "Your feed is empty"}
@@ -123,7 +109,7 @@ export default function Home(){
                   <FontAwesome
                     name={errorMessage ? "refresh" : "search"}
                     size={14}
-                    color={theme.buttonText}
+                    color={theme.onPrimary}
                   />
                   <Text style={styles.emptyActionText}>
                     {errorMessage ? "Try again" : "Find people to follow"}
@@ -134,6 +120,7 @@ export default function Home(){
           }
         />
       </View>
+      <CreateEventButton />
     </SafeAreaView>
   )
 }
@@ -143,34 +130,17 @@ const createStyles = (theme: Theme) => StyleSheet.create({
     flex: 1,
     backgroundColor: theme.background
   },
-  topTabs: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-
-  },
-  tabButton: {
-    flex: 1,
-    alignItems: 'center',
-    paddingVertical: 20,
-    borderColor: theme.border,
-  },
-  selectedTabButton: {
-    borderBottomWidth: 2,
-
-  },
-  tabText: {
+  title: {
     color: theme.text,
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
-  selectedTabText: {
-    color: theme.primary,
-    fontSize: 16,
-    fontWeight: 'bold',
+    fontSize: 28,
+    fontWeight: '700',
+    paddingHorizontal: 20,
+    paddingTop: 12,
+    paddingBottom: 4,
   },
   listContent: {
-    paddingBottom: 20,
+    // Room for the create button, which floats over the end of the list.
+    paddingBottom: 96,
   },
   followingEventsContainer: {
     flex: 1,
@@ -208,7 +178,7 @@ const createStyles = (theme: Theme) => StyleSheet.create({
     backgroundColor: theme.primary,
   },
   emptyActionText: {
-    color: theme.buttonText,
+    color: theme.onPrimary,
     fontSize: 15,
     fontWeight: '600',
   },

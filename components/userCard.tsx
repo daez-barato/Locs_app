@@ -100,7 +100,7 @@ export default function UserCard({ user }: { user: SearchUser }) {
           <AvatarImage
             uri={resolveAvatarUrl(userState.avatar_url)}
             style={styles.avatar}
-            resizeMode="cover"
+            contentFit="cover"
           />
         </View>
 
@@ -166,14 +166,7 @@ const createStyles = (theme: Theme) => StyleSheet.create({
         marginHorizontal: 16,
         marginVertical: 8,
         borderRadius: 16,
-        shadowColor: theme.shadow,
-        shadowOffset: {
-            width: 0,
-            height: 2,
-        },
-        shadowOpacity: 0.1,
-        shadowRadius: 8,
-        elevation: 4,
+        boxShadow: "0 2px 16px rgba(0, 0, 0, 0.1)",
         overflow: 'hidden',
         borderWidth: 1,
         borderColor: theme.cardOutline,

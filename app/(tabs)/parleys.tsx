@@ -1,7 +1,9 @@
 import { Event } from "@/types/interfaces";
 import { fetchUserLiveBets, fetchUserLiveEvents } from "@/api/parleyFunctions";
 import EventCard from "@/components/eventCard";
+import CreateEventButton from "@/components/create-event-button";
 import { useThemeConfig, Theme } from "@/components/ui/use-theme-config";
+import { withAlpha } from "@/theme";
 import { useThemedStyles } from "@/hooks/use-themed-styles";
 import { FontAwesome } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
@@ -9,7 +11,7 @@ import { useState, useEffect } from "react";
 import { 
     Text, 
     View, 
-    ScrollView, 
+    FlatList, 
     StyleSheet, 
     TouchableOpacity, 
     RefreshControl,
@@ -94,7 +96,7 @@ export default function Parleys() {
                     <FontAwesome 
                         name="calendar-check-o" 
                         size={16} 
-                        color={activeTab === 'participating' ? theme.buttonText : theme.cardText} 
+                        color={activeTab === 'participating' ? theme.onPrimary : theme.cardText} 
                     />
                     <Text style={[
                         styles.tabText, 
@@ -113,7 +115,7 @@ export default function Parleys() {
                     <FontAwesome 
                         name="star" 
                         size={16} 
-                        color={activeTab === 'created' ? theme.buttonText : theme.cardText} 
+                        color={activeTab === 'created' ? theme.onPrimary : theme.cardText} 
                     />
                     <Text style={[
                         styles.tabText, 
@@ -125,7 +127,10 @@ export default function Parleys() {
             </View>
 
             {/* Events List */}
-            <ScrollView 
+            <FlatList
+                data={currentEvents}
+                keyExtractor={(event) => `event-${event.id}-${activeTab}`}
+                renderItem={({ item }) => <EventCard event={item} />}
                 style={styles.scrollView}
                 showsVerticalScrollIndicator={false}
                 refreshControl={
@@ -138,61 +143,58 @@ export default function Parleys() {
                     />
                 }
                 contentContainerStyle={styles.scrollContent}
-            >
-                {currentEvents.map(event => (
-                    <EventCard
-                        key={`event-${event.id}-${activeTab}`}
-                        event={event}
-                    />
-                ))}
-                
-                {currentEvents.length === 0 && isLoading && (
-                    <View style={styles.emptyState}>
-                        <ActivityIndicator size="large" color={theme.primary} />
-                    </View>
-                )}
+                ListEmptyComponent={
+                    <>
+                        {isLoading && (
+                            <View style={styles.emptyState}>
+                                <ActivityIndicator size="large" color={theme.primary} />
+                            </View>
+                        )}
 
-                {currentEvents.length === 0 && !isLoading && (
-                    <View style={styles.emptyState}>
-                        <FontAwesome 
-                            name={errorMessage ? "exclamation-triangle" : activeTab === 'participating' ? "calendar-o" : "star-o"} 
-                            size={48} 
-                            color={errorMessage ? theme.destructive : theme.textFaint} 
-                        />
-                        <Text style={styles.emptyTitle}>
-                            {errorMessage
-                                ? "Something went wrong"
-                                : `No ${activeTab === 'participating' ? 'events joined' : 'events created'} yet`}
-                        </Text>
-                        <Text style={styles.emptySubtext}>
-                            {errorMessage
-                                ? errorMessage
-                                : activeTab === 'participating'
-                                ? "Discover and join exciting events in the Explore tab"
-                                : "Create your first event and bring people together"}
-                        </Text>
-                        <TouchableOpacity style={styles.emptyButton}
-                            accessibilityRole="button"
-                            activeOpacity={0.8}
-                            onPress={() => {
-                                if (errorMessage){
-                                    onRefresh();
-                                } else if (activeTab === "created"){
-                                    router.push("/studio/create");
-                                } else if (activeTab === "participating"){
-                                    router.push("/(tabs)/explore");
-                                }
-                            }}
-                        >
-                            <Text style={styles.emptyButtonText}>
-                                {errorMessage
-                                    ? 'Try again'
-                                    : activeTab === 'participating' ? 'Explore Events' : 'Create Event'}
-                            </Text>
-                        </TouchableOpacity>
-                    </View>
-                )}
-            </ScrollView>
+                        {!isLoading && (
+                            <View style={styles.emptyState}>
+                                <FontAwesome 
+                                    name={errorMessage ? "exclamation-triangle" : activeTab === 'participating' ? "calendar-o" : "star-o"} 
+                                    size={48} 
+                                    color={errorMessage ? theme.destructiveLabel : theme.textFaint} 
+                                />
+                                <Text style={styles.emptyTitle}>
+                                    {errorMessage
+                                        ? "Something went wrong"
+                                        : `No ${activeTab === 'participating' ? 'events joined' : 'events created'} yet`}
+                                </Text>
+                                <Text style={styles.emptySubtext}>
+                                    {errorMessage
+                                        ? errorMessage
+                                        : activeTab === 'participating'
+                                        ? "Discover and join exciting events in the Explore tab"
+                                        : "Create your first event and bring people together"}
+                                </Text>
+                                <TouchableOpacity style={styles.emptyButton}
+                                    accessibilityRole="button"
+                                    activeOpacity={0.8}
+                                    onPress={() => {
+                                        if (errorMessage){
+                                            onRefresh();
+                                        } else if (activeTab === "created"){
+                                            router.push("/studio/create");
+                                        } else if (activeTab === "participating"){
+                                            router.push("/(tabs)/explore");
+                                        }
+                                    }}
+                                >
+                                    <Text style={styles.emptyButtonText}>
+                                        {errorMessage
+                                            ? 'Try again'
+                                            : activeTab === 'participating' ? 'Explore Events' : 'Create Event'}
+                                    </Text>
+                                </TouchableOpacity>
+                            </View>
+                        )}
+                    </>
+                }
+            />
+            <CreateEventButton />
         </SafeAreaView>
     );
 }
@@ -228,13 +230,10 @@ const createStyles = (theme: Theme) => StyleSheet.create({
         borderRadius: 12,
         padding: 16,
         alignItems: 'center',
-        shadowColor: theme.shadow,
-        shadowOffset: { width: 0, height: 1 },
-        shadowOpacity: 0.1,
-        shadowRadius: 2,
-        elevation: 2,
+        boxShadow: "0 1px 4px rgba(0, 0, 0, 0.1)",
     },
     statNumber: {
+      fontVariant: ['tabular-nums'],
         fontSize: 20,
         fontWeight: '700',
         color: theme.primary,
@@ -252,11 +251,7 @@ const createStyles = (theme: Theme) => StyleSheet.create({
         backgroundColor: theme.card,
         borderRadius: 12,
         padding: 4,
-        shadowColor: theme.shadow,
-        shadowOffset: { width: 0, height: 1 },
-        shadowOpacity: 0.1,
-        shadowRadius: 2,
-        elevation: 2,
+        boxShadow: "0 1px 4px rgba(0, 0, 0, 0.1)",
     },
     tab: {
         flex: 1,
@@ -270,11 +265,7 @@ const createStyles = (theme: Theme) => StyleSheet.create({
     },
     activeTab: {
         backgroundColor: theme.primary,
-        shadowColor: theme.primary,
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.3,
-        shadowRadius: 4,
-        elevation: 4,
+        boxShadow: `0 2px 8px ${withAlpha(theme.primary, 0.3)}`,
     },
     tabText: {
         fontSize: 14,
@@ -282,14 +273,15 @@ const createStyles = (theme: Theme) => StyleSheet.create({
         color: theme.cardText,
     },
     activeTabText: {
-        color: theme.buttonText,
+        color: theme.onPrimary,
         fontWeight: '700',
     },
     scrollView: {
         flex: 1,
     },
     scrollContent: {
-        paddingBottom: 20,
+        // Room for the create button, which floats over the end of the list.
+        paddingBottom: 96,
     },
     emptyState: {
         alignItems: 'center',
@@ -319,7 +311,7 @@ const createStyles = (theme: Theme) => StyleSheet.create({
         borderRadius: 12,
     },
     emptyButtonText: {
-        color: theme.buttonText,
+        color: theme.onPrimary,
         fontSize: 15,
         fontWeight: '600',
     },

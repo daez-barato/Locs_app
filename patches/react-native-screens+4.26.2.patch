@@ -1,0 +1,88 @@
+diff --git a/node_modules/react-native-screens/android/src/main/cpp/NativeProxy.cpp b/node_modules/react-native-screens/android/src/main/cpp/NativeProxy.cpp
+index 239e03a..8a15ebd 100644
+--- a/node_modules/react-native-screens/android/src/main/cpp/NativeProxy.cpp
++++ b/node_modules/react-native-screens/android/src/main/cpp/NativeProxy.cpp
+@@ -12,7 +12,14 @@ using namespace react;
+ namespace rnscreens {
+ 
+ NativeProxy::NativeProxy(jni::alias_ref<NativeProxy::javaobject> jThis)
+-    : javaPart_(jni::make_global(jThis)) {}
++    : javaPart_(jni::make_global(jThis)) {
++  javaPartHolder_->ref = javaPart_;
++}
++
++NativeProxy::~NativeProxy() {
++  std::lock_guard<std::mutex> lock(javaPartHolder_->mutex);
++  javaPartHolder_->ref = nullptr;
++}
+ 
+ void NativeProxy::registerNatives() {
+   registerHybrid(
+@@ -34,12 +41,21 @@ void NativeProxy::nativeAddMutationsListener(
+ 
+   if (!screenRemovalListener_) {
+     screenRemovalListener_ =
+-        std::make_shared<RNSScreenRemovalListener>([this](int tag) {
+-          static const auto method =
+-              javaPart_->getClass()->getMethod<void(jint)>(
+-                  "notifyScreenRemoved");
+-          method(javaPart_, tag);
+-        });
++        std::make_shared<RNSScreenRemovalListener>(
++            [holder = javaPartHolder_](int tag) {
++              jni::global_ref<NativeProxy::javaobject> javaPart;
++              {
++                std::lock_guard<std::mutex> lock(holder->mutex);
++                javaPart = holder->ref;
++              }
++              if (!javaPart) {
++                return;
++              }
++              static const auto method =
++                  javaPart->getClass()->getMethod<void(jint)>(
++                      "notifyScreenRemoved");
++              method(javaPart, tag);
++            });
+   }
+ 
+   cleanupExpiredMountingCoordinators();
+@@ -90,6 +106,10 @@ jni::local_ref<NativeProxy::jhybriddata> NativeProxy::initHybrid(
+ }
+ 
+ void NativeProxy::invalidateNative() {
++  {
++    std::lock_guard<std::mutex> lock(javaPartHolder_->mutex);
++    javaPartHolder_->ref = nullptr;
++  }
+   javaPart_ = nullptr;
+ }
+ 
+diff --git a/node_modules/react-native-screens/android/src/main/cpp/NativeProxy.h b/node_modules/react-native-screens/android/src/main/cpp/NativeProxy.h
+index c4dbb12..e75fa50 100644
+--- a/node_modules/react-native-screens/android/src/main/cpp/NativeProxy.h
++++ b/node_modules/react-native-screens/android/src/main/cpp/NativeProxy.h
+@@ -22,10 +22,24 @@ class NativeProxy : public jni::HybridClass<NativeProxy> {
+       jni::alias_ref<jhybridobject> jThis);
+   static void registerNatives();
+ 
++  ~NativeProxy() override;
++
+  private:
+   friend HybridBase;
+   jni::global_ref<NativeProxy::javaobject> javaPart_;
+ 
++  // The removal listener is owned by every MountingCoordinator it is set on
++  // (via weak_ptr lock) and can outlive this proxy, so it must not capture
++  // `this`. It shares this holder instead; clearing it on invalidate or
++  // destruction turns later callbacks into no-ops rather than reads of freed
++  // memory. See software-mansion/react-native-screens#4654.
++  struct JavaPartHolder {
++    std::mutex mutex;
++    jni::global_ref<NativeProxy::javaobject> ref;
++  };
++  std::shared_ptr<JavaPartHolder> javaPartHolder_ =
++      std::make_shared<JavaPartHolder>();
++
+   std::mutex coordinatorsMutex_;
+ 
+   explicit NativeProxy(jni::alias_ref<NativeProxy::javaobject> jThis);

@@ -1,5 +1,6 @@
 import React, { useState } from "react";
-import { TextInput, Text, StyleSheet, Image, TouchableOpacity, KeyboardAvoidingView, Platform, ScrollView } from "react-native";
+import { TextInput, Text, StyleSheet, TouchableOpacity, KeyboardAvoidingView, Platform, ScrollView } from "react-native";
+import { Image } from "expo-image";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Theme, useThemeConfig } from "@/components/ui/use-theme-config";
 import { useThemedStyles } from "@/hooks/use-themed-styles";
@@ -93,7 +94,7 @@ export default function SignIn() {
                     <Image
                         source={require('@/assets/images/SayWhen.png')}
                         style={styles.logo}
-                        resizeMode="contain"
+                        contentFit="contain"
                     />
                     <Text style={styles.title}>
                         {isRegistering ? "Register" : "Login"}
@@ -146,7 +147,7 @@ export default function SignIn() {
                         activeOpacity={0.8}
                         accessibilityRole="button"
                     >
-                        <Text style={styles.buttonText}>
+                        <Text style={[styles.buttonText, styles.primaryButtonText]}>
                             {isRegistering ? "Register" : "Login"}
                         </Text>
                     </TouchableOpacity>
@@ -187,7 +188,7 @@ const createStyles = (theme: Theme) => StyleSheet.create({
     },
     title: {
         fontSize: 24,
-        fontWeight: "bold",
+        fontWeight: "700",
         color: theme.primary,
         marginBottom: 20,
     },
@@ -202,7 +203,7 @@ const createStyles = (theme: Theme) => StyleSheet.create({
         color: theme.cardText,
     },
     error: {
-        color: theme.destructive,
+        color: theme.destructiveLabel,
         marginTop: 4,
         marginBottom: 10,
         textAlign: "center",
@@ -211,7 +212,7 @@ const createStyles = (theme: Theme) => StyleSheet.create({
         borderRadius: 20,
         width: 140,
         height: 140,
-        elevation: 5,
+        boxShadow: "0 3px 10px rgba(0, 0, 0, 0.2)",
         marginBottom: 20
     },
     button: {
@@ -221,7 +222,10 @@ const createStyles = (theme: Theme) => StyleSheet.create({
         alignItems: 'center',
         marginVertical: 8,
     },
-    primaryButton: {
+    primaryButtonText: {
+        color: theme.onPrimary,
+    },
+  primaryButton: {
         backgroundColor: theme.primary,
     },
     secondaryButton: {
