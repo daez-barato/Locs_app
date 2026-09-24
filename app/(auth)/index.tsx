@@ -81,7 +81,7 @@ export default function SignIn() {
     };
 
     return (
-        <SafeAreaView style={[styles.safeArea, { backgroundColor: theme.background }]}>
+        <SafeAreaView style={styles.safeArea}>
             <KeyboardAvoidingView
                 style={styles.flex}
                 behavior={Platform.OS === "ios" ? "padding" : "height"}
@@ -95,7 +95,7 @@ export default function SignIn() {
                         style={styles.logo}
                         resizeMode="contain"
                     />
-                    <Text style={[styles.title, { color: theme.primary }]}>
+                    <Text style={styles.title}>
                         {isRegistering ? "Register" : "Login"}
                     </Text>
 
@@ -141,9 +141,10 @@ export default function SignIn() {
                     {error ? <Text style={styles.error}>{error}</Text> : null}
 
                     <TouchableOpacity
-                        style={[styles.button, { backgroundColor: theme.primary }]}
+                        style={[styles.button, styles.primaryButton]}
                         onPress={isRegistering ? handleRegister : handleLogin}
                         activeOpacity={0.8}
+                        accessibilityRole="button"
                     >
                         <Text style={styles.buttonText}>
                             {isRegistering ? "Register" : "Login"}
@@ -151,7 +152,8 @@ export default function SignIn() {
                     </TouchableOpacity>
 
                     <TouchableOpacity
-                        style={[styles.button, { backgroundColor: theme.secondary }]}
+                        style={[styles.button, styles.secondaryButton]}
+                        accessibilityRole="button"
                         onPress={() => {
                             setIsRegistering(!isRegistering);
                             setError("");
@@ -172,6 +174,7 @@ export default function SignIn() {
 const createStyles = (theme: Theme) => StyleSheet.create({
     safeArea: {
         flex: 1,
+        backgroundColor: theme.background,
     },
     flex: {
         flex: 1,
@@ -185,6 +188,7 @@ const createStyles = (theme: Theme) => StyleSheet.create({
     title: {
         fontSize: 24,
         fontWeight: "bold",
+        color: theme.primary,
         marginBottom: 20,
     },
     input: {
@@ -216,6 +220,12 @@ const createStyles = (theme: Theme) => StyleSheet.create({
         width: "100%",
         alignItems: 'center',
         marginVertical: 8,
+    },
+    primaryButton: {
+        backgroundColor: theme.primary,
+    },
+    secondaryButton: {
+        backgroundColor: theme.secondary,
     },
     buttonText: {
         color: theme.buttonText,

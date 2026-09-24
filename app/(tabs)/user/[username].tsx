@@ -191,12 +191,12 @@ export default function Profile() {
 
   const handleLogout = () => {
     Alert.alert(
-      "Logout",
-      "Are you sure you want to logout?",
+      "Log out",
+      "Are you sure you want to log out?",
       [
         { text: "Cancel", style: "cancel" },
         {
-          text: "Logout",
+          text: "Log out",
           style: "destructive",
           onPress: async () => {
             try {
@@ -205,7 +205,7 @@ export default function Profile() {
               router.replace('/(auth)');
             } catch (error) {
               console.error("Logout error:", error);
-              Alert.alert("Error", "Failed to logout. Please try again.");
+              Alert.alert("Error", "Failed to log out. Please try again.");
             }
           }
         }
@@ -240,7 +240,7 @@ export default function Profile() {
       setUser(prev => prev ? { ...prev, public: response.public } : prev);
 
       Alert.alert(
-        "Privacy Updated",
+        "Privacy updated",
         response.public
           ? "Your account is now public."
           : "Your account is now private."
@@ -251,9 +251,14 @@ export default function Profile() {
     }
   };
 
-  const settingsOptions = [
-    {title: user?.public ? "Switch to Private" : "Switch to Public", icon: "lock", onPress: handlePrivacy},
-    { title: "Logout", icon: "sign-out", onPress: handleLogout, isDestructive: true },
+  const settingsOptions: {
+    title: string;
+    icon: React.ComponentProps<typeof FontAwesome>["name"];
+    onPress: () => void;
+    isDestructive?: boolean;
+  }[] = [
+    { title: user?.public ? "Switch to Private" : "Switch to Public", icon: "lock", onPress: handlePrivacy },
+    { title: "Log out", icon: "sign-out", onPress: handleLogout, isDestructive: true },
   ];
 
   const renderModal = () => {
@@ -274,15 +279,18 @@ export default function Profile() {
                 <TouchableOpacity
                   onPress={() => setActiveModal(null)}
                   style={styles.closeButton}
+                  accessibilityRole="button"
+                  accessibilityLabel="Close"
                 >
                   <FontAwesome name="times" size={24} color={theme.text} />
                 </TouchableOpacity>
               </View>
               
               <ScrollView style={styles.settingsContent}>
-                {settingsOptions.map((option, index) => (
+                {settingsOptions.map((option) => (
                   <TouchableOpacity
-                    key={index}
+                    key={option.icon}
+                    accessibilityRole="button"
                     style={[
                       styles.settingItem,
                       option.isDestructive && styles.destructiveItem
@@ -290,7 +298,7 @@ export default function Profile() {
                     onPress={option.onPress}
                   >
                     <FontAwesome
-                      name="gear"
+                      name={option.icon}
                       size={20}
                       color={option.isDestructive ? theme.destructiveLabel : theme.text}
                       style={styles.settingIcon}
@@ -322,6 +330,8 @@ export default function Profile() {
                 <TouchableOpacity
                   onPress={() => setActiveModal(null)}
                   style={styles.closeButton}
+                  accessibilityRole="button"
+                  accessibilityLabel="Close"
                 >
                   <FontAwesome name="times" size={24} color={theme.text} />
                 </TouchableOpacity>
@@ -389,6 +399,8 @@ export default function Profile() {
                     }
                   }}
                   style={styles.closeButton}
+                  accessibilityRole="button"
+                  accessibilityLabel="Close"
                 >
                   <FontAwesome name="times" size={24} color={theme.text} />
                 </TouchableOpacity>
@@ -403,7 +415,7 @@ export default function Profile() {
                   data={requestsList}
                   keyExtractor={(item) => item.id}
                   renderItem={({ item }) => <UserCard user={item}/>}
-                  contentContainerStyle={{ padding: 16 }}
+                  contentContainerStyle={styles.requestsListContent}
                   showsVerticalScrollIndicator={false}
                 />
               )}
@@ -486,7 +498,12 @@ export default function Profile() {
         {/* Header with Settings */}
         {user?.owner && (
           <View style={styles.header}>
-            <TouchableOpacity style={styles.requestsButton} onPress={() => openModal("requests")}>
+            <TouchableOpacity
+              style={styles.requestsButton}
+              onPress={() => openModal("requests")}
+              accessibilityRole="button"
+              accessibilityLabel={`Follow requests: ${user.requests}`}
+            >
               <FontAwesome name="inbox" size={24} color={theme.text} />
               <View style={styles.alert}>
                 <Text style={styles.alertNumber}>{user.requests}</Text>   
@@ -495,6 +512,8 @@ export default function Profile() {
             <TouchableOpacity 
               style={styles.settingsButton} 
               onPress={() => openModal("settings")}
+              accessibilityRole="button"
+              accessibilityLabel="Settings"
             >
               <FontAwesome name="cog" size={24} color={theme.text} />
             </TouchableOpacity>
@@ -521,6 +540,8 @@ export default function Profile() {
             <TouchableOpacity 
               style={styles.statItem} 
               onPress={() => openModal("followers")}
+              accessibilityRole="button"
+              accessibilityLabel={`${user?.follower_count ?? 0} followers`}
             >
               <Text style={styles.statNumber}>{user?.follower_count}</Text>
               <Text style={styles.statLabel}>Followers</Text>
@@ -531,6 +552,8 @@ export default function Profile() {
             <TouchableOpacity 
               style={styles.statItem} 
               onPress={() => openModal("following")}
+              accessibilityRole="button"
+              accessibilityLabel={`${user?.following_count ?? 0} following`}
             >
               <Text style={styles.statNumber}>{user?.following_count}</Text>
               <Text style={styles.statLabel}>Following</Text>
@@ -550,6 +573,7 @@ export default function Profile() {
                 (user?.is_following || user?.has_requested) && styles.followingButton
               ]}
               onPress={handleFollowToggle}
+              accessibilityRole="button"
             >
               <Text style={[
                 styles.followButtonText,
@@ -861,6 +885,9 @@ const createStyles = (theme: Theme) => StyleSheet.create({
   },
 
   // Followers / following list
+  requestsListContent: {
+    padding: 16,
+  },
   userList: {
     flex: 1,
     paddingHorizontal: 20,

@@ -338,6 +338,8 @@ export default function Studio(){
             <TouchableOpacity 
               style={styles.backButton}
               onPress={() => router.back()}
+              accessibilityRole="button"
+              accessibilityLabel="Go back"
             >
               <FontAwesome
                 name="angle-left"
@@ -349,6 +351,7 @@ export default function Studio(){
             <TouchableOpacity 
               style={styles.nextButton}
               onPress={handleNextPress}
+              accessibilityRole="button"
             >
               <Text style={styles.nextButtonText}>Next</Text>
             </TouchableOpacity>
@@ -356,6 +359,8 @@ export default function Studio(){
           {/*Extra buttons */}
           <TouchableOpacity style={styles.savedTemplates}
             onPress= {() => {setSavedTemplatesModal(true)}}
+            accessibilityRole="button"
+            accessibilityLabel="Saved templates"
           >
             <FontAwesome name= "bookmark" size={30} style={styles.savedTemplatesIcon}/>
           </TouchableOpacity>
@@ -363,15 +368,17 @@ export default function Studio(){
             name={studio && bookmarks[studio] ? "bookmark" : "bookmark-o"}
             size= {40}
             style={styles.saveTemplateIcon}
+            accessibilityRole="button"
+            accessibilityLabel={studio && bookmarks[studio] ? "Remove template from saved" : "Save template"}
             onPress={async () => {
               try {
                 if(!studio)
                   return
                 let result: any;
                 if (bookmarks[studio]){
-                  result = deleteSavedTemplate(studio);
+                  result = await deleteSavedTemplate(studio);
                 } else {
-                  result = saveTemplate(studio);
+                  result = await saveTemplate(studio);
                 };
 
                 if (result.error) {
@@ -398,6 +405,8 @@ export default function Studio(){
                   style={styles.imageContainer} 
                   onPress={() => !isTemplate ? setShowMenu(true) : null}
                   disabled={isTemplate}
+                  accessibilityRole="button"
+                  accessibilityLabel={image ? "Change event image" : "Add event image"}
                 >
                   {image ? (
                     <Image 
@@ -496,6 +505,8 @@ export default function Studio(){
                                   }
                                 }}
                                 style={styles.deleteButton}
+                                accessibilityRole="button"
+                                accessibilityLabel={`Delete question: ${item}`}
                               >
                                 <FontAwesome name="trash" size={14} color={theme.destructive} />
                               </TouchableOpacity>)}
@@ -543,6 +554,8 @@ export default function Studio(){
                                 {!isTemplate && (
                                 <TouchableOpacity
                                   style={styles.optionTrashButton}
+                                  accessibilityRole="button"
+                                  accessibilityLabel={`Delete option: ${item}`}
                                   onPress={() => {
                                     setOptionsDict((prev) => {
                                       const newDict = { ...prev };
@@ -739,17 +752,21 @@ export default function Studio(){
               <View style={styles.modalOverlay}>
                   <View style={styles.templatesModalContainer}>
                     <View>
-                      <FlatList style={{height: '75%', borderBottomWidth: 2, borderColor: theme.button_darker_primary}}
+                      <FlatList style={styles.templatesList}
                         data={savedTemplates}
+                        keyExtractor={(item) => item.id}
                         renderItem={({item}) =>
-                          <View style= {{flexDirection: "row", alignItems:"center"}}>
-                            <View style= {{flex:1}}>
+                          <View style={styles.templateRow}>
+                            <View style={styles.templateRowCard}>
                               <TemplateCard item={item}/>
                             </View>
                             <FontAwesome
-                              style={{width: 30, color: (bookmarks[item.id] ? theme.primary : theme.button_darker_primary)}}
+                              style={styles.templateBookmark}
                               name= "bookmark"
                               size={20}
+                              color={bookmarks[item.id] ? theme.primary : theme.button_darker_primary}
+                              accessibilityRole="button"
+                              accessibilityLabel={bookmarks[item.id] ? `Remove ${item.title} from saved` : `Save ${item.title}`}
                               onPress={async () => {
                                 try {
                                   let result: any;
@@ -847,7 +864,7 @@ export default function Studio(){
                   onPress={removeImage}
                 >
                   <FontAwesome name="trash" size={20} color={theme.destructive} />
-                  <Text style={[styles.imageMenuText, {color: theme.destructive}]}>Remove Image</Text>
+                  <Text style={[styles.imageMenuText, styles.imageMenuTextDestructive]}>Remove Image</Text>
                 </TouchableOpacity>
               )}
 
@@ -855,7 +872,7 @@ export default function Studio(){
                 style={[styles.imageMenuOption, styles.imageMenuCancel]} 
                 onPress={() => setShowMenu(false)}
               >
-                <Text style={[styles.imageMenuText, {color: theme.destructive}]}>Cancel</Text>
+                <Text style={[styles.imageMenuText, styles.imageMenuTextDestructive]}>Cancel</Text>
               </TouchableOpacity>
             </View>
           </Modal>
@@ -1320,6 +1337,21 @@ const createStyles = (theme: Theme) => StyleSheet.create({
     shadowRadius: 8,
     elevation: 5,
   },
+  templatesList: {
+    height: '75%',
+    borderBottomWidth: 2,
+    borderColor: theme.button_darker_primary,
+  },
+  templateRow: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  templateRowCard: {
+    flex: 1,
+  },
+  templateBookmark: {
+    width: 30,
+  },
   emptyTemplates: {
     alignItems: 'center',
     justifyContent: 'center',
@@ -1415,6 +1447,9 @@ const createStyles = (theme: Theme) => StyleSheet.create({
     fontWeight: "500",
     color: theme.primary,
     marginLeft: 15,
+  },
+  imageMenuTextDestructive: {
+    color: theme.destructive,
   },
   imageMenuCancel: {
     borderBottomWidth: 0,

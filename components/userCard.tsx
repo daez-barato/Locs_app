@@ -13,7 +13,6 @@ import {
   View,
   StyleSheet,
   TouchableOpacity,
-  Animated,
   Alert,
 } from "react-native";
 
@@ -90,19 +89,12 @@ export default function UserCard({ user }: { user: SearchUser }) {
   };
 
   return (
-    <Animated.View
-      style={[
-        styles.userCard,
-        {
-          opacity: 1,
-          transform: [{ scale: 1 }],
-        },
-      ]}
-    >
+    <View style={styles.userCard}>
       <TouchableOpacity
         style={styles.userCardTouchable}
         onPress={() => router.push(`/user/${user.id}`)}
         activeOpacity={0.8}
+        accessibilityRole="button"
       >
         <View style={styles.avatarContainer}>
           <AvatarImage
@@ -124,7 +116,7 @@ export default function UserCard({ user }: { user: SearchUser }) {
 
             {/* --- Case 1: Follow requests --- */}
             {!isSelf && userState.requester !== undefined && (
-              <View style={{ flexDirection: "row", gap: 8 }}>
+              <View style={styles.requestActions}>
                 <TouchableOpacity
                   style={styles.acceptButton}
                   accessibilityRole="button"
@@ -148,6 +140,7 @@ export default function UserCard({ user }: { user: SearchUser }) {
               <View style={styles.userFooter}>
                   <TouchableOpacity
                     onPress={handleFollowLabel}
+                    accessibilityRole="button"
                     style={(followLabel === "Following" || followLabel === "Requested") ? styles.followingIndicator : styles.actionIndicator}
                   >
                     {(followLabel === "Following" || followLabel === "Requested") ?
@@ -163,7 +156,7 @@ export default function UserCard({ user }: { user: SearchUser }) {
           </View>
         </View>
       </TouchableOpacity>
-    </Animated.View>
+    </View>
   );
 }
 
@@ -217,6 +210,10 @@ const createStyles = (theme: Theme) => StyleSheet.create({
         fontWeight: '700',
         flex: 1,
         marginRight: 8,
+    },
+    requestActions: {
+        flexDirection: 'row',
+        gap: 8,
     },
     userFooter: {
         flexDirection: 'row',

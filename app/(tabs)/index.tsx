@@ -68,7 +68,12 @@ export default function Home(){
           </Text>
         </View>
         {/* The shop is its own tab now; this shortcut just goes there. */}
-        <TouchableOpacity style={styles.tabButton} onPress={() => router.push("/shop")}>
+        <TouchableOpacity
+          style={styles.tabButton}
+          onPress={() => router.push("/shop")}
+          accessibilityRole="button"
+          accessibilityLabel="Open the shop"
+        >
           <Text style={styles.tabText}>
             Shop
           </Text>
@@ -85,7 +90,7 @@ export default function Home(){
           )}
           refreshing={refresh}
           onRefresh={() => {activateRefresh(true)}}
-          contentContainerStyle={{ paddingBottom: 20 }}
+          contentContainerStyle={styles.listContent}
           onEndReached={() => {if (!loadingMore && hasMore) {setLoadingMore(true); fetchData(offset);}}}
           onEndReachedThreshold={0.2}
           ListFooterComponent={
@@ -113,6 +118,7 @@ export default function Home(){
                   style={styles.emptyAction}
                   onPress={() => (errorMessage ? activateRefresh(true) : router.push("/explore"))}
                   activeOpacity={0.8}
+                  accessibilityRole="button"
                 >
                   <FontAwesome
                     name={errorMessage ? "refresh" : "search"}
@@ -162,6 +168,9 @@ const createStyles = (theme: Theme) => StyleSheet.create({
     color: theme.primary,
     fontSize: 16,
     fontWeight: 'bold',
+  },
+  listContent: {
+    paddingBottom: 20,
   },
   followingEventsContainer: {
     flex: 1,

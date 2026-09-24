@@ -12,7 +12,8 @@ import {
     ScrollView, 
     StyleSheet, 
     TouchableOpacity, 
-    RefreshControl
+    RefreshControl,
+    ActivityIndicator,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -86,6 +87,8 @@ export default function Parleys() {
             <View style={styles.tabsContainer}>
                 <TouchableOpacity 
                     style={[styles.tab, activeTab === 'participating' && styles.activeTab]}
+                    accessibilityRole="tab"
+                    accessibilityState={{ selected: activeTab === 'participating' }}
                     onPress={() => setActiveTab('participating')}
                 >
                     <FontAwesome 
@@ -103,6 +106,8 @@ export default function Parleys() {
                 
                 <TouchableOpacity 
                     style={[styles.tab, activeTab === 'created' && styles.activeTab]}
+                    accessibilityRole="tab"
+                    accessibilityState={{ selected: activeTab === 'created' }}
                     onPress={() => setActiveTab('created')}
                 >
                     <FontAwesome 
@@ -141,6 +146,12 @@ export default function Parleys() {
                     />
                 ))}
                 
+                {currentEvents.length === 0 && isLoading && (
+                    <View style={styles.emptyState}>
+                        <ActivityIndicator size="large" color={theme.primary} />
+                    </View>
+                )}
+
                 {currentEvents.length === 0 && !isLoading && (
                     <View style={styles.emptyState}>
                         <FontAwesome 
@@ -161,6 +172,8 @@ export default function Parleys() {
                                 : "Create your first event and bring people together"}
                         </Text>
                         <TouchableOpacity style={styles.emptyButton}
+                            accessibilityRole="button"
+                            activeOpacity={0.8}
                             onPress={() => {
                                 if (errorMessage){
                                     onRefresh();
@@ -289,26 +302,25 @@ const createStyles = (theme: Theme) => StyleSheet.create({
         fontWeight: '600',
         color: theme.text,
         marginTop: 16,
-        marginBottom: 8,
         textAlign: 'center',
     },
     emptySubtext: {
         fontSize: 14,
-        color: theme.text,
-        opacity: 0.6,
+        color: theme.textSecondary,
+        marginTop: 8,
         textAlign: 'center',
         lineHeight: 20,
-        marginBottom: 24,
     },
     emptyButton: {
+        marginTop: 20,
         backgroundColor: theme.primary,
         paddingHorizontal: 24,
         paddingVertical: 12,
-        borderRadius: 24,
+        borderRadius: 12,
     },
     emptyButtonText: {
         color: theme.buttonText,
-        fontSize: 14,
+        fontSize: 15,
         fontWeight: '600',
     },
 });

@@ -158,6 +158,8 @@ export default function Explore() {
                                 setQuery("");
                             }}
                             style={styles.clearButton}
+                            accessibilityRole="button"
+                            accessibilityLabel="Clear search"
                         >
                             <FontAwesome name="times" size={16} color={theme.textSecondary} />
                         </TouchableOpacity>
@@ -172,6 +174,8 @@ export default function Explore() {
                 <View style={styles.tabs}>
                     <TouchableOpacity 
                         style={[styles.tab, activeTab === 'events' && styles.activeTab]}
+                        accessibilityRole="tab"
+                        accessibilityState={{ selected: activeTab === 'events' }}
                         onPress={() => setActiveTab('events')}
                     >
                         <Text style={[styles.tabText, activeTab === 'events' && styles.activeTabText]}>
@@ -180,6 +184,8 @@ export default function Explore() {
                     </TouchableOpacity>
                     <TouchableOpacity 
                         style={[styles.tab, activeTab === 'templates' && styles.activeTab]}
+                        accessibilityRole="tab"
+                        accessibilityState={{ selected: activeTab === 'templates' }}
                         onPress={() => setActiveTab('templates')}
                     >
                         <Text style={[styles.tabText, activeTab === 'templates' && styles.activeTabText]}>
@@ -189,6 +195,8 @@ export default function Explore() {
                     {isSearching && (
                         <TouchableOpacity 
                             style={[styles.tab, activeTab === 'users' && styles.activeTab]}
+                            accessibilityRole="tab"
+                            accessibilityState={{ selected: activeTab === 'users' }}
                             onPress={() => setActiveTab('users')}
                         >
                             <Text style={[styles.tabText, activeTab === 'users' && styles.activeTabText]}>
@@ -225,7 +233,7 @@ export default function Explore() {
                         size={48}
                         color={errorMessage ? theme.destructive : theme.textFaint}
                         />
-                        <Text style={styles.emptyText}>
+                        <Text style={styles.emptyTitle}>
                         {errorMessage ? "Something went wrong" : `No ${activeTab} found`}
                         </Text>
                         <Text style={styles.emptySubtext}>
@@ -240,6 +248,7 @@ export default function Explore() {
                                 style={styles.retryButton}
                                 onPress={onRefresh}
                                 activeOpacity={0.8}
+                                accessibilityRole="button"
                             >
                                 <FontAwesome name="refresh" size={14} color={theme.buttonText} />
                                 <Text style={styles.retryButtonText}>Try again</Text>
@@ -460,17 +469,18 @@ const createStyles = (theme: Theme) => StyleSheet.create({
         fontSize: 15,
         fontWeight: '600',
     },
-    emptyText: {
+    emptyTitle: {
         color: theme.text,
         fontSize: 18,
         fontWeight: '600',
         marginTop: 16,
-        marginBottom: 8,
+        textAlign: 'center',
     },
     emptySubtext: {
-        color: theme.text,
+        color: theme.textSecondary,
         fontSize: 14,
-        opacity: 0.6,
+        marginTop: 8,
         textAlign: 'center',
+        lineHeight: 20,
     },
 });

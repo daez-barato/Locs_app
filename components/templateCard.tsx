@@ -9,8 +9,7 @@ import {
     View,
     StyleSheet,
     TouchableOpacity,
-    Image,
-    Animated
+    Image
 } from "react-native";
 
 
@@ -35,19 +34,12 @@ export default function TemplateCard({ item }: {item: SearchTemplate}) {
     };
 
     return (
-        <Animated.View
-            style={[
-                styles.card,
-                {
-                    opacity: 1,
-                    transform: [{ scale: 1 }]
-                }
-            ]}
-        >
+        <View style={styles.card}>
             <TouchableOpacity
                 style={styles.cardTouchable}
                 onPress={() => router.push(`/studio/${item.id}`)}
                 activeOpacity={0.8}
+                accessibilityRole="button"
             >
                 <View style={styles.thumbnailContainer}>
                     <Image
@@ -102,7 +94,7 @@ export default function TemplateCard({ item }: {item: SearchTemplate}) {
                     </View>
                 </View>
             </TouchableOpacity>
-        </Animated.View>
+        </View>
     );
 }
 

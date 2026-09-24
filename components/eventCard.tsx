@@ -9,8 +9,7 @@ import {
     View, 
     StyleSheet, 
     TouchableOpacity, 
-    Image, 
-    Animated
+    Image
 } from "react-native";
 
 export default function EventCard({event}: {event: Event}) {
@@ -19,7 +18,7 @@ export default function EventCard({event}: {event: Event}) {
     const router = useRouter();
 
     const getStatusColor = (locked: boolean, decided: boolean) => {
-        if (decided) return theme.destructive; // Green for decided
+        if (decided) return theme.destructive;
         return locked ? theme.secondary : theme.primary;
     };
 
@@ -41,19 +40,12 @@ export default function EventCard({event}: {event: Event}) {
     };
 
     return (
-        <Animated.View
-            style={[
-                styles.eventCard,
-                { 
-                    opacity: 1,
-                    transform: [{ scale: 1 }]
-                }
-            ]}
-        >
+        <View style={styles.eventCard}>
             <TouchableOpacity
                 style={styles.cardTouchable}
                 onPress={() => router.push(`/event/${event.id}`)}
                 activeOpacity={0.8}
+                accessibilityRole="button"
             >
                 <Image 
                     source={{ uri: event.thumbnail_url }} 
@@ -103,7 +95,7 @@ export default function EventCard({event}: {event: Event}) {
                     </View>
                 </View>
             </TouchableOpacity>
-        </Animated.View>
+        </View>
     );
 }
 

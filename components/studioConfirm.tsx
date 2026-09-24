@@ -44,7 +44,7 @@ export default function StudioConfirm({optionsDict, visible, setVisible, title, 
   const handleTimerConfirm = () => {
     const totalMinutes = days * 24 * 60 + hours * 60 + minutes;
     if (totalMinutes === 0) {
-      Alert.alert("Invalid Duration", "Please select at least 1 minute.");
+      Alert.alert("Invalid duration", "Please select at least 1 minute.");
       return;
     }
     setTime(formatTime(days, hours, minutes));
@@ -139,7 +139,7 @@ export default function StudioConfirm({optionsDict, visible, setVisible, title, 
       onPosted?.();
       router.push(`/event/${eventLink}`);
     } catch (error: any) {
-      Alert.alert("Error Creating Event:\n",  error.message);
+      Alert.alert("Couldn't create event", error.message);
     } finally {
       setIsPosting(false);
     }
@@ -166,6 +166,8 @@ export default function StudioConfirm({optionsDict, visible, setVisible, title, 
                 <TouchableOpacity 
                     style={styles.backButton}
                     onPress={() => setVisible(false)}
+                    accessibilityRole="button"
+                    accessibilityLabel="Back to editing"
                 >
                     <FontAwesome name="angle-left" size={28} color={theme.primary} />
                 </TouchableOpacity>

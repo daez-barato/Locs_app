@@ -1,4 +1,4 @@
-import { Text, StyleSheet, View, ScrollView, TouchableOpacity, Dimensions, TextInput, RefreshControl, Modal, Alert, Share, Image } from 'react-native';
+import { ActivityIndicator, Text, StyleSheet, View, ScrollView, TouchableOpacity, Dimensions, TextInput, RefreshControl, Modal, Alert, Share, Image } from 'react-native';
 import { useLocalSearchParams, router} from 'expo-router';
 import { Theme, useThemeConfig } from '@/components/ui/use-theme-config';
 import { useThemedStyles } from '@/hooks/use-themed-styles';
@@ -241,14 +241,14 @@ export default function eventScreen() {
     if (pendingBet) {
       const betAmount = parseFloat(modalBetAmount) || 0;
       if (betAmount <= 0) {
-        Alert.alert('Invalid Amount', 'Please enter a valid bet amount');
+        Alert.alert('Invalid amount', 'Please enter a valid bet amount');
         return;
       }
 
       if (pendingBet.isIncrease && betInfos[pendingBet.question]?.userBet?.options[pendingBet.option] !== undefined) {
         const currentBetAmount = betInfos[pendingBet.question].userBet?.options[pendingBet.option] || 0;
         if (betAmount <= currentBetAmount) {
-          Alert.alert('Invalid Amount', 'Increase amount must be greater than current bet');
+          Alert.alert('Invalid amount', 'Increase amount must be greater than current bet');
           return;
         }
       }
@@ -298,18 +298,17 @@ export default function eventScreen() {
     setPendingBet(null);
   };
 
-  const OptionCard = ({ option, question, betInfo }: { 
-    option: string, 
-    question: string, 
-    betInfo: Bet
-  }) => {
+  // A render function rather than a component defined inside this one: an
+  // inline component gets a new identity every render, so React unmounted and
+  // remounted every option card on each keystroke in the bet input.
+  const renderOptionCard = (option: string, question: string, betInfo: Bet) => {
     const optionBetAmount = betInfo.optionPots[option];
     const betPercentage = betInfo.totalPot > 0 ? ((optionBetAmount / betInfo.totalPot) * 100) : 0;
     const hasUserBet = betInfo.userBet?.options[option] !== undefined;
     const isLocked = eventInfo?.locked || eventInfo?.decided;
 
     return (
-      <View style={[
+      <View key={option} style={[
         styles.optionCard,
         hasUserBet && styles.userBetCard
       ]}>
@@ -385,7 +384,12 @@ export default function eventScreen() {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.header}>
-          <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
+          <TouchableOpacity
+            style={styles.backButton}
+            accessibilityRole="button"
+            accessibilityLabel="Go back"
+            onPress={() => router.back()}
+          >
             <FontAwesome5 name="arrow-left" size={18} color={theme.primary} />
           </TouchableOpacity>
         </View>
@@ -401,6 +405,27 @@ export default function eventScreen() {
             <FontAwesome5 name="redo" size={14} color={theme.onAccent} />
             <Text style={styles.loadErrorButtonText}>Try again</Text>
           </TouchableOpacity>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  if (!eventInfo) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.header}>
+          <TouchableOpacity
+            style={styles.backButton}
+            accessibilityRole="button"
+            accessibilityLabel="Go back"
+            onPress={() => router.back()}
+          >
+            <FontAwesome5 name="arrow-left" size={18} color={theme.primary} />
+          </TouchableOpacity>
+        </View>
+        <View style={styles.loadErrorContainer}>
+          <ActivityIndicator size="large" color={theme.primary} />
+          <Text style={styles.loadingText}>Loading event...</Text>
         </View>
       </SafeAreaView>
     );
@@ -424,6 +449,8 @@ export default function eventScreen() {
           {(isEventCreator || eventInfo?.public) && (
             <TouchableOpacity 
               style={styles.shareButton}
+              accessibilityRole="button"
+              accessibilityLabel="Share event"
               onPress={handleShareEvent}
             >
               <FontAwesome5 name="share" size={16} color={theme.primary} />
@@ -553,6 +580,8 @@ export default function eventScreen() {
             <View style={styles.creatorRow}>
               <TouchableOpacity
                 style={styles.creatorBadge}
+                accessibilityRole="link"
+                accessibilityLabel={`View ${eventInfo?.creator?.username}'s profile`}
                 onPress={() => router.push(`/(tabs)/user/${eventInfo?.creator?.username}`)}
               >
                 <FontAwesome5 name="user" size={12} color={theme.primary} />
@@ -597,13 +626,16 @@ export default function eventScreen() {
                 {eventInfo?.template_posted && !eventInfo.template_saved && (
                   <TouchableOpacity
                     style={styles.creatorActionButton}
+                    accessibilityRole="button"
+                    accessibilityLabel="Save template"
                     onPress={async () => {
                       try {
                         const save = await saveTemplate(eventInfo?.template_id as string);
                         if (save.error) throw Error(save.msg);
-                        Alert.alert('Template Saved', `Template "${eventInfo?.title}" has been saved to your collection`);
+                        setEventInfo(prev => prev ? { ...prev, template_saved: true } : prev);
+                        Alert.alert('Template saved', `Template "${eventInfo?.title}" has been saved to your collection`);
                       } catch (err: any) {
-                        Alert.alert('Error', err.msg || 'Template not saved');
+                        Alert.alert('Error', err.message || 'Template not saved');
                       }
                     }}
                   >
@@ -622,7 +654,7 @@ export default function eventScreen() {
             if (!betInfo) return null;
 
             return (
-              <View key={questionIndex} style={styles.questionContainer}>
+              <View key={question} style={styles.questionContainer}>
                 <View style={styles.questionHeader}>
                   <View style={styles.questionTitleRow}>
                     <View style={styles.questionNumber}>
@@ -648,14 +680,7 @@ export default function eventScreen() {
                   style={styles.optionsScrollView}
                   contentContainerStyle={styles.optionsScrollContent}
                 >
-                  {options.map((option, optionIndex) => (
-                    <OptionCard
-                      key={optionIndex}
-                      option={option}
-                      question={question}
-                      betInfo={betInfo}
-                    />
-                  ))}
+                  {options.map((option) => renderOptionCard(option, question, betInfo))}
                 </ScrollView>
               </View>
             );
@@ -842,14 +867,14 @@ export default function eventScreen() {
               </Text>
               
               {eventInfo?.questions && Object.entries(eventInfo.questions).map(([question, options], index) => (
-                <View key={index} style={styles.questionSelection}>
+                <View key={question} style={styles.questionSelection}>
                   <Text style={styles.questionSelectionTitle}>
                     Q{index + 1}: {question}
                   </Text>
                   
-                  {options.map((option, optionIndex) => (
+                  {options.map((option) => (
                     <TouchableOpacity
-                      key={optionIndex}
+                      key={option}
                       style={[
                         styles.optionSelectionButton,
                         winningOptions[question] === option && styles.selectedOptionButton
@@ -935,8 +960,7 @@ export default function eventScreen() {
                       Alert.alert('Error', result.msg);
                     } else {
                       Alert.alert('Success', 'Template has been posted to your studio');
-                      eventInfo!.template_posted = true;
-                      setEventInfo(eventInfo);
+                      setEventInfo(prev => prev ? { ...prev, template_posted: true } : prev);
                       setPostTemplateModal(false);
                     }
                   }}
@@ -975,6 +999,12 @@ const createStyles = (theme: Theme) => StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 32,
+  },
+  loadingText: {
+    color: theme.text,
+    fontSize: 16,
+    marginTop: 16,
+    textAlign: 'center',
   },
   loadErrorTitle: {
     color: theme.text,
