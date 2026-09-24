@@ -310,7 +310,6 @@ export default function Explore() {
                             setTemplateOffset((prev) => prev + (moreTrending.templates?.length || 0));  
                         }
 
-                        
                     }
                 } catch (err) {
                 // Stop paginating on failure, otherwise every scroll-to-end retries
@@ -426,9 +425,6 @@ const createStyles = (theme: Theme) => StyleSheet.create({
     activeTabText: {
         color: theme.buttonText,
         fontWeight: "700",
-    },
-    scrollView: {
-        flex: 1,
     },
     scrollContent: {
         paddingBottom: 20,

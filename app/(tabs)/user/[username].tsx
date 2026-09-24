@@ -767,19 +767,6 @@ const createStyles = (theme: Theme) => StyleSheet.create({
   },
 
   // Buttons
-  editButton: {
-    backgroundColor: theme.primary,
-    paddingHorizontal: 24,
-    paddingVertical: 10,
-    borderRadius: 8,
-    minWidth: 120,
-  },
-  editButtonText: {
-    color: theme.buttonText,
-    fontSize: 16,
-    fontWeight: '600',
-    textAlign: 'center',
-  },
   followButton: {
     backgroundColor: theme.primary,
     paddingHorizontal: 24,
@@ -835,57 +822,6 @@ const createStyles = (theme: Theme) => StyleSheet.create({
     paddingBottom: 20,
     minHeight: 200,
   },
-  betContainer: {
-    backgroundColor: theme.button_darker_primary,
-    borderRadius: 12,
-    marginBottom: 8,
-    elevation: 1,
-    shadowColor: theme.shadow,
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-  },
-  betContent: {
-    padding: 14,
-  },
-  betTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: theme.text,
-    marginBottom: 6,
-  },
-  betDescription: {
-    fontSize: 14,
-    color: theme.buttonText,
-    marginBottom: 10,
-  },
-  betFooter: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  betAmount: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: theme.primary,
-  },
-  betStatus: {
-    fontSize: 12,
-    fontWeight: '600',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 4,
-    backgroundColor: theme.cardBorder,
-    color: theme.secondary,
-  },
-  statusActive: {
-    backgroundColor: '#E8F5E8',
-    color: '#2E7D32',
-  },
-  statusCompleted: {
-    backgroundColor: '#E3F2FD',
-    color: '#1976D2',
-  },
 
   // Empty State
   emptyContainer: {
@@ -922,18 +858,6 @@ const createStyles = (theme: Theme) => StyleSheet.create({
     padding: 4,
     minWidth: 32,
   },
-  cancelText: {
-    fontSize: 16,
-    color: theme.void,
-  },
-  saveButton: {
-    padding: 4,
-  },
-  saveText: {
-    fontSize: 16,
-    color: theme.primary,
-    fontWeight: '600',
-  },
 
   // Settings Modal
   settingsContent: {
@@ -962,91 +886,11 @@ const createStyles = (theme: Theme) => StyleSheet.create({
     color: '#FF3B30',
   },
 
-  // Edit Profile Modal
-  editContent: {
-    flex: 1,
-    paddingHorizontal: 20,
-    paddingTop: 20,
-  },
-  editImageContainer: {
-    alignItems: 'center',
-    marginBottom: 30,
-  },
-  editProfileImage: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-    borderWidth: 2,
-    borderColor: theme.primary,
-    marginBottom: 12,
-  },
-  changePhotoButton: {
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-  },
-  changePhotoText: {
-    color: theme.primary,
-    fontSize: 16,
-    fontWeight: '500',
-  },
-  inputContainer: {
-    marginBottom: 20,
-  },
-  inputLabel: {
-    fontSize: 16,
-    fontWeight: '500',
-    color: theme.text,
-    marginBottom: 8,
-  },
-  textInput: {
-    backgroundColor: theme.button_darker_primary,
-    borderRadius: 8,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    fontSize: 16,
-    color: theme.text,
-    borderWidth: 1,
-    borderColor: theme.cardBorder,
-  },
-  bioInput: {
-    height: 80,
-    textAlignVertical: 'top',
-  },
+  // Followers / following list
   userList: {
     flex: 1,
     paddingHorizontal: 20,
     paddingTop: 10,
-  },
-  userItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    backgroundColor: theme.button_darker_primary,
-    borderRadius: 8,
-    marginBottom: 8,
-  },
-  userAvatar: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    borderWidth: 1,
-    borderColor: theme.primary,
-    marginRight: 12,
-  },
-  userInfo: {
-    flex: 1,
-    justifyContent: 'center',
-  },
-  userUsername: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: theme.text,
-    marginBottom: 2,
-  },
-  userDisplayName: {
-    fontSize: 14,
-    color: theme.void,
   },
   alert: {
     position: "absolute",

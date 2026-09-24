@@ -1147,12 +1147,6 @@ const createStyles = (theme: Theme) => StyleSheet.create({
     fontSize: 16,
     marginLeft: 8,
   },
-  optionsHeader: {
-    backgroundColor: theme.button_darker_primary,
-    borderRadius: 10,
-    padding: 15,
-    marginBottom: 15,
-  },
   optionsContainer: {
     borderRadius: 12,
     backgroundColor: theme.background,

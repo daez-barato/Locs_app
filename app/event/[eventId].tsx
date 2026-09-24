@@ -1038,12 +1038,6 @@ const createStyles = (theme: Theme) => StyleSheet.create({
     gap: 8,
   },
 
-  infoButton: {
-    padding: 12,
-    borderRadius: 12,
-    backgroundColor: theme.primary + '10',
-  },
-
   shareButton: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1697,119 +1691,6 @@ const createStyles = (theme: Theme) => StyleSheet.create({
 
   modalInner: {
     // This prevents the tap from propagating to the overlay
-  },
-
-  // Info Modal Specific Styles
-  creatorInfo: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: theme.card || '#F8F9FA',
-    borderWidth: 2,
-    borderColor: theme.primary + '30',
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 12,
-    elevation: 2,
-    shadowColor: theme.shadow,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-  },
-
-  templateInfo: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: theme.card || '#F8F9FA',
-    borderWidth: 2,
-    borderColor: theme.primary + '30',
-    borderRadius: 16,
-    padding: 16,
-    elevation: 2,
-    shadowColor: theme.shadow,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-  },
-
-  creatorMainArea: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-
-  templateMainArea: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-
-  userImagePlaceholder: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: theme.primary + '20',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 12,
-    borderWidth: 2,
-    borderColor: theme.primary + '30',
-  },
-
-  templateImagePlaceholder: {
-    width: 48,
-    height: 48,
-    borderRadius: 12,
-    backgroundColor: theme.primary + '20',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 12,
-    borderWidth: 2,
-    borderColor: theme.primary + '30',
-  },
-
-  creatorTextArea: {
-    flex: 1,
-  },
-
-  templateTextArea: {
-    flex: 1,
-  },
-
-  sectionLabel: {
-    color: theme.text + '70',
-    fontSize: 12,
-    fontWeight: '500',
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-    marginBottom: 4,
-  },
-
-  creatorName: {
-    color: theme.text,
-    fontSize: 16,
-    fontWeight: '700',
-  },
-
-  templateName: {
-    color: theme.text,
-    fontSize: 16,
-    fontWeight: '700',
-  },
-
-  followButton: {
-    padding: 12,
-    borderRadius: 12,
-    backgroundColor: theme.primary + '15',
-    borderWidth: 1,
-    borderColor: theme.primary,
-  },
-
-  saveButton: {
-    padding: 12,
-    borderRadius: 12,
-    backgroundColor: theme.success + '15',
-    borderWidth: 1,
-    borderColor: theme.success,
   },
 
   creatorRow: {

@@ -187,17 +187,6 @@ const createStyles = (theme: Theme) => StyleSheet.create({
         justifyContent: 'space-between',
         alignItems: 'center',
     },
-    categoryTag: {
-        backgroundColor: theme.primary + '20',
-        paddingHorizontal: 8,
-        paddingVertical: 4,
-        borderRadius: 8,
-    },
-    categoryText: {
-        fontSize: 11,
-        color: theme.primary,
-        fontWeight: '600',
-    },
     creatorBadge: {
         flexDirection: 'row',
         alignItems: 'center',

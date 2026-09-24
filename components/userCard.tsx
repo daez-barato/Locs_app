@@ -202,16 +202,6 @@ const createStyles = (theme: Theme) => StyleSheet.create({
         borderWidth: 2,
         borderColor: theme.card,
     },
-    statusIndicator: {
-        position: 'absolute',
-        bottom: 2,
-        right: 2,
-        width: 14,
-        height: 14,
-        borderRadius: 7,
-        borderWidth: 2,
-        borderColor: theme.card,
-    },
     userInfo: {
         flex: 1,
     },
@@ -227,27 +217,6 @@ const createStyles = (theme: Theme) => StyleSheet.create({
         fontWeight: '700',
         flex: 1,
         marginRight: 8,
-    },
-    statusBadge: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 4,
-        paddingHorizontal: 8,
-        paddingVertical: 3,
-        backgroundColor: theme.cardBorder + '30',
-        borderRadius: 8,
-    },
-    statusText: {
-        fontSize: 10,
-        fontWeight: '600',
-        textTransform: 'uppercase',
-    },
-    bio: {
-        color: theme.cardText,
-        fontSize: 13,
-        opacity: 0.8,
-        lineHeight: 16,
-        marginBottom: 8,
     },
     userFooter: {
         flexDirection: 'row',
@@ -289,16 +258,6 @@ const createStyles = (theme: Theme) => StyleSheet.create({
         paddingVertical: 4,
         paddingHorizontal: 8,
         borderRadius: 8,
-    },
-    followBackButton: {
-        backgroundColor: theme.primary,
-        paddingHorizontal: 12,
-        paddingVertical: 5,
-        borderRadius: 8,
-    },
-    followBackText: {
-        color: theme.void,
-        fontWeight: "600",
     },
 
 });
