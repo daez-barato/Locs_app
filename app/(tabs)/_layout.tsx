@@ -90,6 +90,26 @@ export default function TabLayout(){
                     }}
                 />
                 <Tabs.Screen
+                    name= "shop"
+                    options = {{
+                        title: "Shop",
+                        tabBarIcon: ({ focused }: { focused: boolean }) => (
+                            <FontAwesome
+                                size={28}
+                                name="shopping-bag"
+                                color={focused? theme.primary : theme.text}
+                            />
+                        ),
+                        tabBarStyle: { backgroundColor: theme.background },
+                        tabBarLabel: ({ focused }: {focused: boolean}) => (
+                            <FontAwesome style={{ color: focused ? theme.primary : theme.text }}>
+                                Shop
+                            </FontAwesome>
+                        ),
+                        headerShown: false,
+                    }}
+                />
+                <Tabs.Screen
                     name="user/[username]"
                     options = {{
                         title:"Profile",

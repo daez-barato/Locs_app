@@ -348,6 +348,39 @@ export type Database = {
           },
         ]
       }
+      shop_items: {
+        Row: {
+          active: boolean
+          created_at: string
+          id: string
+          image_path: string
+          kind: string
+          name: string
+          price: number
+          sort_order: number
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          id: string
+          image_path: string
+          kind: string
+          name: string
+          price: number
+          sort_order?: number
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          id?: string
+          image_path?: string
+          kind?: string
+          name?: string
+          price?: number
+          sort_order?: number
+        }
+        Relationships: []
+      }
       template_likes: {
         Row: {
           template_id: string
@@ -410,6 +443,42 @@ export type Database = {
           {
             foreignKeyName: "templates_creator_id_fkey"
             columns: ["creator_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_items: {
+        Row: {
+          acquired_at: string
+          item_id: string
+          price_paid: number
+          user_id: string
+        }
+        Insert: {
+          acquired_at?: string
+          item_id: string
+          price_paid: number
+          user_id: string
+        }
+        Update: {
+          acquired_at?: string
+          item_id?: string
+          price_paid?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_items_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "shop_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_items_user_id_fkey"
+            columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "users"
             referencedColumns: ["id"]
@@ -510,6 +579,12 @@ export type Database = {
         Args: { _event_id: string }
         Returns: undefined
       }
+      equip_item: {
+        Args: { _item_id: string }
+        Returns: {
+          avatar_url: string
+        }[]
+      }
       follow_user: {
         Args: { _target_id: string }
         Returns: {
@@ -563,6 +638,18 @@ export type Database = {
           template_id: string
           thumbnail_url: string
           title: string
+        }[]
+      }
+      get_shop_items: {
+        Args: never
+        Returns: {
+          equipped: boolean
+          image_path: string
+          item_id: string
+          kind: string
+          name: string
+          owned: boolean
+          price: number
         }[]
       }
       get_template_by_id: { Args: { p_template_id: string }; Returns: Json }
@@ -667,6 +754,13 @@ export type Database = {
       }
       lock_event: { Args: { _event_id: string }; Returns: undefined }
       publish_template: { Args: { _template_id: string }; Returns: undefined }
+      purchase_item: {
+        Args: { _item_id: string }
+        Returns: {
+          coins: number
+          item_id: string
+        }[]
+      }
       recommended_events: {
         Args: { _limit?: number; _offset?: number }
         Returns: {

@@ -152,3 +152,21 @@ export interface SearchEvent extends Event {
 };
 
 
+
+/**
+ * A shop catalogue entry as the shop screen sees it. Built from a
+ * get_shop_items row by services/shop.ts — screens never see the row itself.
+ */
+export interface ShopItem {
+    id: string;
+    /** only 'avatar' today */
+    kind: string;
+    name: string;
+    price: number;
+    /** object path in the public `avatar` bucket — what users.avatar_url holds once equipped */
+    imagePath: string;
+    /** public URL, ready for an <Image> */
+    imageUrl: string;
+    owned: boolean;
+    equipped: boolean;
+};

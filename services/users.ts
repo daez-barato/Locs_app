@@ -136,3 +136,20 @@ export const changePrivacy = async (isPublic: boolean) => {
 
 
     
+/**
+ * The signed-in user's current coin balance, or null if it couldn't be read.
+ * The coin provider keeps the balance live by broadcast; this is for screens
+ * that want to re-sync on focus in case a broadcast was missed.
+ */
+export const getMyCoins = async (): Promise<number | null> => {
+  try {
+    const { data, error } = await supabase.rpc("get_my_profile");
+    if (error || !data || data.length === 0) {
+      throw new Error(error?.message || "Profile not found");
+    }
+    return data[0].coins ?? 0;
+  } catch (err) {
+    console.error("Error fetching coin balance:", err);
+    return null;
+  }
+};

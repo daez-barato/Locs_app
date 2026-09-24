@@ -3,7 +3,6 @@ import { useThemedStyles } from "@/hooks/use-themed-styles";
 import { 
   View, 
   StyleSheet, 
-  Image, 
   Text, 
   TouchableOpacity, 
   RefreshControl,
@@ -16,8 +15,8 @@ import {
   NativeSyntheticEvent,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import React, { useCallback, useEffect, useState } from "react";
-import { useLocalSearchParams, useRouter } from "expo-router";
+import React, { useCallback, useEffect, useRef, useState } from "react";
+import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import { FontAwesome } from "@expo/vector-icons";
 import EventCard from "@/components/eventCard";
 import { getUserProfile, fetchUserCreatedEvents, fetchUserParticipatedEvents,
@@ -28,9 +27,11 @@ import UserCard from "@/components/userCard";
 import { followRequest, unfollowRequest} from "@/api/followers/followers";
 import { useAuthContext } from "@/hooks/use-auth-context";
 import { supabase } from "@/lib/supabase";
+import AvatarImage from "@/components/ui/avatar-image";
+import { resolveAvatarUrl } from "@/utils/avatar";
 
 type ActiveList = "created" | "participated";
-type ModalType = "settings" | "followers" | "following" | "requests" | "imageUpdate" | null;
+type ModalType = "settings" | "followers" | "following" | "requests" | null;
 
 export default function Profile() {
   const [followersOffset, setFollowersOffset] = useState(0);
@@ -155,6 +156,30 @@ export default function Profile() {
     setParticipatedOffset(0);
     fetchData(true);
   }, [username, hero?.username]);
+
+  // Tabs stay mounted, so coming back from the shop wouldn't refetch and the
+  // old avatar would linger. Refresh just the profile row on re-focus; the
+  // first focus is covered by the initial load above.
+  const hasFocused = useRef(false);
+  useFocusEffect(
+    useCallback(() => {
+      if (!hasFocused.current) {
+        hasFocused.current = true;
+        return;
+      }
+      if (!username || Array.isArray(username)) return;
+
+      let active = true;
+      getUserProfile(username).then((profile) => {
+        if (!active || !profile) return;
+        setUser(profile);
+        setUserImage(profile.avatar_url);
+      });
+      return () => {
+        active = false;
+      };
+    }, [username])
+  );
 
   const handleFollowToggle = async () => {
     try {
@@ -401,33 +426,6 @@ export default function Profile() {
             </SafeAreaView>
           </Modal>
         );
-      case "imageUpdate":
-        return (
-          <Modal
-            visible={activeModal === "imageUpdate"}
-            animationType="slide"
-            presentationStyle="pageSheet"
-            onRequestClose={() => setActiveModal(null)}
-          >
-            <SafeAreaView style={styles.modalContainer}>
-              <View style={styles.modalHeader}>
-                <Text style={styles.modalTitle}>Update Profile Image</Text>
-                <TouchableOpacity
-                  onPress={() => setActiveModal(null)}
-                  style={styles.closeButton}
-                >
-                  <FontAwesome name="times" size={24} color={theme.text} />
-                </TouchableOpacity>
-              </View>
-
-              {/* Placeholder content */}
-              <View style={styles.emptyContainer}>
-                <Text style={styles.emptyText}>Profile image update functionality coming soon!</Text>
-              </View>
-            </SafeAreaView>
-          </Modal>
-        );
-
       default:
         return null;
     }
@@ -531,12 +529,16 @@ export default function Profile() {
 
         {/* Profile Section */}
         <View style={styles.profileSection}>
-          <View style={styles.profileImageContainer}>
-            <Image
-              source={userImage ? { uri: userImage } : require("@/assets/images/placeholder-user-image.png")}
-              style={styles.profileImage}
-            />
-          </View>
+          <TouchableOpacity
+            style={styles.profileImageContainer}
+            onPress={() => router.push("/shop")}
+            disabled={!user?.owner}
+            activeOpacity={0.8}
+            accessibilityRole={user?.owner ? "button" : undefined}
+            accessibilityLabel={user?.owner ? "Change avatar in the shop" : undefined}
+          >
+            <AvatarImage uri={resolveAvatarUrl(userImage)} style={styles.profileImage} />
+          </TouchableOpacity>
 
           <Text style={styles.username}>{user?.username}</Text>
 

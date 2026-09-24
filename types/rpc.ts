@@ -97,3 +97,6 @@ export type SearchTemplateRow = RpcRow<"search_templates">;
 export type TrendingTemplateRow = RpcRow<"trending_templates">;
 export type SearchUserRow = RpcRow<"search_users">;
 export type SavedTemplateRow = RpcRow<"get_saved_templates">;
+export type ShopItemRow = RpcRow<"get_shop_items">;
+export type PurchaseItemRow = RpcRow<"purchase_item">;
+export type EquipItemRow = RpcRow<"equip_item">;

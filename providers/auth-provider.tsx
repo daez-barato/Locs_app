@@ -1,7 +1,7 @@
 import { AuthContext } from '@/hooks/use-auth-context'
 import { supabase } from '@/lib/supabase'
 import { User } from '@/types/interfaces'
-import { PropsWithChildren, useEffect, useState } from 'react'
+import { PropsWithChildren, useCallback, useEffect, useState } from 'react'
 
 export default function AuthProvider({ children }: PropsWithChildren) {
   const [claims, setClaims] = useState<Record<string, any> | undefined | null>()
@@ -94,6 +94,10 @@ export default function AuthProvider({ children }: PropsWithChildren) {
     }
   }, [isLoading, initialized])
 
+  const updateUser = useCallback((patch: Partial<User>) => {
+    setUser((prev) => (prev ? { ...prev, ...patch } : prev))
+  }, [])
+
   return (
     <AuthContext.Provider
       value={{
@@ -102,6 +106,7 @@ export default function AuthProvider({ children }: PropsWithChildren) {
         isInitializing: !initialized,
         user,
         isLoggedIn: claims != undefined,
+        updateUser,
       }}
     >
       {children}

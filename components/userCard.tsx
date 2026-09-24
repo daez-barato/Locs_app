@@ -6,12 +6,13 @@ import { FontAwesome } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useAuthContext } from "@/hooks/use-auth-context";
 import React, { useState } from "react";
+import AvatarImage from "@/components/ui/avatar-image";
+import { resolveAvatarUrl } from "@/utils/avatar";
 import {
   Text,
   View,
   StyleSheet,
   TouchableOpacity,
-  Image,
   Animated,
   Alert,
 } from "react-native";
@@ -104,12 +105,8 @@ export default function UserCard({ user }: { user: SearchUser }) {
         activeOpacity={0.8}
       >
         <View style={styles.avatarContainer}>
-          <Image
-            source={
-              userState.avatar_url
-                ? { uri: userState.avatar_url }
-                : require("@/assets/images/placeholder-user-image.png")
-            }
+          <AvatarImage
+            uri={resolveAvatarUrl(userState.avatar_url)}
             style={styles.avatar}
             resizeMode="cover"
           />

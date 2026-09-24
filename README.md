@@ -56,6 +56,14 @@ Two things the service layer must always do:
   object path that renders as a broken image. Use `signThumbnails()` for lists
   (one request per page) and `createSignedUrl` for a single record.
 
+**Avatars are paths too, but public.** `users.avatar_url` holds an object path in
+the public `avatar` bucket (or `null`, meaning the default avatar) — the same
+path as the equipped shop item's `image_path`. Never render it directly; pass it
+through `resolveAvatarUrl()` from `utils/avatar.ts`, which returns the public URL
+(`default_avatar.png` for null/empty, full `http(s)` URLs unchanged). No signing
+needed, and it's synchronous. `components/ui/avatar-image.tsx` renders the result
+and falls back to the bundled placeholder if the image fails to load.
+
 ## Types
 
 `types/database.types.ts` is generated from the live schema and passed to
@@ -92,6 +100,8 @@ npm test
 | `__tests__/template-profile-mapping.test.ts` | template nesting, profile row mapping, RPC parameter names |
 | `__tests__/image-upload.test.ts` | upload size limits, content types, failure paths |
 | `__tests__/thumbnails.test.ts` | batched signing, de-duplication, failure fallback |
+| `__tests__/shop.test.ts` | shop row → `ShopItem` mapping, `_item_id` parameter, RPC error → friendly text |
+| `__tests__/avatar.test.ts` | avatar path → public URL, default fallback, URL passthrough |
 
 These cover the service layer, not components — that's deliberate, because every
 bug worth regression-testing so far has been a shape or contract mismatch rather
@@ -107,17 +117,17 @@ over anything declared below it. Build the mock inline and wire behaviour in
 ```
 app/              expo-router routes (file-based)
   (auth)/         login & register
-  (tabs)/         feed, explore, parleys, profile
+  (tabs)/         feed, explore, parleys, shop (avatars), profile
   event/[eventId] event detail, betting, lock/decide/delete
   studio/[studio] event & template editor
 components/       shared UI (cards, modals)
-services/         data layer — RPC calls + shape translation
+services/         data layer — RPC calls + shape translation (shop.ts: catalogue, buy, equip)
 api/              older data layer, same role (see above)
 providers/        auth and coin context
 hooks/            context accessors
 lib/supabase.ts   the typed client
 types/            generated schema, hand-written jsonb contracts, view models
-utils/            uploads, thumbnail signing, secure storage
+utils/            uploads, thumbnail signing, avatar URLs, secure storage
 ```
 
 ## Auth
