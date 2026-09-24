@@ -16,9 +16,7 @@ import {
     ActivityIndicator,
     FlatList
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
 import EventCard from "@/components/eventCard";
-import CreateEventButton from "@/components/create-event-button";
 import { SearchObject ,SearchUser, SearchTemplate, SearchEvent } from "@/types/interfaces";
 
 export default function Explore() {
@@ -136,7 +134,7 @@ export default function Explore() {
         (activeTab === 'events' ? events as SearchObject[] : templates as SearchObject[]);
 
     return (
-        <SafeAreaView style={styles.container}>
+        <View style={styles.container}>
             <View style={styles.searchHeader}>
                 <View style={styles.searchBar}>
                     <FontAwesome 
@@ -346,8 +344,7 @@ export default function Explore() {
             contentContainerStyle={styles.scrollContent}
             />
 
-            <CreateEventButton />
-        </SafeAreaView>
+        </View>
     );
 }
 

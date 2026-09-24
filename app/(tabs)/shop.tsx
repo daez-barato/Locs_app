@@ -1,5 +1,7 @@
 import { Theme, useThemeConfig } from "@/components/ui/use-theme-config";
 import AvatarImage from "@/components/ui/avatar-image";
+import { CoinAmount, CoinIcon } from "@/components/ui/coin";
+import { haptics } from "@/utils/haptics";
 import { useThemedStyles } from "@/hooks/use-themed-styles";
 import { useCoinContext } from "@/hooks/use-coin-context";
 import { useAuthContext } from "@/hooks/use-auth-context";
@@ -7,7 +9,7 @@ import { equipItem, getShopItems, purchaseItem } from "@/services/shop";
 import { getMyCoins } from "@/services/users";
 import { ShopItem } from "@/types/interfaces";
 import { FontAwesome } from "@expo/vector-icons";
-import { useFocusEffect } from "expo-router";
+import { Tabs, useFocusEffect } from "expo-router";
 import React, { useCallback, useRef, useState } from "react";
 import {
   ActivityIndicator,
@@ -19,7 +21,6 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function Shop() {
   const theme = useThemeConfig();
@@ -93,6 +94,7 @@ export default function Shop() {
         prev.map((i) => (i.kind === item.kind ? { ...i, equipped: i.id === item.id } : i))
       );
       updateUser({ avatar_url: result.avatarPath });
+      haptics.tap();
     } finally {
       setItemBusy(item.id, false);
     }
@@ -112,6 +114,7 @@ export default function Shop() {
       setCoinAmount(result.coins);
       setItems((prev) => prev.map((i) => (i.id === item.id ? { ...i, owned: true } : i)));
       purchased = true;
+      haptics.success();
     } finally {
       setItemBusy(item.id, false);
     }
@@ -165,7 +168,7 @@ export default function Shop() {
     if (item.price > coins) {
       return (
         <View style={[styles.actionButton, styles.actionDisabled]}>
-          <Text style={styles.actionDisabledText}>Need {item.price - coins} more</Text>
+          <CoinAmount prefix="Need" amount={item.price - coins} size={14} textStyle={styles.actionDisabledText} />
         </View>
       );
     }
@@ -182,8 +185,9 @@ export default function Shop() {
           <ActivityIndicator size="small" color={theme.void} />
         ) : (
           <>
-            <FontAwesome name="money" size={12} color={theme.void} />
-            <Text style={styles.buyButtonText}>Buy · {item.price}</Text>
+            <Text style={styles.buyButtonText}>Buy</Text>
+            <CoinIcon size={16} />
+            <Text style={styles.buyButtonText}>{item.price}</Text>
           </>
         )}
       </TouchableOpacity>
@@ -203,9 +207,11 @@ export default function Shop() {
       <Text style={styles.name} numberOfLines={1}>
         {item.name}
       </Text>
-      <Text style={styles.price}>
-        {item.owned ? "Owned" : item.price === 0 ? "Free" : `${item.price} coins`}
-      </Text>
+      {item.owned || item.price === 0 ? (
+        <Text style={styles.price}>{item.owned ? "Owned" : "Free"}</Text>
+      ) : (
+        <CoinAmount amount={item.price} size={14} textStyle={styles.price} style={styles.priceRow} />
+      )}
       {renderAction(item)}
     </View>
   );
@@ -262,16 +268,19 @@ export default function Shop() {
   };
 
   return (
-    <SafeAreaView style={styles.container} edges={["top"]}>
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>Shop</Text>
-        <View style={styles.balance} accessibilityLabel={`Balance: ${coins} coins`}>
-          <FontAwesome name="money" size={16} color={theme.primary} />
-          <Text style={styles.balanceText}>{coins}</Text>
-        </View>
-      </View>
+    <View style={styles.container}>
+      <Tabs.Screen
+        options={{
+          headerRight: () => (
+            <View style={styles.balance} accessible accessibilityLabel={`Balance: ${coins} coins`}>
+              <CoinIcon size={18} />
+              <Text style={styles.balanceText}>{coins}</Text>
+            </View>
+          ),
+        }}
+      />
       {renderBody()}
-    </SafeAreaView>
+    </View>
   );
 }
 
@@ -281,21 +290,8 @@ const createStyles = (theme: Theme) =>
       flex: 1,
       backgroundColor: theme.background,
     },
-    header: {
-      flexDirection: "row",
-      justifyContent: "space-between",
-      alignItems: "center",
-      paddingHorizontal: 20,
-      paddingVertical: 16,
-      borderBottomWidth: 1,
-      borderBottomColor: theme.cardBorder,
-    },
-    headerTitle: {
-      fontSize: 24,
-      fontWeight: "700",
-      color: theme.text,
-    },
     balance: {
+      marginRight: 16,
       flexDirection: "row",
       alignItems: "center",
       gap: 6,
@@ -369,6 +365,11 @@ const createStyles = (theme: Theme) =>
       fontVariant: ['tabular-nums'],
       color: theme.muted,
       fontSize: 13,
+      marginTop: 2,
+      marginBottom: 8,
+    },
+    // CoinAmount is a row; the margins that sat on the old Text move to it.
+    priceRow: {
       marginTop: 2,
       marginBottom: 8,
     },

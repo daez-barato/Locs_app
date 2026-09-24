@@ -2,14 +2,12 @@
 import { fetchFollowingPosts } from "@/services/events";
 import { Event } from "@/types/interfaces";
 import EventCard from "@/components/eventCard";
-import CreateEventButton from "@/components/create-event-button";
 import { useThemeConfig, Theme } from "@/components/ui/use-theme-config"
 import { useThemedStyles } from "@/hooks/use-themed-styles";
 import { FontAwesome } from "@expo/vector-icons";
 import { useEffect, useState } from "react"
 import { useRouter } from "expo-router"
 import { ActivityIndicator, FlatList, StyleSheet, Text, TouchableOpacity, View } from "react-native"
-import { SafeAreaView } from "react-native-safe-area-context"
 
 
 
@@ -61,10 +59,7 @@ export default function Home(){
   }, [refresh])
 
   return (
-    <SafeAreaView style={styles.backgroundContainer}>
-      {/* A plain title: the "Shop" half of the old two-tab header only
-          opened the Shop tab that's already in the tab bar. */}
-      <Text style={styles.title} accessibilityRole="header">Following</Text>
+    <View style={styles.backgroundContainer}>
       <View style={styles.followingEventsContainer}>
         <FlatList
           data={followingPostsList}
@@ -120,8 +115,7 @@ export default function Home(){
           }
         />
       </View>
-      <CreateEventButton />
-    </SafeAreaView>
+    </View>
   )
 }
 
@@ -129,14 +123,6 @@ const createStyles = (theme: Theme) => StyleSheet.create({
   backgroundContainer: {
     flex: 1,
     backgroundColor: theme.background
-  },
-  title: {
-    color: theme.text,
-    fontSize: 28,
-    fontWeight: '700',
-    paddingHorizontal: 20,
-    paddingTop: 12,
-    paddingBottom: 4,
   },
   listContent: {
     // Room for the create button, which floats over the end of the list.

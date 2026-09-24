@@ -8,6 +8,7 @@ import { useAuthContext } from "@/hooks/use-auth-context";
 import React, { useState } from "react";
 import AvatarImage from "@/components/ui/avatar-image";
 import { resolveAvatarUrl } from "@/utils/avatar";
+import { haptics } from "@/utils/haptics";
 import {
   Text,
   View,
@@ -34,6 +35,7 @@ export default function UserCard({ user }: { user: SearchUser }) {
         if (result.error){
           throw new Error(result.message)
         }
+        haptics.tap();
         if (result.following){
           setFollowLabel("Following")
         }else if (result.requested) {

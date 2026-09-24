@@ -10,34 +10,25 @@ import {
   ActivityIndicator,
   Alert,
   ScrollView,
-  Modal,
-  FlatList,
   NativeScrollEvent,
   NativeSyntheticEvent,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
 import React, { useCallback, useEffect, useRef, useState } from "react";
-import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
+import { Tabs, useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import { FontAwesome } from "@expo/vector-icons";
 import EventCard from "@/components/eventCard";
-import { getUserProfile, fetchUserCreatedEvents, fetchUserParticipatedEvents,
-  getFollowersList, getFollowingList, getRequestsList, changePrivacy
-} from "@/services/users";
-import { Event, SearchUser, UserProfile } from "@/types/interfaces";
-import UserCard from "@/components/userCard";
+import { haptics } from "@/utils/haptics";
+import { getUserProfile, fetchUserCreatedEvents, fetchUserParticipatedEvents } from "@/services/users";
+import { Event, UserProfile } from "@/types/interfaces";
 import { followRequest, unfollowRequest} from "@/api/followers/followers";
 import { useAuthContext } from "@/hooks/use-auth-context";
-import { supabase } from "@/lib/supabase";
 import AvatarImage from "@/components/ui/avatar-image";
+import { CoinAmount, CoinIcon } from "@/components/ui/coin";
 import { resolveAvatarUrl } from "@/utils/avatar";
 
 type ActiveList = "created" | "participated";
-type ModalType = "settings" | "followers" | "following" | "requests" | null;
 
 export default function Profile() {
-  const [followersOffset, setFollowersOffset] = useState(0);
-  const [followingOffset, setFollowingOffset] = useState(0);
-  const [loadingMore, setLoadingMore] = useState<boolean>(true);
   const [userImage, setUserImage] = useState<string | null>(null);
   
   const [createdOffset, setCreatedOffset] = useState(0);
@@ -58,12 +49,6 @@ export default function Profile() {
   const [refreshing, setRefreshing] = useState<boolean>(false);
   const [user, setUser] = useState<UserProfile>();
   
-  const [activeModal, setActiveModal] = useState<ModalType>(null);
-  
-  const [requestsList, setRequestsList] = useState<SearchUser[]>([]);
-  const [followersList, setFollowersList] = useState<SearchUser[]>([]);
-  const [followingList, setFollowingList] = useState<SearchUser[]>([]);
-  const [loadingUsers, setLoadingUsers] = useState<boolean>(false);
 
   const fetchData = async (isRefresh = false) => {
     try {
@@ -104,39 +89,7 @@ export default function Profile() {
     }
   };
 
-  const fetchUserList = async (type: "followers" | "following") => {
-    try {
-      const users = type === "followers" 
-        ? await getFollowersList(username as string, followersOffset)
-        : await getFollowingList(username as string, followingOffset);
-      
-      const mergeUnique = (prev: SearchUser[]) =>
-        Array.from(new Map([...prev, ...users].map(e => [e.id, e])).values());
-
-      if (type === "followers") {
-        setFollowersList(mergeUnique);
-        setFollowersOffset(prev => prev + users.length);
-      } else {
-        setFollowingList(mergeUnique);
-        setFollowingOffset(prev => prev + users.length);
-      }
-      setLoadingUsers(false);
-      setLoadingMore(false);
-
-    } catch (error) {
-      console.error(`Error fetching ${type}:`, error);
-      // Without this the spinner stays up forever on a failed fetch.
-      setLoadingUsers(false);
-      setLoadingMore(false);
-    }
-  };
-
   const onRefresh = useCallback(() => {
-    setLoadingUsers(true);
-    setFollowersOffset(0);
-    setFollowingOffset(0);
-    setFollowersList([]);
-    setFollowingList([]);
     setCreatedOffset(0);
     setParticipatedOffset(0);
     fetchData(true);
@@ -177,6 +130,7 @@ export default function Profile() {
       } else {
         const result = await followRequest(user.id);
         if (result.error) throw new Error(result.message);
+        haptics.tap();
         if (result.following){
           setUser(prev => prev ? {...prev, is_following: true, has_requested: false} : prev);
         } else {
@@ -190,252 +144,21 @@ export default function Profile() {
     }
   };
 
-  const handleLogout = () => {
-    Alert.alert(
-      "Log out",
-      "Are you sure you want to log out?",
-      [
-        { text: "Cancel", style: "cancel" },
-        {
-          text: "Log out",
-          style: "destructive",
-          onPress: async () => {
-            try {
-              await supabase.auth.signOut();
-              setActiveModal(null);
-              router.replace('/(auth)');
-            } catch (error) {
-              console.error("Logout error:", error);
-              Alert.alert("Error", "Failed to log out. Please try again.");
-            }
-          }
-        }
-      ]
-    );
-  };
-
-  const openModal = (type: ModalType) => {
-    setActiveModal(type);
-    if (type === "followers" || type === "following") {
-      setLoadingUsers(true);
-      fetchUserList(type);
-    }
-  };
-
   useEffect(() => {
       if (!username || Array.isArray(username)) return;
 
       onRefresh();
-      setActiveModal(null);
     }, [username, hero?.username]
   );
 
-  const handlePrivacy = async () => {
-    try {
-      const response = await changePrivacy(!user?.public);
-
-      if (response.error){
-        throw new Error(response.msg)
-      }
-
-      setUser(prev => prev ? { ...prev, public: response.public } : prev);
-
-      Alert.alert(
-        "Privacy updated",
-        response.public
-          ? "Your account is now public."
-          : "Your account is now private."
-      );
-    } catch (error) {
-      console.error("Privacy update error:", error);
-      Alert.alert("Error", "Unable to change privacy settings. Please try again.");
-    }
-  };
-
-  const settingsOptions: {
-    title: string;
-    icon: React.ComponentProps<typeof FontAwesome>["name"];
-    onPress: () => void;
-    isDestructive?: boolean;
-  }[] = [
-    { title: user?.public ? "Switch to Private" : "Switch to Public", icon: "lock", onPress: handlePrivacy },
-    { title: "Log out", icon: "sign-out", onPress: handleLogout, isDestructive: true },
-  ];
-
-  const renderModal = () => {
-    const modalProps = {
-      visible: activeModal !== null,
-      animationType: "slide" as const,
-      presentationStyle: "pageSheet" as const,
-      onRequestClose: () => setActiveModal(null)
-    };
-
-    switch (activeModal) {
-      case "settings":
-        return (
-          <Modal {...modalProps}>
-            <SafeAreaView style={styles.modalContainer}>
-              <View style={styles.modalHeader}>
-                <Text style={styles.modalTitle}>Settings</Text>
-                <TouchableOpacity
-                  onPress={() => setActiveModal(null)}
-                  style={styles.closeButton}
-                  accessibilityRole="button"
-                  accessibilityLabel="Close"
-                >
-                  <FontAwesome name="times" size={24} color={theme.text} />
-                </TouchableOpacity>
-              </View>
-              
-              <ScrollView style={styles.settingsContent}>
-                {settingsOptions.map((option) => (
-                  <TouchableOpacity
-                    key={option.icon}
-                    accessibilityRole="button"
-                    style={[
-                      styles.settingItem,
-                      option.isDestructive && styles.destructiveItem
-                    ]}
-                    onPress={option.onPress}
-                  >
-                    <FontAwesome
-                      name={option.icon}
-                      size={20}
-                      color={option.isDestructive ? theme.destructiveLabel : theme.text}
-                      style={styles.settingIcon}
-                    />
-                    <Text
-                      style={[
-                        styles.settingText,
-                        option.isDestructive && styles.destructiveText
-                      ]}
-                    >
-                      {option.title}
-                    </Text>
-                    <FontAwesome name="chevron-right" size={16} color={theme.void} />
-                  </TouchableOpacity>
-                ))}
-              </ScrollView>
-            </SafeAreaView>
-          </Modal>
-        );
-      case "followers":
-      case "following":
-        const userList = activeModal === "followers" ? followersList : followingList;
-        const title = activeModal === "followers" ? "Followers" : "Following";
-        
-        return (
-          <Modal {...modalProps}>
-            <SafeAreaView style={styles.modalContainer}>
-              <View style={styles.modalHeader}>
-                <TouchableOpacity
-                  onPress={() => setActiveModal(null)}
-                  style={styles.closeButton}
-                  accessibilityRole="button"
-                  accessibilityLabel="Close"
-                >
-                  <FontAwesome name="times" size={24} color={theme.text} />
-                </TouchableOpacity>
-                <Text style={styles.modalTitle}>{title}</Text>
-                <View style={styles.closeButton} />
-              </View>
-              
-              {loadingUsers ? (
-                <View style={styles.loadingContainer}>
-                  <ActivityIndicator size="large" color={theme.primary} />
-                  <Text style={styles.loadingText}>Loading {title.toLowerCase()}...</Text>
-                </View>
-              ) : userList.length === 0 ? (
-                <View style={styles.emptyContainer}>
-                  <Text style={styles.emptyText}>
-                    No {title.toLowerCase()} yet
-                  </Text>
-                </View>
-              ) : (
-                <FlatList
-                  data={userList}
-                  renderItem={({ item }) => <UserCard user={item} />}
-                  keyExtractor={(item) => item.id}
-                  style={styles.userList}
-                  showsVerticalScrollIndicator={false}
-                  onEndReached={() => {
-                    if (!loadingMore 
-                      && ((activeModal === "followers" && user && user?.follower_count > followersList.length) 
-                      || (activeModal === "following" && user && user?.following_count > followingList.length))){
-                      setLoadingMore(true);
-                      fetchUserList(activeModal)
-                    }}}
-                  onEndReachedThreshold={0.2}
-                  ListFooterComponent={
-                    loadingMore ? (
-                      <ActivityIndicator size="small" color={theme.primary} />
-                    ) : null
-                  }
-                />
-              )}
-            </SafeAreaView>
-          </Modal>
-        );
-      case "requests":
-        return (
-          <Modal
-            visible={activeModal === "requests"}
-            animationType="slide"
-            presentationStyle="pageSheet"
-            onRequestClose={() => setActiveModal(null)}
-          >
-            <SafeAreaView style={styles.modalContainer}>
-              <View style={styles.modalHeader}>
-                <Text style={styles.modalTitle}>Follow Requests</Text>
-                <TouchableOpacity
-                  onPress={async () => {
-                    setActiveModal(null);
-                    try {
-                      const result = await getRequestsList(user?.username as string);
-
-                      setRequestsList(result);
-
-                    }catch (error) {
-                      console.error(`Error updating requestList:`, error);
-                    }
-                  }}
-                  style={styles.closeButton}
-                  accessibilityRole="button"
-                  accessibilityLabel="Close"
-                >
-                  <FontAwesome name="times" size={24} color={theme.text} />
-                </TouchableOpacity>
-              </View>
-
-              {requestsList.length === 0 ? (
-                <View style={styles.emptyContainer}>
-                  <Text style={styles.emptyText}>No pending requests</Text>
-                </View>
-              ) : (
-                <FlatList
-                  data={requestsList}
-                  keyExtractor={(item) => item.id}
-                  renderItem={({ item }) => <UserCard user={item}/>}
-                  contentContainerStyle={styles.requestsListContent}
-                  showsVerticalScrollIndicator={false}
-                />
-              )}
-            </SafeAreaView>
-          </Modal>
-        );
-      default:
-        return null;
-    }
-  };
-
   if (loading) {
     return (
-      <SafeAreaView style={styles.container}>
+      <View style={styles.container}>
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={theme.primary} />
           <Text style={styles.loadingText}>Loading profile...</Text>
         </View>
-      </SafeAreaView>
+      </View>
     );
   };
 
@@ -482,8 +205,46 @@ export default function Profile() {
 
   const currentBetList = (user?.public || user?.is_following || user?.owner) ? (activeList === "created") ? createdEvents : participatedEvents : undefined;
 
+  const openSheet = (pathname: "/settings" | "/requests" | "/connections", kind?: "followers" | "following") =>
+    router.push(kind ? { pathname, params: { username: username as string, kind } } : pathname);
+
   return (
-    <SafeAreaView style={styles.container}>
+    <View style={styles.container}>
+      {/* The name is already large under the avatar, so the header carries
+          only actions: requests and settings on your own profile. */}
+      <Tabs.Screen
+        options={{
+          headerTitle: "",
+          headerRight: user?.owner
+            ? () => (
+                <View style={styles.headerActions}>
+                  <TouchableOpacity
+                    style={styles.headerButton}
+                    onPress={() => openSheet("/requests")}
+                    accessibilityRole="button"
+                    accessibilityLabel={`Follow requests: ${user.requests}`}
+                  >
+                    <FontAwesome name="inbox" size={22} color={theme.text} />
+                    {/* Only when there's something to act on; it used to show "0". */}
+                    {user.requests > 0 && (
+                      <View style={styles.alert}>
+                        <Text style={styles.alertNumber}>{user.requests}</Text>
+                      </View>
+                    )}
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={styles.headerButton}
+                    onPress={() => openSheet("/settings")}
+                    accessibilityRole="button"
+                    accessibilityLabel="Settings"
+                  >
+                    <FontAwesome name="cog" size={22} color={theme.text} />
+                  </TouchableOpacity>
+                </View>
+              )
+            : undefined,
+        }}
+      />
       <ScrollView 
         style={styles.scrollContainer}
         showsVerticalScrollIndicator={false}
@@ -496,34 +257,6 @@ export default function Profile() {
         }
         onMomentumScrollEnd={handleScroll}
       >
-        {/* Header with Settings */}
-        {user?.owner && (
-          <View style={styles.header}>
-            <TouchableOpacity
-              style={styles.requestsButton}
-              onPress={() => openModal("requests")}
-              accessibilityRole="button"
-              accessibilityLabel={`Follow requests: ${user.requests}`}
-            >
-              <FontAwesome name="inbox" size={24} color={theme.text} />
-              {/* Only when there's something to act on; it used to show "0". */}
-              {user.requests > 0 && (
-                <View style={styles.alert}>
-                  <Text style={styles.alertNumber}>{user.requests}</Text>
-                </View>
-              )}
-            </TouchableOpacity>
-            <TouchableOpacity 
-              style={styles.settingsButton} 
-              onPress={() => openModal("settings")}
-              accessibilityRole="button"
-              accessibilityLabel="Settings"
-            >
-              <FontAwesome name="cog" size={24} color={theme.text} />
-            </TouchableOpacity>
-          </View>
-        )}
-
         {/* Profile Section */}
         <View style={styles.profileSection}>
           <TouchableOpacity
@@ -543,7 +276,7 @@ export default function Profile() {
           <View style={styles.statsContainer}>
             <TouchableOpacity 
               style={styles.statItem} 
-              onPress={() => openModal("followers")}
+              onPress={() => openSheet("/connections", "followers")}
               accessibilityRole="button"
               accessibilityLabel={`${user?.follower_count ?? 0} followers`}
             >
@@ -555,7 +288,7 @@ export default function Profile() {
             
             <TouchableOpacity 
               style={styles.statItem} 
-              onPress={() => openModal("following")}
+              onPress={() => openSheet("/connections", "following")}
               accessibilityRole="button"
               accessibilityLabel={`${user?.following_count ?? 0} following`}
             >
@@ -564,7 +297,7 @@ export default function Profile() {
             </TouchableOpacity>
               <View style={styles.statDivider} />
               <View style={styles.statItem}>
-                <Text style={styles.statNumber}>{user?.coins}</Text>
+                <CoinAmount amount={user?.coins ?? 0} size={20} textStyle={styles.statNumber} />
                 <Text style={styles.statLabel}>Coins</Text>
               </View>
           </View>
@@ -657,10 +390,7 @@ export default function Profile() {
         )
         }
       </ScrollView>
-
-      {/* Render Active Modal */}
-      {renderModal()}
-    </SafeAreaView>
+    </View>
   );
 }
 
@@ -687,20 +417,15 @@ const createStyles = (theme: Theme) => StyleSheet.create({
   },
 
   // Header
-  header: {
+  headerActions: {
     flexDirection: 'row',
-    justifyContent: "space-between",
-    paddingHorizontal: 20,
-    paddingVertical: 10,
+    gap: 4,
+    marginRight: 8,
   },
-  settingsButton: {
+  headerButton: {
     padding: 8,
-  },
-  requestsButton: {
-    padding: 8,
-    alignContent: "center",
-    justifyContent:"center",
-    alignItems: "center"
+    alignItems: "center",
+    justifyContent: "center",
   },
   // Profile Section
   profileSection: {
@@ -833,65 +558,11 @@ const createStyles = (theme: Theme) => StyleSheet.create({
   },
 
   // Modal Base
-  modalContainer: {
-    flex: 1,
-    backgroundColor: theme.background,
-  },
-  modalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: theme.cardBorder,
-  },
-  modalTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: theme.text,
-  },
-  closeButton: {
-    padding: 4,
-    minWidth: 32,
-  },
 
   // Settings Modal
-  settingsContent: {
-    flex: 1,
-    paddingTop: 20,
-  },
-  settingItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: theme.cardBorder,
-  },
-  destructiveItem: {},
-  settingIcon: {
-    marginRight: 16,
-    width: 20,
-  },
-  settingText: {
-    flex: 1,
-    fontSize: 16,
-    color: theme.text,
-  },
-  destructiveText: {
-    color: theme.destructiveLabel,
-  },
 
   // Followers / following list
   // UserCard brings its own 16pt side margin, so the lists add none.
-  requestsListContent: {
-    paddingVertical: 16,
-  },
-  userList: {
-    flex: 1,
-    paddingTop: 10,
-  },
   alert: {
     position: "absolute",
     zIndex: 1,

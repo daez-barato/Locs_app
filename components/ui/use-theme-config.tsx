@@ -53,6 +53,9 @@ export interface Theme {
   successSurface: string;
   successTint: string;
   successLabel: string;
+  coinFace: string;
+  coinRim: string;
+  coinCrown: string;
   /** destructive copy drawn straight on `background`, where `destructive` is too dark */
   destructiveLabel: string;
   /** event lifecycle: the Lock action / LOCKED badge, the End action / ENDED badge */

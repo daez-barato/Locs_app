@@ -48,6 +48,10 @@ const palette: Theme = {
   successTint: "#10B98120",
   /** green copy on the purple card (6.8:1); successText is for light surfaces */
   successLabel: "#6EE7B7",
+  /** the currency mark: gold coin, darker rim, purple crown */
+  coinFace: "#F4C430",
+  coinRim: "#B8860B",
+  coinCrown: "#5B1A7A",
   // Material's error tone for dark surfaces: 5:1 on the purple, where #FF3B30
   // managed 2.4 and `destructive` itself 1.3.
   destructiveLabel: "#FFB4AB",

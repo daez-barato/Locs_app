@@ -1,10 +1,9 @@
 import { ActivityIndicator, Text, StyleSheet, View, ScrollView, TouchableOpacity, useWindowDimensions, TextInput, RefreshControl, Modal, Alert, Share } from 'react-native';
 import { Image } from 'expo-image';
-import { useLocalSearchParams, router} from 'expo-router';
+import { useLocalSearchParams, router, Stack } from 'expo-router';
 import { Theme, useThemeConfig } from '@/components/ui/use-theme-config';
 import { withAlpha } from "@/theme";
 import { useThemedStyles } from '@/hooks/use-themed-styles';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { useEffect, useState } from 'react';
 import { deleteEvent, endEvent, eventInformation, fetchEventBets, lockEvent, placeBet, postTemplate, saveTemplate } from '@/api/eventFunctions';
 import * as Linking from 'expo-linking';
@@ -13,6 +12,8 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { followRequest } from '@/api/followers/followers';
 import { useAuthContext } from '@/hooks/use-auth-context';
 import { useCoinContext } from '@/hooks/use-coin-context';
+import { CoinAmount, CoinIcon } from "@/components/ui/coin";
+import { haptics } from "@/utils/haptics";
 import { Bet } from '@/types/interfaces';
 import { EventDetails } from '@/types/rpc';
 
@@ -182,6 +183,7 @@ export default function eventScreen() {
       
       setEventInfo(prev => prev ? { ...prev, locked: true } : null);
       setShowLockModal(false);
+      haptics.success();
       Alert.alert('Success', 'Event has been locked. No more bets can be placed.');
     } catch (error) {
       console.error('Error locking event:', error);
@@ -220,6 +222,7 @@ export default function eventScreen() {
       
       setEventInfo(prev => prev ? { ...prev, decided: true } : null);
       setShowEndEventModal(false);
+      haptics.success();
       if (!eventInfo?.template_posted){
         setPostTemplateModal(true);
       }
@@ -259,12 +262,23 @@ export default function eventScreen() {
         }
       }
 
+      // Catch the common failure before the round trip, with a clearer message
+      // than the server's "insufficient coins". An increase only costs the
+      // difference over the existing stake.
+      const currentStake = betInfos[pendingBet.question]?.userBet?.options[pendingBet.option] || 0;
+      const cost = pendingBet.isIncrease ? betAmount - currentStake : betAmount;
+      if (cost > coins) {
+        Alert.alert('Not enough coins', `This bet needs ${cost} coins and you have ${coins}.`);
+        return;
+      }
+
       const bet = await placeBet(eventId , pendingBet.question, pendingBet.option, betAmount);
 
       if (bet.error){
         Alert.alert('Error', bet.msg);
         return;
       }
+      haptics.success();
       
       setBetInfos(prevBetInfos => {
         const newBetInfos = { ...prevBetInfos };
@@ -333,9 +347,7 @@ export default function eventScreen() {
         <View style={styles.betStats}>
           <View style={styles.statRow}>
             <Text style={styles.statPercentage}>{betPercentage.toFixed(1)}%</Text>
-            <Text style={styles.optionBetAmount}>
-              {optionBetAmount.toLocaleString()} coins
-            </Text>
+            <CoinAmount amount={optionBetAmount} size={16} textStyle={styles.optionBetAmount} />
           </View>
           <View style={styles.progressBarContainer}>
             <View 
@@ -357,15 +369,22 @@ export default function eventScreen() {
               size={16} 
               color={eventInfo?.decided ? theme.warning : theme.neutral} 
             />
-            <Text style={styles.lockedBetText}>
-              {eventInfo?.decided ? `Payout: ${betInfo.userBet?.options[option] ?? 0} coins` : `Locked: ${betInfo.userBet?.options[option] ?? 0} coins`}
-            </Text>
+            <CoinAmount
+              prefix={eventInfo?.decided ? "Payout:" : "Locked:"}
+              amount={betInfo.userBet?.options[option] ?? 0}
+              size={16}
+              textStyle={styles.lockedBetText}
+            />
           </View>
         ) : hasUserBet ? (
           <View style={styles.userBetInfo}>
-            <Text style={styles.userBetAmount}>
-              Your Bet: {betInfo.userBet!.options[option]} coins
-            </Text>
+            <CoinAmount
+              prefix="Your bet:"
+              amount={betInfo.userBet!.options[option]}
+              size={18}
+              textStyle={styles.userBetAmount}
+              style={styles.centeredRow}
+            />
             <TouchableOpacity
               style={styles.increaseBetButton}
               onPress={() => showBetConfirmation(question, option, true)}
@@ -389,17 +408,7 @@ export default function eventScreen() {
 
   if (loadError) {
     return (
-      <SafeAreaView style={styles.container}>
-        <View style={styles.header}>
-          <TouchableOpacity
-            style={styles.backButton}
-            accessibilityRole="button"
-            accessibilityLabel="Go back"
-            onPress={() => router.back()}
-          >
-            <FontAwesome5 name="arrow-left" size={18} color={theme.primary} />
-          </TouchableOpacity>
-        </View>
+      <View style={styles.container}>
         <View style={styles.loadErrorContainer}>
           <FontAwesome5 name="exclamation-triangle" size={48} color={theme.destructiveLabel} />
           <Text style={styles.loadErrorTitle}>Event unavailable</Text>
@@ -413,100 +422,86 @@ export default function eventScreen() {
             <Text style={styles.loadErrorButtonText}>Try again</Text>
           </TouchableOpacity>
         </View>
-      </SafeAreaView>
+      </View>
     );
   }
 
   if (!eventInfo) {
     return (
-      <SafeAreaView style={styles.container}>
-        <View style={styles.header}>
-          <TouchableOpacity
-            style={styles.backButton}
-            accessibilityRole="button"
-            accessibilityLabel="Go back"
-            onPress={() => router.back()}
-          >
-            <FontAwesome5 name="arrow-left" size={18} color={theme.primary} />
-          </TouchableOpacity>
-        </View>
+      <View style={styles.container}>
         <View style={styles.loadErrorContainer}>
           <ActivityIndicator size="large" color={theme.primary} />
           <Text style={styles.loadingText}>Loading event...</Text>
         </View>
-      </SafeAreaView>
+      </View>
     );
   }
 
   return (
-    <SafeAreaView style={styles.container}>
-      {/* Enhanced Header */}
-      <View style={styles.header}>
-        <TouchableOpacity 
-          style={styles.backButton}
-          accessibilityRole="button"
-          accessibilityLabel="Go back"
-          onPress={() => router.back()}
-        >
-          <FontAwesome5 name="arrow-left" size={18} color={theme.primary} />
-        </TouchableOpacity>
-        
-        <View style={styles.headerActions}>
-          
-          {(isEventCreator || eventInfo?.public) && (
-            <TouchableOpacity 
-              style={styles.shareButton}
-              accessibilityRole="button"
-              accessibilityLabel="Share event"
-              onPress={handleShareEvent}
-            >
-              <FontAwesome5 name="share" size={16} color={theme.primary} />
-              <Text style={styles.shareButtonText}>Share</Text>
-            </TouchableOpacity>
-          )}
-          
-          {isEventCreator && !eventInfo?.decided && (
-            <TouchableOpacity
-              style={styles.deleteEventButton}
-              accessibilityRole="button"
-              accessibilityLabel="Delete event"
-              onPress={() => setShowDeleteModal(true)}
-            >
-              <FontAwesome5 name="trash" size={14} color={theme.destructiveText} />
-            </TouchableOpacity>
-          )}
+    <View style={styles.container}>
+      {/* The native header supplies back navigation (and Android's predictive
+          back); the event's own actions sit on its right. */}
+      <Stack.Screen
+        options={{
+          headerRight: () => (
+              <View style={styles.headerActions}>
+                
+                {(isEventCreator || eventInfo?.public) && (
+                  <TouchableOpacity 
+                    style={styles.shareButton}
+                    accessibilityRole="button"
+                    accessibilityLabel="Share event"
+                    onPress={handleShareEvent}
+                  >
+                    <FontAwesome5 name="share" size={16} color={theme.primary} />
+                    <Text style={styles.shareButtonText}>Share</Text>
+                  </TouchableOpacity>
+                )}
+                
+                {isEventCreator && !eventInfo?.decided && (
+                  <TouchableOpacity
+                    style={styles.deleteEventButton}
+                    accessibilityRole="button"
+                    accessibilityLabel="Delete event"
+                    onPress={() => setShowDeleteModal(true)}
+                  >
+                    <FontAwesome5 name="trash" size={14} color={theme.destructiveText} />
+                  </TouchableOpacity>
+                )}
 
-          {isEventCreator && (
-            <>
-              {(!eventInfo?.template_posted || !eventInfo.decided) && (
-                <TouchableOpacity 
-                  style={[
-                    styles.actionButton,
-                    endable && styles.endButton,
-                    eventInfo?.decided && styles.postTemplateButton
-                  ]}
-                  onPress={() => {
-                    if (eventInfo?.locked) {
-                      eventInfo?.decided ? setPostTemplateModal(true) : handleEndEvent()
-                    } else {
-                      handleLockEvent()
-                    }
-                  }}
-                >
-                  <FontAwesome5 
-                    name={eventInfo?.locked ? (eventInfo?.decided ? "upload" : "flag-checkered") : "lock"} 
-                    size={14} 
-                    color={endable ? theme.onAccent : theme.onPrimary} 
-                  />
-                  <Text style={[styles.actionButtonText, !endable && styles.actionButtonTextDark]}>
-                    {eventInfo?.locked ? (eventInfo?.decided ? 'Post' : 'End') : 'Lock'}
-                  </Text>
-                </TouchableOpacity>
-              )}
-            </>
-          )}
-        </View>
-      </View>
+                {isEventCreator && (
+                  <>
+                    {(!eventInfo?.template_posted || !eventInfo.decided) && (
+                      <TouchableOpacity 
+                        style={[
+                          styles.actionButton,
+                          endable && styles.endButton,
+                          eventInfo?.decided && styles.postTemplateButton
+                        ]}
+                        onPress={() => {
+                          if (eventInfo?.locked) {
+                            eventInfo?.decided ? setPostTemplateModal(true) : handleEndEvent()
+                          } else {
+                            handleLockEvent()
+                          }
+                        }}
+                      >
+                        <FontAwesome5 
+                          name={eventInfo?.locked ? (eventInfo?.decided ? "upload" : "flag-checkered") : "lock"} 
+                          size={14} 
+                          color={endable ? theme.onAccent : theme.onPrimary} 
+                        />
+                        <Text style={[styles.actionButtonText, !endable && styles.actionButtonTextDark]}>
+                          {eventInfo?.locked ? (eventInfo?.decided ? 'Post' : 'End') : 'Lock'}
+                        </Text>
+                      </TouchableOpacity>
+                    )}
+                  </>
+                )}
+              </View>
+          ),
+        }}
+      />
 
       <ScrollView 
         style={styles.mainScrollView} 
@@ -671,11 +666,11 @@ export default function eventScreen() {
                   </View>
                   
                   <View style={styles.totalPotContainer}>
-                    <FontAwesome5 name="trophy" size={16} color={theme.warning} />
+                    <CoinIcon size={36} />
                     <View style={styles.potInfo}>
-                      <Text style={styles.totalPotLabel}>Total Pool</Text>
+                      <Text style={styles.totalPotLabel}>Total pool</Text>
                       <Text style={styles.totalPotAmount}>
-                        {betInfo.totalPot.toLocaleString()} coins
+                        {betInfo.totalPot.toLocaleString()}
                       </Text>
                     </View>
                   </View>
@@ -720,8 +715,7 @@ export default function eventScreen() {
             </View>
             
             <View style={styles.balanceContainer}>
-              <FontAwesome5 name="wallet" size={16} color={theme.primary} />
-              <Text style={styles.balanceText}>Balance: {coins} coins</Text>
+              <CoinAmount prefix="Balance:" amount={coins} size={18} textStyle={styles.balanceText} />
             </View>
             
             <View style={styles.betAmountContainer}>
@@ -980,7 +974,7 @@ export default function eventScreen() {
           </View>
         </TouchableOpacity>
       </Modal>
-    </SafeAreaView>
+    </View>
   );
 }
 
@@ -1308,9 +1302,9 @@ const createStyles = (theme: Theme) => StyleSheet.create({
     gap: 12,
     padding: 16,
     borderRadius: 16,
-    backgroundColor: theme.warningSurface,
+    backgroundColor: theme.card,
     borderWidth: 1,
-    borderColor: theme.warningBorder,
+    borderColor: withAlpha(theme.coinFace, 0.35),
   },
   
   potInfo: {
@@ -1318,7 +1312,7 @@ const createStyles = (theme: Theme) => StyleSheet.create({
   },
   
   totalPotLabel: {
-    color: theme.warningText,
+    color: theme.cardTextSecondary,
     fontSize: 14,
     fontWeight: '600',
     marginBottom: 2,
@@ -1327,8 +1321,8 @@ const createStyles = (theme: Theme) => StyleSheet.create({
   totalPotAmount: {
   
     fontVariant: ['tabular-nums'],
-    color: theme.warningText,
-    fontSize: 22,
+    color: theme.coinFace,
+    fontSize: 24,
     fontWeight: '800',
     letterSpacing: -0.5,
   },
@@ -1465,6 +1459,9 @@ const createStyles = (theme: Theme) => StyleSheet.create({
     fontWeight: '600',
   },
   
+  centeredRow: {
+    justifyContent: 'center',
+  },
   userBetInfo: {
     gap: 12,
   },

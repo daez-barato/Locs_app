@@ -5,6 +5,8 @@ import { Theme, useThemeConfig } from "@/components/ui/use-theme-config";
 import { useThemedStyles } from "@/hooks/use-themed-styles";
 import { StyleSheet } from "react-native";
 import { useAuthContext } from "@/hooks/use-auth-context";
+import CreateEventButton from "@/components/create-event-button";
+import { haptics } from "@/utils/haptics";
 
 export default function TabLayout(){
     const theme = useThemeConfig();
@@ -17,6 +19,7 @@ export default function TabLayout(){
 
     return (
         <>
+            <CreateEventButton />
             {/* Options every tab shares. The label is the screen's title,
                 tinted by the navigator. labelStyle keeps what the old per-tab
                 labels rendered: 12pt in the platform's regular system font
@@ -24,8 +27,16 @@ export default function TabLayout(){
                 so the text fell back to the system font at the icon's default
                 size). */}
             <Tabs
+                screenListeners={{ tabPress: () => { haptics.select(); } }}
                 screenOptions={{
-                    headerShown: false,
+                    // The navigator's header replaces each tab's hand-built
+                    // title row and handles the status-bar inset itself.
+                    headerShown: true,
+                    headerStyle: { backgroundColor: theme.background },
+                    headerShadowVisible: false,
+                    headerTitleAlign: "left",
+                    headerTintColor: theme.text,
+                    headerTitleStyle: styles.headerTitle,
                     tabBarStyle: styles.tabBar,
                     tabBarActiveTintColor: theme.primary,
                     // Was theme.text, the same teal as the active tint, so the bar
@@ -38,6 +49,7 @@ export default function TabLayout(){
                     name="index"
                     options={{
                         title: "Home",
+                        headerTitle: "Following",
                         tabBarIcon: ({ color }) => (
                             <FontAwesome size={28} name="home" color={color} />
                         ),
@@ -56,6 +68,7 @@ export default function TabLayout(){
                     name="parleys"
                     options={{
                         title: "Parleys",
+                        headerTitle: "My Parleys",
                         tabBarIcon: ({ color }) => (
                             <FontAwesome size={28} name="list" color={color} />
                         ),
@@ -93,6 +106,10 @@ export default function TabLayout(){
 const createStyles = (theme: Theme) => StyleSheet.create({
     tabBar: {
         backgroundColor: theme.background,
+    },
+    headerTitle: {
+        fontSize: 26,
+        fontWeight: "700",
     },
     tabBarLabel: {
         ...DefaultTheme.fonts.regular,

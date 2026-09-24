@@ -1,7 +1,6 @@
 import { Event } from "@/types/interfaces";
 import { fetchUserLiveBets, fetchUserLiveEvents } from "@/api/parleyFunctions";
 import EventCard from "@/components/eventCard";
-import CreateEventButton from "@/components/create-event-button";
 import { useThemeConfig, Theme } from "@/components/ui/use-theme-config";
 import { withAlpha } from "@/theme";
 import { useThemedStyles } from "@/hooks/use-themed-styles";
@@ -17,7 +16,6 @@ import {
     RefreshControl,
     ActivityIndicator,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function Parleys() {
     const theme = useThemeConfig();
@@ -67,11 +65,7 @@ export default function Parleys() {
     const currentEvents = activeTab === 'participating' ? participatingEvents : createdEvents;
 
     return (
-        <SafeAreaView style={styles.container}>
-            {/* Header */}
-            <View style={styles.header}>
-                <Text style={styles.headerTitle}>My Parleys</Text>
-            </View>
+        <View style={styles.container}>
 
             {/* Stats Overview */}
             <View style={styles.statsContainer}>
@@ -194,8 +188,7 @@ export default function Parleys() {
                     </>
                 }
             />
-            <CreateEventButton />
-        </SafeAreaView>
+        </View>
     );
 }
 
@@ -203,20 +196,6 @@ const createStyles = (theme: Theme) => StyleSheet.create({
     container: {
         flex: 1,
         backgroundColor: theme.background,
-    },
-    header: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        paddingHorizontal: 20,
-        paddingVertical: 16,
-        borderBottomWidth: 1,
-        borderBottomColor: theme.cardBorder,
-    },
-    headerTitle: {
-        fontSize: 24,
-        fontWeight: '700',
-        color: theme.text,
     },
     statsContainer: {
         flexDirection: 'row',

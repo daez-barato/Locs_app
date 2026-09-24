@@ -6,7 +6,7 @@ import { useThemeConfig, Theme } from "@/components/ui/use-theme-config"
 import { useThemedStyles } from "@/hooks/use-themed-styles";
 import { useEffect, useState } from "react";
 import FontAwesome from "@expo/vector-icons/FontAwesome";
-import { useLocalSearchParams, useRouter } from "expo-router";
+import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import StudioConfirm from "@/components/studioConfirm";
 import { deleteSavedTemplate, fetchSavedTemplates, fetchTemplate } from "@/api/studioFunctions";
 import TemplateCard from "@/components/templateCard";
@@ -243,7 +243,20 @@ export default function Studio(){
       expandQuestionMenu(false);
     }
 
-    const handleNextPress = () => {
+    const toggleTemplateBookmark = async () => {
+    try {
+      if (!studio) return;
+      const result: any = bookmarks[studio]
+        ? await deleteSavedTemplate(studio)
+        : await saveTemplate(studio);
+      if (result.error) throw new Error(result.msg);
+      setBookmarks(prev => ({ ...prev, [studio]: !prev[studio] }));
+    } catch (err: any) {
+      console.log("Error with templates:", err.message);
+    }
+  };
+
+  const handleNextPress = () => {
       if (questions.length <= 1 && !isTemplate) {
         alert("Please add at least one question before proceeding.");
         return;
@@ -290,7 +303,7 @@ export default function Studio(){
     }
 
     return (
-        <SafeAreaView style={styles.backgroundContainer}>
+        <SafeAreaView style={styles.backgroundContainer} edges={["left", "right", "bottom"]}>
           {/* Enhanced Input Overlay */}
           {isInputFocused && (
             <View style={styles.inputOverlay}>
@@ -335,70 +348,45 @@ export default function Studio(){
             </View>
           )}
           
-          {/* Header Buttons */}
-          <View style={styles.headerContainer}>
-            <TouchableOpacity 
-              style={styles.backButton}
-              onPress={() => router.back()}
-              accessibilityRole="button"
-              accessibilityLabel="Go back"
-            >
-              <FontAwesome
-                name="angle-left"
-                size={28}
-                color={theme.primary}
-              />
-            </TouchableOpacity>
-
-            {/* Saved templates sits in the header row; it used to float at a
-                fixed offset that landed on top of Next and the image. */}
-            <View style={styles.headerActions}>
-              <TouchableOpacity style={styles.savedTemplates}
-                onPress= {() => {setSavedTemplatesModal(true)}}
-                accessibilityRole="button"
-                accessibilityLabel="Saved templates"
-              >
-                <FontAwesome name= "bookmark" size={20} style={styles.savedTemplatesIcon}/>
-              </TouchableOpacity>
-              <TouchableOpacity 
-                style={styles.nextButton}
-                onPress={handleNextPress}
-                accessibilityRole="button"
-              >
-                <Text style={styles.nextButtonText}>Next</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-          {isTemplate && <FontAwesome
-            name={studio && bookmarks[studio] ? "bookmark" : "bookmark-o"}
-            size= {40}
-            style={styles.saveTemplateIcon}
-            accessibilityRole="button"
-            accessibilityLabel={studio && bookmarks[studio] ? "Remove template from saved" : "Save template"}
-            onPress={async () => {
-              try {
-                if(!studio)
-                  return
-                let result: any;
-                if (bookmarks[studio]){
-                  result = await deleteSavedTemplate(studio);
-                } else {
-                  result = await saveTemplate(studio);
-                };
-
-                if (result.error) {
-                  throw new Error(result.msg);
-                };
-                
-                setBookmarks(prev => ({
-                  ...prev,
-                  [studio]: !prev[studio],
-                }));
-              }catch(err: any){
-                console.log("Error with templates:", err.message)
-              }
+          {/* Back comes from the native header; the studio's actions sit on
+              its right, the template bookmark included (it used to float at
+              a fixed offset over the form). */}
+          <Stack.Screen
+            options={{
+              headerRight: () => (
+                <View style={styles.headerActions}>
+                  {isTemplate && (
+                    <TouchableOpacity
+                      style={styles.savedTemplates}
+                      onPress={toggleTemplateBookmark}
+                      accessibilityRole="button"
+                      accessibilityLabel={studio && bookmarks[studio] ? "Remove template from saved" : "Save template"}
+                    >
+                      <FontAwesome
+                        name={studio && bookmarks[studio] ? "bookmark" : "bookmark-o"}
+                        size={20}
+                        style={styles.savedTemplatesIcon}
+                      />
+                    </TouchableOpacity>
+                  )}
+                  <TouchableOpacity style={styles.savedTemplates}
+                    onPress= {() => {setSavedTemplatesModal(true)}}
+                    accessibilityRole="button"
+                    accessibilityLabel="Saved templates"
+                  >
+                    <FontAwesome name="list-ul" size={18} style={styles.savedTemplatesIcon}/>
+                  </TouchableOpacity>
+                  <TouchableOpacity 
+                    style={styles.nextButton}
+                    onPress={handleNextPress}
+                    accessibilityRole="button"
+                  >
+                    <Text style={styles.nextButtonText}>Next</Text>
+                  </TouchableOpacity>
+                </View>
+              ),
             }}
-          />}
+          />
           {/* Main Content */}
           <View 
             style={styles.keyboardContainer}
@@ -974,23 +962,6 @@ const createStyles = (theme: Theme) => StyleSheet.create({
     fontSize: 16,
     fontFamily: "Roboto",
   },
-  headerContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingTop: 10,
-    paddingBottom: 10,
-  },
-  backButton: {
-    backgroundColor: theme.background,
-    borderRadius: 25,
-    width: 50,
-    height: 50,
-    justifyContent: 'center',
-    alignItems: 'center',
-    boxShadow: "0 2px 8px rgba(0, 0, 0, 0.1)",
-  },
   nextButton: {
     backgroundColor: theme.primary,
     borderRadius: 20,
@@ -1373,13 +1344,6 @@ const createStyles = (theme: Theme) => StyleSheet.create({
   cancelTemplateButtonText: {
     color: theme.destructiveText,
     fontWeight: "700",
-  },
-  saveTemplateIcon: {
-    position: "absolute",
-    right: 40,
-    top: 160,
-    zIndex: 2,
-    color: theme.primary
   },
   // Image Modal Styles
   imageModalOverlay: {
