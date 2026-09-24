@@ -109,34 +109,18 @@ export default function Profile() {
         ? await getFollowersList(username as string, followersOffset)
         : await getFollowingList(username as string, followingOffset);
       
-      setTimeout(() => {
-        if (type === "followers") {
-          setFollowersList(
-            prev => {
-              const merged = [...prev, ...users];
-              const unique = Array.from(
-                new Map(merged.map(e => [e.id, e])).values()
-              );
-              return unique;
-            }
-          );
-          setFollowersOffset(prev => prev + users.length);
-          
-        } else {
-          setFollowingList(
-            prev => {
-              const merged = [...prev, ...users];
-              const unique = Array.from(
-                new Map(merged.map(e => [e.id, e])).values()
-              );
-              return unique;
-            }
-          );
-          setFollowingOffset(prev => prev + users.length);
-        }
-        setLoadingUsers(false);
-        setLoadingMore(false);
-      }, 1000);
+      const mergeUnique = (prev: SearchUser[]) =>
+        Array.from(new Map([...prev, ...users].map(e => [e.id, e])).values());
+
+      if (type === "followers") {
+        setFollowersList(mergeUnique);
+        setFollowersOffset(prev => prev + users.length);
+      } else {
+        setFollowingList(mergeUnique);
+        setFollowingOffset(prev => prev + users.length);
+      }
+      setLoadingUsers(false);
+      setLoadingMore(false);
 
     } catch (error) {
       console.error(`Error fetching ${type}:`, error);
@@ -464,31 +448,21 @@ export default function Profile() {
           events = await fetchUserParticipatedEvents(username as string, participatedOffset);
         }
 
-        setTimeout(() => {
-          if (activeList === "created") {
-            setCreatedEvents(prev => {
-              const merged = [...prev, ...events];
-              const unique = Array.from(
-                new Map(merged.map(e => [e.id, e])).values()
-              );
-              return unique;
-            });
-            setCreatedOffset(prev => prev + events.length);
-          } else {
-            setParticipatedEvents(prev => {
-              const merged = [...prev, ...events];
-              const unique = Array.from(
-                new Map(merged.map(e => [e.id, e])).values()
-              );
-              return {...prev, participated: unique};
-            });
-            setParticipatedOffset(prev => prev + events.length);
-          }
-          setLoadingMoreEvents(false);
-        }, 1000);
+        const mergeUnique = (prev: Event[]) =>
+          Array.from(new Map([...prev, ...events].map(e => [e.id, e])).values());
+
+        if (activeList === "created") {
+          setCreatedEvents(mergeUnique);
+          setCreatedOffset(prev => prev + events.length);
+        } else {
+          setParticipatedEvents(mergeUnique);
+          setParticipatedOffset(prev => prev + events.length);
+        }
 
       } catch (error) {
         console.error("Error loading more events:", error);
+      } finally {
+        setLoadingMoreEvents(false);
       }
     }
   };

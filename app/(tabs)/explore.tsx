@@ -4,7 +4,7 @@ import { useThemedStyles } from "@/hooks/use-themed-styles";
 import TemplateCard from "@/components/templateCard";
 import UserCard from "@/components/userCard";
 import { FontAwesome } from "@expo/vector-icons";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { 
     StyleSheet, 
     Text, 
@@ -41,17 +41,24 @@ export default function Explore() {
     const [loadMoreUsers, setLoadMoreUsers] = useState(true);
     const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-    let typingTimeout: ReturnType<typeof setTimeout>;
+    // Held in a ref: a plain `let` was re-declared on every render (and each
+    // keystroke renders), so clearTimeout never saw the previous timer and every
+    // keystroke fired its own search.
+    const typingTimeout = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+    useEffect(() => () => clearTimeout(typingTimeout.current), []);
+
     const handleQueryChange = (text: string) => {
         setQuery(text);
 
-        clearTimeout(typingTimeout);
-        typingTimeout = setTimeout(() => {
+        clearTimeout(typingTimeout.current);
+        typingTimeout.current = setTimeout(() => {
             setLoadMoreEvents(true);
             setLoadMoreTemplates(true);
             setLoadMoreUsers(true);
-            
-            handleSearch();
+
+            // Pass the text: `query` in this closure is still the value from
+            // before this keystroke.
+            handleSearch(text);
         }, 400);
     };
     
@@ -95,11 +102,11 @@ export default function Explore() {
         setIsRefreshing(false);
     };
 
-    const handleSearch = async () => {
-        if (query.length === 0) return
-        
+    const handleSearch = async (text: string = query) => {
+        if (text.length === 0) return
+
         try {
-            const results = await search(query);
+            const results = await search(text);
 
             if (results.error) throw new Error(results.error);
 
@@ -142,11 +149,14 @@ export default function Explore() {
                         value={query}
                         onChangeText={handleQueryChange}
                         style={styles.searchInput}
-                        onSubmitEditing={handleSearch}
+                        onSubmitEditing={() => handleSearch()}
                     />
                     {query.length > 0 && (
                         <TouchableOpacity
-                            onPress={() => setQuery("")}
+                            onPress={() => {
+                                clearTimeout(typingTimeout.current);
+                                setQuery("");
+                            }}
                             style={styles.clearButton}
                         >
                             <FontAwesome name="times" size={16} color={theme.textSecondary} />

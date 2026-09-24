@@ -19,7 +19,6 @@ const { width } = Dimensions.get('window');
 export default function eventScreen() {
   const { eventId } = useLocalSearchParams() as { eventId: string };
   const coins = useCoinContext().coins;
-  const [refresh, setRefresh] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const theme = useThemeConfig();
   const styles = useThemedStyles(createStyles);
@@ -40,83 +39,81 @@ export default function eventScreen() {
 
   const isEventCreator = eventInfo?.is_creator;
 
-  const onRefresh = async () => {
-    setRefreshing(true);
-    setRefresh(prev => !prev);
-    setTimeout(() => {
-      setRefreshing(false);
-    }, 1000);
-  };
+  async function fetchData() {
+    try {
+      const event = await eventInformation(eventId);
 
-  useEffect(() => {
-    async function fetchData() {
-      try {
-        const event = await eventInformation(eventId);
+      // Explicit return type means no implicit optional-prop merging, so
+      // narrow the union with `in` rather than a truthiness check.
+      if ("error" in event) {
+        throw new Error(event.msg);
+      }
 
-        // Explicit return type means no implicit optional-prop merging, so
-        // narrow the union with `in` rather than a truthiness check.
-        if ("error" in event) {
-          throw new Error(event.msg);
-        }
+      setEventInfo(event);
+      setLoadError(null);
 
-        setEventInfo(event);
-        setLoadError(null);
+      if (event.is_creator && event.decided && !event.template_posted) {
+          setPostTemplateModal(true);
+      };
 
-        if (event.is_creator && event.decided && !event.template_posted) {
-            setPostTemplateModal(true);
+      const bets = await fetchEventBets(eventId);
+
+      if (!Array.isArray(bets)) {
+        console.error('Failed to fetch bets:', bets.msg);
+        return;
+      }
+
+      const bet_infos: Record<string, Bet> = {};
+      const questions = event.questions as Record<string, string[]>;
+
+      for (const [question, options] of Object.entries(questions)) {
+        bet_infos[question] = {
+          totalPot: 0,
+          optionPots: Object.fromEntries(
+            options.map((option: string) => [option, 0])
+          )
         };
+      }
 
-        const bets = await fetchEventBets(eventId);
+      for (const bet of bets) {
+        const question = bet.question;
+        const option = bet.option;
+        const amount = bet.amount;
 
-        if (!Array.isArray(bets)) {
-          console.error('Failed to fetch bets:', bets.msg);
-          return;
-        }
+        if (bet_infos[question]) {
+          bet_infos[question].totalPot += amount;
+          bet_infos[question].optionPots[option] += amount;
 
-        const bet_infos: Record<string, Bet> = {};
-        const questions = event.questions as Record<string, string[]>;
-
-        for (const [question, options] of Object.entries(questions)) {
-          bet_infos[question] = {
-            totalPot: 0,
-            optionPots: Object.fromEntries(
-              options.map((option: string) => [option, 0])
-            )
-          };
-        }
-
-        for (const bet of bets) {
-          const question = bet.question;
-          const option = bet.option;
-          const amount = bet.amount;
-
-          if (bet_infos[question]) {
-            bet_infos[question].totalPot += amount;
-            bet_infos[question].optionPots[option] += amount;
-
-            if (bet.username === userName) {
-              bet_infos[question].userBet = {
-                options: {
-                  ...bet_infos[question].userBet?.options,
-                  [option]: bet?.payout != null ? bet.payout : amount
-                }
-              };
-            }
+          if (bet.username === userName) {
+            bet_infos[question].userBet = {
+              options: {
+                ...bet_infos[question].userBet?.options,
+                [option]: bet?.payout != null ? bet.payout : amount
+              }
+            };
           }
         }
-
-        setBetInfos(bet_infos);
-
-      } catch (err: any) {
-        console.error('Failed to fetch data', err);
-        setLoadError(
-          "We couldn't load this event. It may have been removed, or you may be offline."
-        );
       }
+
+      setBetInfos(bet_infos);
+
+    } catch (err: any) {
+      console.error('Failed to fetch data', err);
+      setLoadError(
+        "We couldn't load this event. It may have been removed, or you may be offline."
+      );
     }
+  }
+
+  useEffect(() => {
     fetchData();
-  
-  }, [refresh]);
+  }, [eventId]);
+
+  const onRefresh = async () => {
+    setRefreshing(true);
+    await fetchData();
+    setRefreshing(false);
+  };
 
   const handleShareEvent = async () => {
     try {
