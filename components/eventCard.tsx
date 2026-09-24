@@ -84,15 +84,16 @@ export default function EventCard({event}: {event: Event}) {
                         </View>
                     </View>
                     
-                    <View style={styles.eventFooter}>
-                        
-                        {event.is_creator && (
+                    {/* Rendered only when it has content, so the spacing above
+                        it doesn't leave an empty strip at the bottom of the card. */}
+                    {event.is_creator && (
+                        <View style={styles.eventFooter}>
                             <View style={styles.creatorBadge}>
                                 <FontAwesome name="user" size={16} color={theme.buttonText} />
                                 <Text style={styles.creatorText}>Creator</Text>
                             </View>
-                        )}
-                    </View>
+                        </View>
+                    )}
                 </View>
             </TouchableOpacity>
         </View>
@@ -162,7 +163,6 @@ const createStyles = (theme: Theme) => StyleSheet.create({
     eventMeta: {
         flexDirection: 'row',
         justifyContent: 'space-between',
-        marginBottom: 12,
     },
     metaItem: {
         flexDirection: 'row',
@@ -175,6 +175,7 @@ const createStyles = (theme: Theme) => StyleSheet.create({
         opacity: 0.8,
     },
     eventFooter: {
+        marginTop: 12,
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',

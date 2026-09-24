@@ -1483,7 +1483,6 @@ const createStyles = (theme: Theme) => StyleSheet.create({
     fontSize: 16,
     fontWeight: '700',
     textAlign: 'center',
-    marginBottom: 12,
   },
 
   increaseBetButton: {
@@ -1670,11 +1669,13 @@ const createStyles = (theme: Theme) => StyleSheet.create({
   },
 
   // End Event Modal
+  // No horizontal padding: modalContent already has a 20pt margin, and adding
+  // 20 more here needed 80% of the screen + 80pt, wider than phones < 400pt.
   endEventModalContainer: {
     flexGrow: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 20,
+    paddingVertical: 20,
   },
 
   questionSelection: {

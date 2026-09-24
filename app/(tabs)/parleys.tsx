@@ -3,6 +3,7 @@ import { fetchUserLiveBets, fetchUserLiveEvents } from "@/api/parleyFunctions";
 import EventCard from "@/components/eventCard";
 import { useThemeConfig, Theme } from "@/components/ui/use-theme-config";
 import { useThemedStyles } from "@/hooks/use-themed-styles";
+import { floatingButtonClearance } from "@/theme";
 import { FontAwesome } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useState, useEffect } from "react";
@@ -289,7 +290,7 @@ const createStyles = (theme: Theme) => StyleSheet.create({
         flex: 1,
     },
     scrollContent: {
-        paddingBottom: 20,
+        paddingBottom: floatingButtonClearance,
     },
     emptyState: {
         alignItems: 'center',

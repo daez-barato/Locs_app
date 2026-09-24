@@ -202,7 +202,6 @@ const createStyles = (theme: Theme) => StyleSheet.create({
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        marginBottom: 6,
     },
     username: {
         color: theme.cardText,

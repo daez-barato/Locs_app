@@ -562,6 +562,7 @@ const createStyles = (theme: Theme) => StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
+    gap: 8,
     shadowColor: theme.shadow,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.2,
@@ -576,7 +577,6 @@ const createStyles = (theme: Theme) => StyleSheet.create({
     fontSize: 18,
     fontWeight: 'bold',
     fontFamily: "Roboto",
-    marginLeft: 8,
   },
   // Timer Modal Styles
   modalOverlay: {

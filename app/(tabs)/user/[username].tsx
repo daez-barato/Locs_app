@@ -1,5 +1,6 @@
 import { Theme, useThemeConfig } from "@/components/ui/use-theme-config";
 import { useThemedStyles } from "@/hooks/use-themed-styles";
+import { floatingButtonClearance } from "@/theme";
 import { 
   View, 
   StyleSheet, 
@@ -817,7 +818,7 @@ const createStyles = (theme: Theme) => StyleSheet.create({
   // Bet List
   listContainer: {
     paddingHorizontal: 0,
-    paddingBottom: 20,
+    paddingBottom: floatingButtonClearance,
     minHeight: 200,
   },
 
@@ -885,12 +886,12 @@ const createStyles = (theme: Theme) => StyleSheet.create({
   },
 
   // Followers / following list
+  // UserCard brings its own 16pt side margin, so the lists add none.
   requestsListContent: {
-    padding: 16,
+    paddingVertical: 16,
   },
   userList: {
     flex: 1,
-    paddingHorizontal: 20,
     paddingTop: 10,
   },
   alert: {

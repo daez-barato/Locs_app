@@ -1,6 +1,7 @@
 import { Theme, useThemeConfig } from "@/components/ui/use-theme-config";
 import AvatarImage from "@/components/ui/avatar-image";
 import { useThemedStyles } from "@/hooks/use-themed-styles";
+import { floatingButtonClearance } from "@/theme";
 import { useCoinContext } from "@/hooks/use-coin-context";
 import { useAuthContext } from "@/hooks/use-auth-context";
 import { equipItem, getShopItems, purchaseItem } from "@/services/shop";
@@ -313,7 +314,7 @@ const createStyles = (theme: Theme) =>
     },
     listContent: {
       padding: 12,
-      paddingBottom: 32,
+      paddingBottom: floatingButtonClearance,
       flexGrow: 1,
     },
     column: {

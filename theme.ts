@@ -66,5 +66,16 @@ const palette: Theme = {
   cardOutline: "#52276b40",
 };
 
+// The studio "+" button floats over every tab (app/(tabs)/_layout.tsx),
+// measured from the bottom of the screen.
+export const floatingButton = { size: 50, bottom: 150, right: 40 };
+
+// Bottom padding for scrolling tab content, so the last row can scroll clear
+// of the floating button instead of ending underneath it. Tab content already
+// stops at the tab bar (49pt, plus the home-indicator inset on iOS), so the
+// button's top edge sits at most 150 + 50 - 49 = 151pt above it; 160 leaves a
+// small margin.
+export const floatingButtonClearance = 160;
+
 export const lightTheme: Theme = palette;
 export const darkTheme: Theme = palette;
