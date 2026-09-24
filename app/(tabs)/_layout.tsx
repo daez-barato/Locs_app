@@ -6,7 +6,6 @@ import { Theme, useThemeConfig } from "@/components/ui/use-theme-config";
 import { useThemedStyles } from "@/hooks/use-themed-styles";
 import { StyleSheet, TouchableOpacity } from "react-native";
 import { useAuthContext } from "@/hooks/use-auth-context";
-import { floatingButton } from "@/theme";
 
 export default function TabLayout(){
     const theme = useThemeConfig();
@@ -113,12 +112,12 @@ const createStyles = (theme: Theme) => StyleSheet.create({
         zIndex: 1,
         position: "absolute",
         padding: 10,
-        width: floatingButton.size,
-        height: floatingButton.size,
+        width: 50,
+        height: 50,
         borderRadius: 360,
         backgroundColor: theme.darker_primary,
-        bottom: floatingButton.bottom,
-        right: floatingButton.right,
+        bottom: 150,
+        right: 40,
         alignItems: "center",
         alignContent: "center",
         justifyContent: "center"

@@ -1,7 +1,6 @@
 import { fetchTrending, search } from "@/api/exploreFunctions";
 import { Theme, useThemeConfig } from "@/components/ui/use-theme-config";
 import { useThemedStyles } from "@/hooks/use-themed-styles";
-import { floatingButtonClearance } from "@/theme";
 import TemplateCard from "@/components/templateCard";
 import UserCard from "@/components/userCard";
 import { FontAwesome } from "@expo/vector-icons";
@@ -447,7 +446,7 @@ const createStyles = (theme: Theme) => StyleSheet.create({
         fontWeight: "700",
     },
     scrollContent: {
-        paddingBottom: floatingButtonClearance,
+        paddingBottom: 20,
     },
     emptyState: {
         alignItems: 'center',

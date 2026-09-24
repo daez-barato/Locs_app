@@ -1,6 +1,5 @@
 import { Theme, useThemeConfig } from "@/components/ui/use-theme-config";
 import { useThemedStyles } from "@/hooks/use-themed-styles";
-import { floatingButtonClearance } from "@/theme";
 import { 
   View, 
   StyleSheet, 
@@ -818,7 +817,7 @@ const createStyles = (theme: Theme) => StyleSheet.create({
   // Bet List
   listContainer: {
     paddingHorizontal: 0,
-    paddingBottom: floatingButtonClearance,
+    paddingBottom: 20,
     minHeight: 200,
   },
 

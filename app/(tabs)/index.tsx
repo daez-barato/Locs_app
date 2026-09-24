@@ -4,7 +4,6 @@ import { Event } from "@/types/interfaces";
 import EventCard from "@/components/eventCard";
 import { useThemeConfig, Theme } from "@/components/ui/use-theme-config"
 import { useThemedStyles } from "@/hooks/use-themed-styles";
-import { floatingButtonClearance } from "@/theme";
 import { FontAwesome } from "@expo/vector-icons";
 import { useEffect, useState } from "react"
 import { useRouter } from "expo-router"
@@ -171,7 +170,7 @@ const createStyles = (theme: Theme) => StyleSheet.create({
     fontWeight: 'bold',
   },
   listContent: {
-    paddingBottom: floatingButtonClearance,
+    paddingBottom: 20,
   },
   followingEventsContainer: {
     flex: 1,
