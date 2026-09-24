@@ -1148,7 +1148,6 @@ const createStyles = (theme: Theme) => StyleSheet.create({
     paddingHorizontal: 12,
     borderRadius: 20,
     backgroundColor: 'rgba(0, 0, 0, 0.7)',
-    backdropFilter: 'blur(10px)',
   },
   
   expiryText: {
