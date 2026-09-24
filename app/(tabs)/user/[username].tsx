@@ -1,5 +1,6 @@
 import { Theme, useThemeConfig } from "@/components/ui/use-theme-config";
-import { withAlpha } from "@/theme";
+import { blend, withAlpha } from "@/theme";
+import { LinearGradient } from "expo-linear-gradient";
 import { useThemedStyles } from "@/hooks/use-themed-styles";
 import { 
   View, 
@@ -19,7 +20,9 @@ import { FontAwesome } from "@expo/vector-icons";
 import EventCard from "@/components/eventCard";
 import { haptics } from "@/utils/haptics";
 import { getUserProfile, fetchUserCreatedEvents, fetchUserParticipatedEvents } from "@/services/users";
-import { Event, UserProfile } from "@/types/interfaces";
+import { Event, Rarity, UserProfile } from "@/types/interfaces";
+import { getAvatarItem } from "@/services/shop";
+import { rarityColor } from "@/components/ui/rarity-badge";
 import { followRequest, unfollowRequest} from "@/api/followers/followers";
 import { useAuthContext } from "@/hooks/use-auth-context";
 import { useCoinContext } from "@/hooks/use-coin-context";
@@ -31,6 +34,8 @@ type ActiveList = "created" | "participated";
 
 export default function Profile() {
   const [userImage, setUserImage] = useState<string | null>(null);
+  // Tier of the equipped avatar, for the frame's highlight; null until known.
+  const [avatarRarity, setAvatarRarity] = useState<Rarity | null>(null);
   
   const [createdOffset, setCreatedOffset] = useState(0);
   const [participatedOffset, setParticipatedOffset] = useState(0);
@@ -90,6 +95,17 @@ export default function Profile() {
       setRefreshing(false);
     }
   };
+
+  useEffect(() => {
+    if (loading) return;
+    let active = true;
+    getAvatarItem(userImage).then((result) => {
+      if (active) setAvatarRarity(!result.error && result.item ? result.item.rarity : null);
+    });
+    return () => {
+      active = false;
+    };
+  }, [userImage, loading]);
 
   const onRefresh = useCallback(() => {
     setCreatedOffset(0);
@@ -222,6 +238,7 @@ export default function Profile() {
       <Tabs.Screen
         options={{
           headerTitle: "",
+          headerStyle: { backgroundColor: avatarRarity ? rarityHue(theme, avatarRarity) : theme.background },
           headerRight: user?.owner
             ? () => (
                 <View style={styles.headerActions}>
@@ -252,6 +269,15 @@ export default function Profile() {
             : undefined,
         }}
       />
+      {/* The page carries a hue of the avatar's tier, strongest under the
+          header and gone by the stats. */}
+      {avatarRarity && (
+        <LinearGradient
+          colors={[rarityHue(theme, avatarRarity), theme.background]}
+          style={styles.rarityWash}
+          pointerEvents="none"
+        />
+      )}
       <ScrollView 
         style={styles.scrollContainer}
         showsVerticalScrollIndicator={false}
@@ -267,23 +293,18 @@ export default function Profile() {
         {/* Profile Section */}
         <View style={styles.profileSection}>
           <TouchableOpacity
-            style={styles.profileImageContainer}
+            style={[styles.profileImageContainer, avatarRarity && frameHighlight(theme, avatarRarity).container]}
             onPress={() => router.push("/shop")}
             disabled={!user?.owner}
             activeOpacity={0.8}
             accessibilityRole={user?.owner ? "button" : undefined}
             accessibilityLabel={user?.owner ? "Change avatar in the shop" : undefined}
           >
-            {/* The square avatar sits whole in the middle; a blurred copy of
-                itself fills the rest of the wide frame, so nothing is cropped. */}
             <AvatarImage
               uri={resolveAvatarUrl(userImage)}
-              style={StyleSheet.absoluteFill}
+              style={[styles.profileImage, avatarRarity && frameHighlight(theme, avatarRarity).image]}
               contentFit="cover"
-              blurRadius={28}
             />
-            <View style={styles.profileImageScrim} />
-            <AvatarImage uri={resolveAvatarUrl(userImage)} style={styles.profileImage} contentFit="cover" />
           </TouchableOpacity>
 
           <Text style={styles.username}>{user?.username}</Text>
@@ -412,6 +433,29 @@ export default function Profile() {
   );
 }
 
+// The frame takes the equipped avatar's tier colour, with a glow that grows
+// with the tier: faint for grey, strongest for gold.
+const GLOW: Record<Rarity, { alpha: number; blur: number; hue: number }> = {
+  grey: { alpha: 0.35, blur: 14, hue: 0.1 },
+  bronze: { alpha: 0.5, blur: 18, hue: 0.16 },
+  silver: { alpha: 0.6, blur: 22, hue: 0.16 },
+  gold: { alpha: 0.8, blur: 28, hue: 0.22 },
+};
+
+/** The page's top colour: the background leaning towards the avatar's tier. */
+function rarityHue(theme: Theme, rarity: Rarity) {
+  return blend(theme.background, rarityColor(theme, rarity), GLOW[rarity].hue);
+}
+
+function frameHighlight(theme: Theme, rarity: Rarity) {
+  const color = rarityColor(theme, rarity);
+  const { alpha, blur } = GLOW[rarity];
+  return {
+    container: { boxShadow: `0 0 ${blur}px ${withAlpha(color, alpha)}` },
+    image: { borderColor: color },
+  };
+}
+
 const createStyles = (theme: Theme) => StyleSheet.create({
   container: {
     flex: 1,
@@ -451,40 +495,29 @@ const createStyles = (theme: Theme) => StyleSheet.create({
     paddingHorizontal: 20,
     paddingVertical: 12,
   },
-  // A wide rounded frame holding the whole square avatar, with a blurred
-  // copy of it behind (see the JSX). Cropping the square to fill the frame
-  // cut off ears, hats and props.
+  // The original wide rectangle with a teal edge and a drop shadow (what
+  // Android drew for the old elevation), with slightly softened corners.
+  // Once the avatar's tier is known, frameHighlight recolours edge and glow.
+  rarityWash: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    height: 460,
+  },
   profileImageContainer: {
     marginBottom: 12,
-    width: "86%",
-    maxWidth: 380,
-    aspectRatio: 16 / 10,
-    padding: 10,
-    alignItems: "center",
-    justifyContent: "center",
-    borderRadius: 26,
+    borderRadius: 12,
+    borderCurve: "continuous",
+    boxShadow: "0 5px 20px rgba(0, 0, 0, 0.3)",
+  },
+  profileImage: {
+    width: 240,
+    height: 150,
+    borderRadius: 12,
     borderCurve: "continuous",
     borderWidth: 2,
     borderColor: theme.primary,
-    overflow: "hidden",
-    backgroundColor: theme.card,
-    boxShadow: "0 8px 24px rgba(0, 0, 0, 0.3)",
-  },
-  profileImageScrim: {
-    position: "absolute",
-    top: 0,
-    right: 0,
-    bottom: 0,
-    left: 0,
-    backgroundColor: theme.insetFill,
-  },
-  profileImage: {
-    height: "100%",
-    aspectRatio: 1,
-    borderRadius: 18,
-    borderCurve: "continuous",
-    borderWidth: 2,
-    borderColor: withAlpha(theme.glow, 0.25),
   },
   username: {
     fontSize: 24,

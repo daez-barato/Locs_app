@@ -94,3 +94,10 @@ export function withAlpha(hex: string, alpha: number): string {
   const [r, g, b] = [0, 2, 4].map((i) => parseInt(h.slice(i, i + 2), 16));
   return `rgba(${r}, ${g}, ${b}, ${alpha})`;
 }
+
+/** `base` moved `amount` (0-1) of the way towards `tint`, as an opaque #RRGGBB. */
+export function blend(base: string, tint: string, amount: number): string {
+  const rgb = (hex: string) => [0, 2, 4].map((i) => parseInt(hex.replace("#", "").slice(i, i + 2), 16));
+  const [a, b] = [rgb(base), rgb(tint)];
+  return "#" + a.map((v, i) => Math.round(v + (b[i] - v) * amount).toString(16).padStart(2, "0")).join("");
+}
