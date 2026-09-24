@@ -1,7 +1,6 @@
-import FontAwesome from "@expo/vector-icons/FontAwesome";
-import { useLocalSearchParams, useRouter } from "expo-router";
+import { useLocalSearchParams } from "expo-router";
 import { useEffect, useState } from "react";
-import { ActivityIndicator, ScrollView, StyleSheet, Text, TouchableOpacity, useWindowDimensions, View } from "react-native";
+import { ActivityIndicator, ScrollView, StyleSheet, Text, useWindowDimensions, View } from "react-native";
 import AvatarImage from "@/components/ui/avatar-image";
 import RarityBadge, { rarityColor } from "@/components/ui/rarity-badge";
 import SheetHeader from "@/components/ui/sheet-header";
@@ -12,18 +11,15 @@ import { AvatarInfo } from "@/types/interfaces";
 import { resolveAvatarUrl } from "@/utils/avatar";
 
 /**
- * An avatar at full size with its tier and story, opened from a profile (or
- * the shop). `path` is the stored image path (empty for the default); `owner`
- * adds a way to change it.
+ * A shop avatar at full size with its tier and story, opened from its shop
+ * card. `path` is the item's image path.
  */
 export default function AvatarView() {
     const theme = useThemeConfig();
     const styles = useThemedStyles(createStyles);
-    const router = useRouter();
     const { width } = useWindowDimensions();
-    const params = useLocalSearchParams<{ path?: string; username?: string; owner?: string }>();
+    const params = useLocalSearchParams<{ path?: string }>();
     const path = params.path || null;
-    const isOwner = params.owner === "1";
 
     const [item, setItem] = useState<AvatarInfo | null>(null);
     const [loading, setLoading] = useState(true);
@@ -45,7 +41,7 @@ export default function AvatarView() {
 
     return (
         <View style={styles.container}>
-            <SheetHeader title={params.username ? `${params.username}'s avatar` : "Avatar"} />
+            <SheetHeader title="Avatar" />
             <ScrollView contentContainerStyle={styles.content}>
                 <View style={[styles.frame, { width: size, height: size, borderColor: frame }]}>
                     <AvatarImage uri={resolveAvatarUrl(path)} style={styles.image} contentFit="cover" />
@@ -66,17 +62,6 @@ export default function AvatarView() {
                     </View>
                 ) : null}
 
-                {isOwner && (
-                    <TouchableOpacity
-                        style={styles.shopButton}
-                        onPress={() => router.navigate("/shop")}
-                        activeOpacity={0.8}
-                        accessibilityRole="button"
-                    >
-                        <FontAwesome name="shopping-bag" size={16} color={theme.onPrimary} />
-                        <Text style={styles.shopButtonText}>Change avatar in the shop</Text>
-                    </TouchableOpacity>
-                )}
             </ScrollView>
         </View>
     );
@@ -132,21 +117,5 @@ const createStyles = (theme: Theme) => StyleSheet.create({
         color: theme.cardTextMuted,
         fontSize: 13,
         fontStyle: "italic",
-    },
-    shopButton: {
-        alignSelf: "stretch",
-        flexDirection: "row",
-        alignItems: "center",
-        justifyContent: "center",
-        gap: 8,
-        paddingVertical: 14,
-        borderRadius: 14,
-        borderCurve: "continuous",
-        backgroundColor: theme.primary,
-    },
-    shopButtonText: {
-        color: theme.onPrimary,
-        fontSize: 16,
-        fontWeight: "700",
     },
 });

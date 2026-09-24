@@ -268,15 +268,11 @@ export default function Profile() {
         <View style={styles.profileSection}>
           <TouchableOpacity
             style={styles.profileImageContainer}
-            onPress={() =>
-              router.push({
-                pathname: "/avatar",
-                params: { path: userImage ?? "", username: user?.username ?? "", owner: user?.owner ? "1" : "0" },
-              })
-            }
+            onPress={() => router.push("/shop")}
+            disabled={!user?.owner}
             activeOpacity={0.8}
-            accessibilityRole="button"
-            accessibilityLabel={`View ${user?.username}'s avatar`}
+            accessibilityRole={user?.owner ? "button" : undefined}
+            accessibilityLabel={user?.owner ? "Change avatar in the shop" : undefined}
           >
             <AvatarImage uri={resolveAvatarUrl(userImage)} style={styles.profileImage} />
           </TouchableOpacity>
@@ -446,17 +442,21 @@ const createStyles = (theme: Theme) => StyleSheet.create({
     paddingHorizontal: 20,
     paddingVertical: 12,
   },
-  // A circle: the image used to be a 226x140 rectangle that cropped the
-  // square avatars, under a halo shaped for a circle.
+  // A wide rounded frame. The halo follows the frame's shape; it used to be
+  // shaped for a circle around a rectangle.
   profileImageContainer: {
     marginBottom: 12,
-    borderRadius: 70,
+    width: "82%",
+    maxWidth: 360,
+    aspectRatio: 16 / 10,
+    borderRadius: 24,
+    borderCurve: "continuous",
     boxShadow: `0 4px 20px ${withAlpha(theme.glow, 0.35)}`,
   },
   profileImage: {
-    width: 140,
-    height: 140,
-    borderRadius: 70,
+    width: "100%",
+    height: "100%",
+    borderRadius: 24,
     borderWidth: 2,
     borderColor: theme.primary,
   },
