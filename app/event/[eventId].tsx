@@ -20,7 +20,7 @@ import { EventDetails } from '@/types/rpc';
 
 export default function eventScreen() {
   const { eventId } = useLocalSearchParams() as { eventId: string };
-  const coins = useCoinContext().coins;
+  const { coins, refreshCoins } = useCoinContext();
   const [refreshing, setRefreshing] = useState(false);
   const theme = useThemeConfig();
   // Read per render so cards resize on rotation and iPad split view; the old
@@ -114,11 +114,13 @@ export default function eventScreen() {
 
   useEffect(() => {
     fetchData();
+    // The bet modal shows the balance; start from the current one.
+    refreshCoins();
   }, [eventId]);
 
   const onRefresh = async () => {
     setRefreshing(true);
-    await fetchData();
+    await Promise.all([fetchData(), refreshCoins()]);
     setRefreshing(false);
   };
 
@@ -157,6 +159,8 @@ export default function eventScreen() {
       }
 
       setShowDeleteModal(false);
+      // Refunds may include the creator's own stakes.
+      refreshCoins();
       Alert.alert(
         'Event deleted',
         result.refundedUsers
@@ -223,6 +227,8 @@ export default function eventScreen() {
       setEventInfo(prev => prev ? { ...prev, decided: true } : null);
       setShowEndEventModal(false);
       haptics.success();
+      // Deciding pays out winners, the creator included if they bet.
+      refreshCoins();
       if (!eventInfo?.template_posted){
         setPostTemplateModal(true);
       }
@@ -279,6 +285,8 @@ export default function eventScreen() {
         return;
       }
       haptics.success();
+      // add_bet returns nothing, so read the new balance back.
+      refreshCoins();
       
       setBetInfos(prevBetInfos => {
         const newBetInfos = { ...prevBetInfos };

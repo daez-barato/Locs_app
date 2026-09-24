@@ -22,6 +22,7 @@ import { getUserProfile, fetchUserCreatedEvents, fetchUserParticipatedEvents } f
 import { Event, UserProfile } from "@/types/interfaces";
 import { followRequest, unfollowRequest} from "@/api/followers/followers";
 import { useAuthContext } from "@/hooks/use-auth-context";
+import { useCoinContext } from "@/hooks/use-coin-context";
 import AvatarImage from "@/components/ui/avatar-image";
 import { CoinAmount, CoinIcon } from "@/components/ui/coin";
 import { resolveAvatarUrl } from "@/utils/avatar";
@@ -37,6 +38,7 @@ export default function Profile() {
   const [participatedEvents, setParticipatedEvents] = useState<Event[]>([]);
   const [loadingMoreEvents, setLoadingMoreEvents] = useState<boolean>(true);
   const hero = useAuthContext().user;
+  const { coins: myCoins, refreshCoins } = useCoinContext();
 
   const theme = useThemeConfig();
   const styles = useThemedStyles(createStyles);
@@ -93,6 +95,7 @@ export default function Profile() {
     setCreatedOffset(0);
     setParticipatedOffset(0);
     fetchData(true);
+    refreshCoins();
   }, [username, hero?.username]);
 
   // Tabs stay mounted, so coming back from the shop wouldn't refetch and the
@@ -107,6 +110,10 @@ export default function Profile() {
       }
       if (!username || Array.isArray(username)) return;
 
+      // Someone else deciding an event you bet on pays out while you're
+      // elsewhere in the app; pick that up when the profile comes back.
+      refreshCoins();
+
       let active = true;
       getUserProfile(username).then((profile) => {
         if (!active || !profile) return;
@@ -116,7 +123,7 @@ export default function Profile() {
       return () => {
         active = false;
       };
-    }, [username])
+    }, [username, refreshCoins])
   );
 
   const handleFollowToggle = async () => {
@@ -297,7 +304,9 @@ export default function Profile() {
             </TouchableOpacity>
               <View style={styles.statDivider} />
               <View style={styles.statItem}>
-                <CoinAmount amount={user?.coins ?? 0} size={20} textStyle={styles.statNumber} />
+                {/* Your own balance comes from the shared coin state, so a bet or
+                    purchase elsewhere shows here without a profile refetch. */}
+                <CoinAmount amount={(user?.owner ? myCoins : user?.coins) ?? 0} size={20} textStyle={styles.statNumber} />
                 <Text style={styles.statLabel}>Coins</Text>
               </View>
           </View>

@@ -1,59 +1,55 @@
 import { CoinContext } from "@/hooks/use-coin-context";
-import { supabase } from "@/lib/supabase";
-import { PropsWithChildren, useEffect, useState } from "react";
+import { useAuthContext } from "@/hooks/use-auth-context";
+import { getMyCoins } from "@/services/users";
+import { PropsWithChildren, useCallback, useEffect, useRef, useState } from "react";
+import { AppState } from "react-native";
 
+/**
+ * The signed-in user's balance, refreshed on demand rather than pushed.
+ *
+ * It used to hold a private Realtime channel open for a `coins_updated`
+ * broadcast, but the project has no realtime.messages policy, so private
+ * subscriptions were refused and nothing ever arrived. Balances change at
+ * moments the app already knows about (its own bets, purchases, decisions) or
+ * on the midnight cron (top-ups, expired-event refunds), so reading the
+ * balance after those actions, on pull-to-refresh, on screen focus and when
+ * the app returns to the foreground covers every case without a socket.
+ */
 export const CoinProvider = ({ children }: PropsWithChildren) => {
+  const { user } = useAuthContext();
+  const userId = user?.id;
   const [coins, setCoins] = useState<number>(0);
 
-  useEffect(() => {
-    let channel: ReturnType<typeof supabase.channel> | null = null;
-    let isMounted = true;
+  // Drops responses for a previous account that land after a logout or switch.
+  const currentUser = useRef(userId);
+  currentUser.current = userId;
 
-    const subscribeToCoinUpdates = async () => {
-      const { data: authData } = await supabase.auth.getUser();
-      const userId = authData.user?.id;
-
-      if (!userId) return;
-
-      // Coins only ever arrived by broadcast, so the balance sat at 0 until the
-      // user's next coin change. Load the real balance up front.
-      const { data: profile, error } = await supabase.rpc("get_my_profile");
-
-      if (!error && profile?.[0] && isMounted) {
-        setCoins(profile[0].coins ?? 0);
-      }
-
-      channel = supabase
-        .channel(`user:${userId}:coins`, { config: { private: true } })
-        .on(
-          "broadcast",
-          { event: "coins_updated" },
-          (message: any) => {
-            if (!isMounted) return;
-            // supabase-js delivers { type, event, payload }; the trigger's
-            // jsonb lands in payload, not on the message itself.
-            const newCoins = message?.payload?.coins ?? message?.coins;
-
-            if (typeof newCoins === "number") {
-              setCoins(newCoins);
-            }
-          }
-        )
-        .subscribe();
-    };
-
-    subscribeToCoinUpdates().catch((err) => {
-      console.error("Error subscribing to coin updates:", err);
-    });
-
-    return () => {
-      isMounted = false;
-      if (channel) supabase.removeChannel(channel);
-    };
+  const refreshCoins = useCallback(async () => {
+    const requestedFor = currentUser.current;
+    if (!requestedFor) return;
+    const balance = await getMyCoins();
+    if (balance !== null && currentUser.current === requestedFor) {
+      setCoins(balance);
+    }
   }, []);
 
+  useEffect(() => {
+    if (!userId) {
+      setCoins(0);
+      return;
+    }
+    refreshCoins();
+  }, [userId, refreshCoins]);
+
+  useEffect(() => {
+    const sub = AppState.addEventListener("change", (state) => {
+      if (state === "active") refreshCoins();
+    });
+    return () => sub.remove();
+  }, [refreshCoins]);
+
   return (
-    <CoinContext.Provider value={{ coins, setCoinAmount: setCoins }}>
+    <CoinContext.Provider value={{ coins, setCoinAmount: setCoins, refreshCoins }}>
       {children}
     </CoinContext.Provider>
   );

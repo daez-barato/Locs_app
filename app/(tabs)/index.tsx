@@ -4,6 +4,7 @@ import { Event } from "@/types/interfaces";
 import EventCard from "@/components/eventCard";
 import { useThemeConfig, Theme } from "@/components/ui/use-theme-config"
 import { useThemedStyles } from "@/hooks/use-themed-styles";
+import { useCoinContext } from "@/hooks/use-coin-context";
 import { FontAwesome } from "@expo/vector-icons";
 import { useEffect, useState } from "react"
 import { useRouter } from "expo-router"
@@ -19,6 +20,7 @@ export default function Home(){
   const theme = useThemeConfig()
   const styles = useThemedStyles(createStyles);
   const router = useRouter()
+  const { refreshCoins } = useCoinContext();
   const [followingPostsList, updateFollowingPostsList] = useState<Event[]>([]);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
@@ -70,7 +72,7 @@ export default function Home(){
             />
           )}
           refreshing={refresh}
-          onRefresh={() => {activateRefresh(true)}}
+          onRefresh={() => {activateRefresh(true); refreshCoins();}}
           contentContainerStyle={styles.listContent}
           onEndReached={() => {if (!loadingMore && hasMore) {setLoadingMore(true); fetchData(offset);}}}
           onEndReachedThreshold={0.2}

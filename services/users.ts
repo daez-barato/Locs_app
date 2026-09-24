@@ -138,8 +138,8 @@ export const changePrivacy = async (isPublic: boolean) => {
     
 /**
  * The signed-in user's current coin balance, or null if it couldn't be read.
- * The coin provider keeps the balance live by broadcast; this is for screens
- * that want to re-sync on focus in case a broadcast was missed.
+ * Backs the coin provider's refreshCoins, which screens call after actions,
+ * on pull-to-refresh and on focus.
  */
 export const getMyCoins = async (): Promise<number | null> => {
   try {

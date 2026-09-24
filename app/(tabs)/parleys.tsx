@@ -4,6 +4,7 @@ import EventCard from "@/components/eventCard";
 import { useThemeConfig, Theme } from "@/components/ui/use-theme-config";
 import { withAlpha } from "@/theme";
 import { useThemedStyles } from "@/hooks/use-themed-styles";
+import { useCoinContext } from "@/hooks/use-coin-context";
 import { FontAwesome } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useState, useEffect } from "react";
@@ -21,6 +22,7 @@ export default function Parleys() {
     const theme = useThemeConfig();
     const styles = useThemedStyles(createStyles);
     const router = useRouter()
+    const { refreshCoins } = useCoinContext();
     const [activeTab, setActiveTab] = useState<'participating' | 'created'>('participating');
     const [participatingEvents, setParticipatingEvents] = useState<Event[]>([]);
     const [createdEvents, setCreatedEvents] = useState<Event[]>([]);
@@ -58,7 +60,7 @@ export default function Parleys() {
 
     const onRefresh = async () => {
         setIsRefreshing(true);
-        await fetchUserEvents();
+        await Promise.all([fetchUserEvents(), refreshCoins()]);
         setIsRefreshing(false);
     };
 
