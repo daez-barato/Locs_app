@@ -6,6 +6,7 @@ import { Theme, useThemeConfig } from "@/components/ui/use-theme-config";
 import { useThemedStyles } from "@/hooks/use-themed-styles";
 import { supabase } from "@/lib/supabase";
 import { isValidEmail } from "@/utils/parsing";
+import { friendlyLoginError, friendlySignupError, usernameProblem } from "@/utils/auth-errors";
 
 export default function SignIn() {
     const theme = useThemeConfig();
@@ -16,68 +17,91 @@ export default function SignIn() {
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [error, setError] = useState("");
+    // Non-error feedback, e.g. "check your inbox" after signing up.
+    const [notice, setNotice] = useState("");
     const [confirmPassword, setConfirmPassword] = useState("");
 
     const handleLogin = async () => {
+        setNotice("");
+        const trimmedEmail = email.trim();
+        if (!isValidEmail(trimmedEmail)) {
+            setError("That doesn't look like an email address. Check for typos or stray spaces.");
+            return;
+        }
+        if (!password) {
+            setError("Enter your password.");
+            return;
+        }
         try {
-            if (!isValidEmail(email)) {
-                setError("Invalid email format.");
-                return;
-            }
             const response = await supabase.auth.signInWithPassword({
-                email: email,
+                email: trimmedEmail,
                 password: password,
             });
-
-            if (response.error) {
-                throw new Error();
-            }
-
-        } catch (error) {
-            setError("Login failed. Please check your credentials.");
+            setError(response.error ? friendlyLoginError(response.error) : "");
+        } catch (error: any) {
+            setError(friendlyLoginError(error));
         }
     };
 
     const handleRegister = async () => {
-        if (!username || !email || !password || !confirmPassword) {
-            setError("All fields are required.");
+        setNotice("");
+        const trimmedEmail = email.trim();
+        const trimmedUsername = username.trim();
+        if (!trimmedUsername || !trimmedEmail || !password || !confirmPassword) {
+            setError("Fill in every field to create an account.");
             return;
         }
 
-        if (!isValidEmail(email)) {
-            setError("Invalid email format.");
+        const badUsername = usernameProblem(trimmedUsername);
+        if (badUsername) {
+            setError(badUsername);
+            return;
+        }
+
+        if (!isValidEmail(trimmedEmail)) {
+            setError("That doesn't look like an email address. Check for typos or stray spaces.");
+            return;
+        }
+
+        if (password.length < 6) {
+            setError("Passwords need at least 6 characters.");
             return;
         }
 
         if (password !== confirmPassword) {
-            setError("Passwords do not match.");
+            setError("The two passwords don't match.");
             return;
         }
 
         try {
             const response = await supabase.auth.signUp({
-                email: email,
+                email: trimmedEmail,
                 password: password,
                 options: {
                     data: {
-                        username: username,
+                        username: trimmedUsername,
                     },
                 },
             })
 
             if (response.error) {
-                throw new Error();
+                setError(friendlySignupError(response.error));
+                return;
             }
 
             setUsername("");
-            setEmail("");
             setPassword("");
             setConfirmPassword("");
             setError("");
             setIsRegistering(false);
+            // With email confirmation on there is no session yet; without this
+            // the form just flipped to Login with no explanation.
+            if (!response.data.session) {
+                setNotice("Account created. Open the confirmation link we emailed you, then log in.");
+            }
 
-        } catch (error) {
-            setError("Registration failed. Check your input and please try again.");
+        } catch (error: any) {
+            setError(friendlySignupError(error));
         }
     };
 
@@ -139,7 +163,12 @@ export default function SignIn() {
                         />
                     )}
 
-                    {error ? <Text style={styles.error}>{error}</Text> : null}
+                    {error ? (
+                        <Text style={styles.error} accessibilityLiveRegion="polite" selectable>{error}</Text>
+                    ) : null}
+                    {notice ? (
+                        <Text style={styles.notice} accessibilityLiveRegion="polite">{notice}</Text>
+                    ) : null}
 
                     <TouchableOpacity
                         style={[styles.button, styles.primaryButton]}
@@ -158,6 +187,7 @@ export default function SignIn() {
                         onPress={() => {
                             setIsRegistering(!isRegistering);
                             setError("");
+                            setNotice("");
                         }}
                         activeOpacity={0.8}
                     >
@@ -204,6 +234,12 @@ const createStyles = (theme: Theme) => StyleSheet.create({
     },
     error: {
         color: theme.destructiveLabel,
+        marginTop: 4,
+        marginBottom: 10,
+        textAlign: "center",
+    },
+    notice: {
+        color: theme.successLabel,
         marginTop: 4,
         marginBottom: 10,
         textAlign: "center",

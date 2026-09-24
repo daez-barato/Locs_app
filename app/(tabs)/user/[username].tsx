@@ -268,11 +268,15 @@ export default function Profile() {
         <View style={styles.profileSection}>
           <TouchableOpacity
             style={styles.profileImageContainer}
-            onPress={() => router.push("/shop")}
-            disabled={!user?.owner}
+            onPress={() =>
+              router.push({
+                pathname: "/avatar",
+                params: { path: userImage ?? "", username: user?.username ?? "", owner: user?.owner ? "1" : "0" },
+              })
+            }
             activeOpacity={0.8}
-            accessibilityRole={user?.owner ? "button" : undefined}
-            accessibilityLabel={user?.owner ? "Change avatar in the shop" : undefined}
+            accessibilityRole="button"
+            accessibilityLabel={`View ${user?.username}'s avatar`}
           >
             <AvatarImage uri={resolveAvatarUrl(userImage)} style={styles.profileImage} />
           </TouchableOpacity>

@@ -352,31 +352,37 @@ export type Database = {
         Row: {
           active: boolean
           created_at: string
+          description: string
           id: string
           image_path: string
           kind: string
           name: string
           price: number
+          rarity: string
           sort_order: number
         }
         Insert: {
           active?: boolean
           created_at?: string
+          description?: string
           id: string
           image_path: string
           kind: string
           name: string
           price: number
+          rarity?: string
           sort_order?: number
         }
         Update: {
           active?: boolean
           created_at?: string
+          description?: string
           id?: string
           image_path?: string
           kind?: string
           name?: string
           price?: number
+          rarity?: string
           sort_order?: number
         }
         Relationships: []
@@ -533,6 +539,10 @@ export type Database = {
         }
         Returns: undefined
       }
+      assert_valid_expire_date: {
+        Args: { _expire_date: string }
+        Returns: undefined
+      }
       create_event: {
         Args: { _payload: Json }
         Returns: {
@@ -591,6 +601,17 @@ export type Database = {
           status: string
         }[]
       }
+      get_avatar_item: {
+        Args: { _image_path: string }
+        Returns: {
+          active: boolean
+          description: string
+          item_id: string
+          name: string
+          price: number
+          rarity: string
+        }[]
+      }
       get_event_bets_db: { Args: { p_event_id: string }; Returns: Json }
       get_event_information_db: { Args: { p_event_id: string }; Returns: Json }
       get_following_posts: {
@@ -643,6 +664,7 @@ export type Database = {
       get_shop_items: {
         Args: never
         Returns: {
+          description: string
           equipped: boolean
           image_path: string
           item_id: string
@@ -650,6 +672,7 @@ export type Database = {
           name: string
           owned: boolean
           price: number
+          rarity: string
         }[]
       }
       get_template_by_id: { Args: { p_template_id: string }; Returns: Json }

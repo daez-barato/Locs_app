@@ -14,6 +14,7 @@ jest.mock("@/lib/supabase", () => ({
 import { supabase } from "@/lib/supabase";
 import {
   equipItem,
+  getAvatarItem,
   friendlyShopError,
   getShopItems,
   GENERIC_SHOP_ERROR,
@@ -31,6 +32,8 @@ const row = {
   image_path: "Cool_Man.jpeg",
   owned: false,
   equipped: false,
+  rarity: "bronze",
+  description: "Sunglasses at night games.",
 };
 
 beforeEach(() => {
@@ -55,7 +58,8 @@ describe("getShopItems", () => {
   it("maps rows to ShopItem view models", async () => {
     mockRpc.mockResolvedValue({
       data: [row, { ...row, item_id: "default_avatar", name: "Default", price: 0,
-        image_path: "default_avatar.png", owned: true, equipped: true }],
+        image_path: "default_avatar.png", owned: true, equipped: true, rarity: "grey",
+        description: "Every legend starts here." }],
       error: null,
     });
 
@@ -73,6 +77,8 @@ describe("getShopItems", () => {
         imageUrl: "https://cdn.test/avatar/Cool_Man.jpeg",
         owned: false,
         equipped: false,
+        rarity: "bronze",
+        description: "Sunglasses at night games.",
       },
       {
         id: "default_avatar",
@@ -83,9 +89,21 @@ describe("getShopItems", () => {
         imageUrl: "https://cdn.test/avatar/default_avatar.png",
         owned: true,
         equipped: true,
+        rarity: "grey",
+        description: "Every legend starts here.",
       },
     ]);
     expect(mockFrom).toHaveBeenCalledWith("avatar");
+  });
+
+  it("shows an unknown rarity as the lowest tier instead of failing", async () => {
+    mockRpc.mockResolvedValue({ data: [{ ...row, rarity: "mythic" }], error: null });
+
+    const result = await getShopItems();
+
+    expect(result.error).toBe(false);
+    if (result.error) return;
+    expect(result.items[0].rarity).toBe("grey");
   });
 
   it("returns an error result instead of throwing", async () => {
@@ -178,4 +196,28 @@ describe("friendlyShopError", () => {
       expect(friendlyShopError(raw as any)).toBe(GENERIC_SHOP_ERROR);
     }
   );
+});
+
+describe("getAvatarItem", () => {
+  it("maps the catalogue entry behind an avatar", async () => {
+    mockRpc.mockResolvedValue({
+      data: [{ item_id: "bet_turtle", name: "Bet Turtle", rarity: "gold",
+        description: "Slow and steady.", price: 1000, active: false }],
+      error: null,
+    });
+
+    const result = await getAvatarItem("Bet_Turtle.jpg");
+
+    expect(mockRpc).toHaveBeenCalledWith("get_avatar_item", { _image_path: "Bet_Turtle.jpg" });
+    expect(result).toEqual({
+      error: false,
+      item: { id: "bet_turtle", name: "Bet Turtle", rarity: "gold",
+        description: "Slow and steady.", price: 1000, active: false },
+    });
+  });
+
+  it("returns null for an image that is not in the catalogue", async () => {
+    mockRpc.mockResolvedValue({ data: [], error: null });
+    expect(await getAvatarItem("custom.png")).toEqual({ error: false, item: null });
+  });
 });

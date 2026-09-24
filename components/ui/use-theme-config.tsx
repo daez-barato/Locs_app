@@ -56,6 +56,10 @@ export interface Theme {
   coinFace: string;
   coinRim: string;
   coinCrown: string;
+  rarityGrey: string;
+  rarityBronze: string;
+  raritySilver: string;
+  rarityGold: string;
   /** destructive copy drawn straight on `background`, where `destructive` is too dark */
   destructiveLabel: string;
   /** event lifecycle: the Lock action / LOCKED badge, the End action / ENDED badge */

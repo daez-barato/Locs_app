@@ -1,6 +1,8 @@
 import { Theme, useThemeConfig } from "@/components/ui/use-theme-config";
 import AvatarImage from "@/components/ui/avatar-image";
 import { CoinAmount, CoinIcon } from "@/components/ui/coin";
+import RarityBadge, { rarityColor } from "@/components/ui/rarity-badge";
+import { withAlpha } from "@/theme";
 import { haptics } from "@/utils/haptics";
 import { useThemedStyles } from "@/hooks/use-themed-styles";
 import { useCoinContext } from "@/hooks/use-coin-context";
@@ -9,7 +11,7 @@ import { equipItem, getShopItems, purchaseItem } from "@/services/shop";
 import { getMyCoins } from "@/services/users";
 import { ShopItem } from "@/types/interfaces";
 import { FontAwesome } from "@expo/vector-icons";
-import { Tabs, useFocusEffect } from "expo-router";
+import { Tabs, useFocusEffect, useRouter } from "expo-router";
 import React, { useCallback, useRef, useState } from "react";
 import {
   ActivityIndicator,
@@ -27,6 +29,7 @@ export default function Shop() {
   const styles = useThemedStyles(createStyles);
   const { coins, setCoinAmount } = useCoinContext();
   const { updateUser } = useAuthContext();
+  const router = useRouter();
 
   const [items, setItems] = useState<ShopItem[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
@@ -195,15 +198,29 @@ export default function Shop() {
   };
 
   const renderItem = ({ item }: { item: ShopItem }) => (
-    <View style={[styles.card, item.equipped && styles.cardEquipped]}>
-      <View style={styles.imageWrapper}>
+    <View
+      style={[
+        styles.card,
+        // A soft edge in the tier's colour; the equipped card keeps its teal.
+        { borderColor: withAlpha(rarityColor(theme, item.rarity), 0.45) },
+        item.equipped && styles.cardEquipped,
+      ]}
+    >
+      <TouchableOpacity
+        style={styles.imageWrapper}
+        onPress={() => router.push({ pathname: "/avatar", params: { path: item.imagePath } })}
+        activeOpacity={0.85}
+        accessibilityRole="button"
+        accessibilityLabel={`About ${item.name}, ${item.rarity} rarity`}
+      >
         <AvatarImage uri={item.imageUrl} style={styles.image} contentFit="cover" />
         {item.equipped && (
           <View style={styles.badge}>
             <Text style={styles.badgeText}>Equipped</Text>
           </View>
         )}
-      </View>
+        <RarityBadge rarity={item.rarity} style={styles.rarityBadge} />
+      </TouchableOpacity>
       <Text style={styles.name} numberOfLines={1}>
         {item.name}
       </Text>
@@ -349,6 +366,11 @@ const createStyles = (theme: Theme) =>
       paddingVertical: 3,
       borderRadius: 8,
       backgroundColor: theme.success,
+    },
+    rarityBadge: {
+      position: "absolute",
+      top: 6,
+      right: 6,
     },
     badgeText: {
       color: theme.onAccent,

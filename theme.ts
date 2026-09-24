@@ -52,6 +52,11 @@ const palette: Theme = {
   coinFace: "#F4C430",
   coinRim: "#B8860B",
   coinCrown: "#5B1A7A",
+  /** avatar rarity tiers; each reads on the purple and takes dark text */
+  rarityGrey: "#B8B8C4",
+  rarityBronze: "#D08A4E",
+  raritySilver: "#DDE3EA",
+  rarityGold: "#F4C430",
   // Material's error tone for dark surfaces: 5:1 on the purple, where #FF3B30
   // managed 2.4 and `destructive` itself 1.3.
   destructiveLabel: "#FFB4AB",

@@ -84,6 +84,18 @@ function RootNavigator() {
               }}
             />
           ))}
+          {/* Tall enough for the full image and its story in one view. */}
+          <Stack.Screen
+            name="avatar"
+            options={{
+              presentation: "formSheet",
+              headerShown: false,
+              sheetAllowedDetents: [0.92],
+              sheetGrabberVisible: true,
+              sheetCornerRadius: 24,
+              contentStyle: { backgroundColor: theme.background },
+            }}
+          />
         </Stack.Protected>
         <Stack.Protected guard={!isLoggedIn || user === undefined}>
           <Stack.Screen name="(auth)" options={{ headerShown: false }} />

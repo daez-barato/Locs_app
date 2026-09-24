@@ -157,6 +157,10 @@ export interface SearchEvent extends Event {
  * A shop catalogue entry as the shop screen sees it. Built from a
  * get_shop_items row by services/shop.ts — screens never see the row itself.
  */
+/** Avatar tiers, lowest to highest. */
+export const RARITIES = ["grey", "bronze", "silver", "gold"] as const;
+export type Rarity = typeof RARITIES[number];
+
 export interface ShopItem {
     id: string;
     /** only 'avatar' today */
@@ -169,4 +173,18 @@ export interface ShopItem {
     imageUrl: string;
     owned: boolean;
     equipped: boolean;
+    rarity: Rarity;
+    /** a line or two of lore, shown in the avatar view */
+    description: string;
+};
+
+/** The catalogue entry behind someone's avatar, for the expanded avatar view. */
+export interface AvatarInfo {
+    id: string;
+    name: string;
+    rarity: Rarity;
+    description: string;
+    price: number;
+    /** false once retired from the shop; people who bought it can still wear it */
+    active: boolean;
 };

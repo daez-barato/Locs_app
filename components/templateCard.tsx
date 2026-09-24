@@ -18,21 +18,6 @@ export default function TemplateCard({ item }: {item: SearchTemplate}) {
     const styles = useThemedStyles(createStyles);
     const router = useRouter();
 
-    const getTypeIcon = (type?: string) => {
-        switch (type?.toLowerCase()) {
-            case 'event':
-                return 'calendar';
-            case 'poll':
-                return 'bar-chart';
-            case 'survey':
-                return 'clipboard';
-            case 'quiz':
-                return 'question-circle';
-            default:
-                return 'file-text';
-        }
-    };
-
     return (
         <View style={styles.card}>
             <TouchableOpacity
@@ -53,15 +38,6 @@ export default function TemplateCard({ item }: {item: SearchTemplate}) {
                             <FontAwesome name="clone" size={28} color={theme.cardTextFaint} />
                         </View>
                     )}
-                    {item.type && (
-                        <View style={styles.typeOverlay}>
-                            <FontAwesome 
-                                name={getTypeIcon(item.type)} 
-                                size={14} 
-                                color={theme.onPrimary}
-                            />
-                        </View>
-                    )}
                 </View>
                 
                 <View style={styles.cardContent}>
@@ -73,13 +49,6 @@ export default function TemplateCard({ item }: {item: SearchTemplate}) {
                         >
                             {item.title}
                         </Text>
-                        {item.type && (
-                            <View style={styles.typeBadge}>
-                                <Text style={styles.typeText}>
-                                    {item.type}
-                                </Text>
-                            </View>
-                        )}
                     </View>
                     
                     {item.description && (
@@ -94,8 +63,8 @@ export default function TemplateCard({ item }: {item: SearchTemplate}) {
                     
                     <View style={styles.cardFooter}>
                         <View style={styles.actionIndicator}>
-                            <FontAwesome name="chevron-right" size={12} color={theme.primary} />
-                            <Text style={styles.actionText}>Use Template</Text>
+                            <Text style={styles.actionText}>Use template</Text>
+                            <FontAwesome name="chevron-right" size={10} color={theme.primary} />
                         </View>
                     </View>
                 </View>
@@ -108,8 +77,9 @@ const createStyles = (theme: Theme) => StyleSheet.create({
     card: {
         backgroundColor: theme.card,
         marginHorizontal: 16,
-        marginVertical: 8,
-        borderRadius: 16,
+        marginVertical: 6,
+        borderRadius: 18,
+        borderCurve: 'continuous',
         boxShadow: "0 2px 16px rgba(0, 0, 0, 0.1)",
         overflow: 'hidden',
         borderWidth: 1,
@@ -117,7 +87,8 @@ const createStyles = (theme: Theme) => StyleSheet.create({
     },
     cardTouchable: {
         flexDirection: 'row',
-        padding: 16,
+        gap: 14,
+        padding: 14,
     },
     thumbnailPlaceholder: {
         alignItems: 'center',
@@ -126,26 +97,13 @@ const createStyles = (theme: Theme) => StyleSheet.create({
     },
     thumbnailContainer: {
         position: 'relative',
-        marginRight: 16,
     },
     thumbnail: {
-        width: 70,
-        height: 70,
+        width: 80,
+        height: 80,
         borderRadius: 14,
+        borderCurve: 'continuous',
         backgroundColor: theme.cardBorder,
-    },
-    typeOverlay: {
-        position: 'absolute',
-        top: -4,
-        right: -4,
-        width: 24,
-        height: 24,
-        borderRadius: 12,
-        justifyContent: 'center',
-        alignItems: 'center',
-        borderWidth: 2,
-        borderColor: theme.card,
-        backgroundColor: theme.primary,
     },
     cardContent: {
         flex: 1,
@@ -165,18 +123,6 @@ const createStyles = (theme: Theme) => StyleSheet.create({
         flex: 1,
         marginRight: 8,
     },
-    typeBadge: {
-        backgroundColor: theme.primarySurface,
-        paddingHorizontal: 8,
-        paddingVertical: 3,
-        borderRadius: 8,
-    },
-    typeText: {
-        color: theme.primary,
-        fontSize: 11,
-        fontWeight: '600',
-        textTransform: 'uppercase',
-    },
     cardDescription: {
         color: theme.cardText,
         fontSize: 13,
@@ -192,7 +138,13 @@ const createStyles = (theme: Theme) => StyleSheet.create({
     actionIndicator: {
         flexDirection: 'row',
         alignItems: 'center',
-        gap: 4,
+        gap: 6,
+        paddingHorizontal: 10,
+        paddingVertical: 5,
+        borderRadius: 10,
+        backgroundColor: theme.primarySurface,
+        borderWidth: 1,
+        borderColor: theme.primaryBorder,
     },
     actionText: {
         color: theme.primary,

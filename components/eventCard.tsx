@@ -101,8 +101,8 @@ export default function EventCard({event}: {event: Event}) {
                     {event.is_creator && (
                         <View style={styles.eventFooter}>
                             <View style={styles.creatorBadge}>
-                                <FontAwesome name="user" size={16} color={theme.onPrimary} />
-                                <Text style={styles.creatorText}>Creator</Text>
+                                <FontAwesome name="star" size={12} color={theme.primary} />
+                                <Text style={styles.creatorText}>Your event</Text>
                             </View>
                         </View>
                     )}
@@ -115,9 +115,10 @@ export default function EventCard({event}: {event: Event}) {
 const createStyles = (theme: Theme) => StyleSheet.create({
     eventCard: {
         backgroundColor: theme.card,
-        marginHorizontal: 20,
+        marginHorizontal: 16,
         marginVertical: 6,
-        borderRadius: 16,
+        borderRadius: 18,
+        borderCurve: 'continuous',
         boxShadow: "0 2px 6px rgba(0, 0, 0, 0.1)",
         overflow: 'hidden',
         borderWidth: 1,
@@ -125,13 +126,14 @@ const createStyles = (theme: Theme) => StyleSheet.create({
     },
     cardTouchable: {
         flexDirection: 'row',
-        padding: 16,
+        gap: 14,
+        padding: 14,
     },
     eventImage: {
         width: 80,
         height: 80,
-        borderRadius: 12,
-        marginRight: 16,
+        borderRadius: 14,
+        borderCurve: 'continuous',
         backgroundColor: theme.cardBorder,
     },
     eventImagePlaceholder: {
@@ -192,18 +194,21 @@ const createStyles = (theme: Theme) => StyleSheet.create({
         justifyContent: 'space-between',
         alignItems: 'center',
     },
+    // A quiet marker rather than a button-sized block: it labels, it doesn't act.
     creatorBadge: {
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: theme.primary,
-        paddingHorizontal: 12,
-        paddingVertical: 6,
-        borderRadius: 8,
+        backgroundColor: theme.primarySurface,
+        borderWidth: 1,
+        borderColor: theme.primaryBorder,
+        paddingHorizontal: 10,
+        paddingVertical: 4,
+        borderRadius: 10,
         gap: 6,
     },
     creatorText: {
         fontSize: 12,
-        color: theme.onPrimary,
+        color: theme.primary,
         fontWeight: '600',
     },
 });

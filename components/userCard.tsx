@@ -94,7 +94,10 @@ export default function UserCard({ user }: { user: SearchUser }) {
     <View style={styles.userCard}>
       <TouchableOpacity
         style={styles.userCardTouchable}
-        onPress={() => router.push(`/user/${user.id}`)}
+        // Profiles are looked up by username; the id sent every tap to
+        // "User not found". navigate (not push) also closes the followers /
+        // requests sheet this card may be sitting in.
+        onPress={() => router.navigate({ pathname: "/user/[username]", params: { username: user.username } })}
         activeOpacity={0.8}
         accessibilityRole="button"
       >
@@ -133,7 +136,7 @@ export default function UserCard({ user }: { user: SearchUser }) {
                   accessibilityLabel={`Reject follow request from ${userState.username}`}
                   onPress={handleRefuse}
                 >
-                  <FontAwesome name="times" size={18} color={theme.destructiveText} />
+                  <FontAwesome name="times" size={14} color={theme.destructiveLabel} />
                 </TouchableOpacity>
               </View>
             )}
@@ -146,8 +149,8 @@ export default function UserCard({ user }: { user: SearchUser }) {
                     style={(followLabel === "Following" || followLabel === "Requested") ? styles.followingIndicator : styles.actionIndicator}
                   >
                     {(followLabel === "Following" || followLabel === "Requested") ?
-                    <FontAwesome name="check" size={12} color={theme.success} />
-                    : <FontAwesome name="user-plus" size={12} color={theme.primary} />}
+                    <FontAwesome name="check" size={12} color={theme.cardTextSecondary} />
+                    : <FontAwesome name="user-plus" size={12} color={theme.onPrimary} />}
 
                     <Text style={(followLabel === "Following" || followLabel === "Requested") ? styles.followingText : styles.actionText}>
                       {followLabel}
@@ -166,8 +169,9 @@ const createStyles = (theme: Theme) => StyleSheet.create({
     userCard: {
         backgroundColor: theme.card,
         marginHorizontal: 16,
-        marginVertical: 8,
-        borderRadius: 16,
+        marginVertical: 6,
+        borderRadius: 18,
+        borderCurve: 'continuous',
         boxShadow: "0 2px 16px rgba(0, 0, 0, 0.1)",
         overflow: 'hidden',
         borderWidth: 1,
@@ -176,19 +180,19 @@ const createStyles = (theme: Theme) => StyleSheet.create({
     userCardTouchable: {
         flexDirection: 'row',
         alignItems: 'center',
-        padding: 16,
+        gap: 14,
+        padding: 14,
     },
     avatarContainer: {
         position: 'relative',
-        marginRight: 16,
     },
     avatar: {
-        width: 56,
-        height: 56,
-        borderRadius: 28,
+        width: 52,
+        height: 52,
+        borderRadius: 26,
         backgroundColor: theme.cardBorder,
         borderWidth: 2,
-        borderColor: theme.card,
+        borderColor: theme.primary,
     },
     userInfo: {
         flex: 1,
@@ -214,44 +218,56 @@ const createStyles = (theme: Theme) => StyleSheet.create({
         justifyContent: 'flex-end',
         alignItems: 'center',
     },
+    // Follow / Follow back is the action: a filled pill.
     actionIndicator: {
         flexDirection: 'row',
         alignItems: 'center',
-        gap: 4,
+        gap: 6,
+        paddingHorizontal: 12,
+        paddingVertical: 6,
+        borderRadius: 12,
+        backgroundColor: theme.primary,
     },
     actionText: {
-        color: theme.primary,
-        fontSize: 12,
-        fontWeight: '600',
+        color: theme.onPrimary,
+        fontSize: 13,
+        fontWeight: '700',
     },
+    // Following / Requested is a state (tap to undo): a quiet outline.
     followingIndicator: {
         flexDirection: 'row',
         alignItems: 'center',
-        gap: 4,
-        paddingHorizontal: 8,
-        paddingVertical: 4,
-        backgroundColor: theme.successTint,
-        borderRadius: 8,
+        gap: 6,
+        paddingHorizontal: 12,
+        paddingVertical: 6,
+        borderRadius: 12,
+        borderWidth: 1,
+        borderColor: theme.cardDividerStrong,
     },
     followingText: {
-        color: theme.success,
-        fontSize: 12,
+        color: theme.cardTextSecondary,
+        fontSize: 13,
         fontWeight: '600',
     },
     acceptButton: {
-        backgroundColor: theme.success,
-        paddingVertical: 4,
-        paddingHorizontal: 10,
-        borderRadius: 8,
+        backgroundColor: theme.primary,
+        paddingVertical: 6,
+        paddingHorizontal: 12,
+        borderRadius: 12,
     },
     acceptText: {
-        color: theme.void,
+        color: theme.onPrimary,
+        fontSize: 13,
+        fontWeight: '700',
     },
     refuseButton: {
-        backgroundColor: theme.destructive,
-        paddingVertical: 4,
-        paddingHorizontal: 8,
-        borderRadius: 8,
+        width: 32,
+        height: 32,
+        borderRadius: 16,
+        alignItems: 'center',
+        justifyContent: 'center',
+        borderWidth: 1,
+        borderColor: theme.cardDividerStrong,
     },
 
 });

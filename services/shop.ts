@@ -1,5 +1,5 @@
 import { supabase } from "@/lib/supabase";
-import { ShopItem } from "@/types/interfaces";
+import { AvatarInfo, RARITIES, Rarity, ShopItem } from "@/types/interfaces";
 import { ShopItemRow } from "@/types/rpc";
 import { resolveAvatarUrl } from "@/utils/avatar";
 
@@ -31,6 +31,12 @@ export function friendlyShopError(message?: string | null): string {
   return key ? FRIENDLY_ERRORS[key] : GENERIC_SHOP_ERROR;
 }
 
+// Anything unexpected (a tier added server-side before the app knows it) shows
+// as the lowest tier rather than breaking the card.
+export function toRarity(value: string | null | undefined): Rarity {
+  return (RARITIES as readonly string[]).includes(value ?? "") ? (value as Rarity) : "grey";
+}
+
 // get_shop_items returns item_id / image_path; the screen wants id / imagePath
 // plus a displayable URL.
 export function shopRowToItem(row: ShopItemRow): ShopItem {
@@ -43,8 +49,35 @@ export function shopRowToItem(row: ShopItemRow): ShopItem {
     imageUrl: resolveAvatarUrl(row.image_path),
     owned: !!row.owned,
     equipped: !!row.equipped,
+    rarity: toRarity(row.rarity),
+    description: row.description ?? "",
   };
 }
+
+/** The catalogue entry for an avatar image path (null means the default). */
+export const getAvatarItem = async (imagePath: string | null): Promise<ShopResult<{ item: AvatarInfo | null }>> => {
+  try {
+    const { data, error } = await supabase.rpc("get_avatar_item", { _image_path: imagePath as string });
+    if (error) throw new Error(error.message);
+    const row = data?.[0];
+    return {
+      error: false as const,
+      item: row
+        ? {
+            id: row.item_id,
+            name: row.name,
+            rarity: toRarity(row.rarity),
+            description: row.description ?? "",
+            price: row.price,
+            active: row.active,
+          }
+        : null,
+    };
+  } catch (err: any) {
+    console.error("Error fetching avatar item:", err);
+    return { error: true as const, msg: friendlyShopError(err?.message) };
+  }
+};
 
 export const getShopItems = async (): Promise<ShopResult<{ items: ShopItem[] }>> => {
   try {
