@@ -103,7 +103,7 @@ export default function SignIn() {
                         <TextInput
                             style={styles.input}
                             placeholder="Username"
-                            placeholderTextColor={theme.cardText + '80'}
+                            placeholderTextColor={theme.cardTextFaint}
                             value={username}
                             onChangeText={setUsername}
                             autoCapitalize="none"
@@ -112,7 +112,7 @@ export default function SignIn() {
                     <TextInput
                         style={styles.input}
                         placeholder="Email"
-                        placeholderTextColor={theme.cardText + '80'}
+                        placeholderTextColor={theme.cardTextFaint}
                         value={email}
                         onChangeText={setEmail}
                         keyboardType="email-address"
@@ -121,7 +121,7 @@ export default function SignIn() {
                     <TextInput
                         style={styles.input}
                         placeholder="Password"
-                        placeholderTextColor={theme.cardText + '80'}
+                        placeholderTextColor={theme.cardTextFaint}
                         value={password}
                         onChangeText={setPassword}
                         secureTextEntry
@@ -131,7 +131,7 @@ export default function SignIn() {
                         <TextInput
                             style={styles.input}
                             placeholder="Confirm Password"
-                            placeholderTextColor={theme.cardText + '80'}
+                            placeholderTextColor={theme.cardTextFaint}
                             value={confirmPassword}
                             onChangeText={setConfirmPassword}
                             secureTextEntry

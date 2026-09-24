@@ -317,7 +317,7 @@ export default function Studio(){
                     style={styles.overlayCancelButton}
                     onPress={handleInputCancel}
                   >
-                    <FontAwesome name="times" size={16} color="#ffffff" />
+                    <FontAwesome name="times" size={16} color={theme.destructiveText} />
                     <Text style={styles.overlayCancelButtonText}>Cancel</Text>
                   </TouchableOpacity>
 
@@ -325,7 +325,7 @@ export default function Studio(){
                     style={styles.overlayConfirmButton}
                     onPress={handleInputConfirm}
                   >
-                    <FontAwesome name="check" size={16} color="#ffffff" />
+                    <FontAwesome name="check" size={16} color={theme.onAccent} />
                     <Text style={styles.overlayConfirmButtonText}>Confirm</Text>
                   </TouchableOpacity>
                 </View>
@@ -538,7 +538,7 @@ export default function Studio(){
                                   accessibilityLabel={`Edit option: ${item}`}
                                   onPress={() => startEditOption(index)}
                                 >
-                                  <FontAwesome name="pencil" size={14} color="#ffffff" />
+                                  <FontAwesome name="pencil" size={14} color={theme.buttonText} />
                                 </TouchableOpacity>)}
                                 {!isTemplate && (
                                 <TouchableOpacity
@@ -552,7 +552,7 @@ export default function Studio(){
                                     });
                                   }}
                                 >
-                                  <FontAwesome name="trash" size={16} color="#ffffff" />
+                                  <FontAwesome name="trash" size={16} color={theme.destructiveText} />
                                 </TouchableOpacity>)}
                               </View>
                             ) : (
@@ -774,7 +774,7 @@ export default function Studio(){
                           }
                         ListEmptyComponent={
                           <View style={styles.emptyTemplates}>
-                            <FontAwesome name="bookmark-o" size={40} color={theme.text + '40'} />
+                            <FontAwesome name="bookmark-o" size={40} color={theme.textFaint} />
                             <Text style={styles.emptyTemplatesTitle}>No saved templates</Text>
                             <Text style={styles.emptyTemplatesText}>
                               Templates you bookmark from events will show up here.
@@ -875,7 +875,7 @@ const createStyles = (theme: Theme) => StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    backgroundColor: theme.scrim,
     zIndex: 100,
     justifyContent: 'center',
     alignItems: 'center',
@@ -929,7 +929,7 @@ const createStyles = (theme: Theme) => StyleSheet.create({
     gap: 8,
   },
   overlayCancelButtonText: {
-    color: '#ffffff',
+    color: theme.destructiveText,
     fontWeight: '600',
     fontSize: 16,
     fontFamily: "Roboto",
@@ -945,7 +945,7 @@ const createStyles = (theme: Theme) => StyleSheet.create({
     gap: 8,
   },
   overlayConfirmButtonText: {
-    color: '#ffffff',
+    color: theme.onAccent,
     fontWeight: '600',
     fontSize: 16,
     fontFamily: "Roboto",
@@ -985,7 +985,7 @@ const createStyles = (theme: Theme) => StyleSheet.create({
   nextButtonText: {
     fontFamily: "Roboto",
     fontWeight: "bold",
-    color: "#ffffff",
+    color: theme.onAccent,
     fontSize: 16,
   },
   keyboardContainer: {
@@ -1036,7 +1036,7 @@ const createStyles = (theme: Theme) => StyleSheet.create({
     fontSize: 18,
     fontWeight: "600",
     fontFamily: "Roboto",
-    color: "#ffffff",
+    color: theme.cardText,
   },
   descriptionContainer: {
     width: '100%',
@@ -1053,12 +1053,12 @@ const createStyles = (theme: Theme) => StyleSheet.create({
   },
   descriptionText: {
     fontFamily: "Roboto",
-    color: "#ffffff",
+    color: theme.cardText,
     fontSize: 16,
     lineHeight: 22,
   },
   placeholderText: {
-    color: "rgba(255,255,255,0.7)",
+    color: theme.cardTextMuted,
   },
   lowerContainer: {
     flex: 1,
@@ -1175,7 +1175,7 @@ const createStyles = (theme: Theme) => StyleSheet.create({
     elevation: 3,
   },
   optionText: {
-    color: "#ffffff",
+    color: theme.cardText,
     fontFamily: "Roboto",
     fontWeight: "500",
     fontSize: 16,
@@ -1226,7 +1226,7 @@ const createStyles = (theme: Theme) => StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: 'rgba(0,0,0,0.5)',
+    backgroundColor: theme.overlay,
   },
   modalContainer: {
     backgroundColor: theme.background,
@@ -1273,7 +1273,7 @@ const createStyles = (theme: Theme) => StyleSheet.create({
     alignItems: 'center',
   },
   cancelButtonText: {
-    color: '#ffffff',
+    color: theme.destructiveText,
     fontWeight: '600',
     fontSize: 16,
     fontFamily: "Roboto",
@@ -1286,7 +1286,7 @@ const createStyles = (theme: Theme) => StyleSheet.create({
     alignItems: 'center',
   },
   addButtonText: {
-    color: '#ffffff',
+    color: theme.onAccent,
     fontWeight: '600',
     fontSize: 16,
     fontFamily: "Roboto",
@@ -1334,7 +1334,7 @@ const createStyles = (theme: Theme) => StyleSheet.create({
     textAlign: 'center',
   },
   emptyTemplatesText: {
-    color: theme.text + '80',
+    color: theme.textSecondary,
     fontSize: 13,
     marginTop: 6,
     textAlign: 'center',
@@ -1386,7 +1386,7 @@ const createStyles = (theme: Theme) => StyleSheet.create({
   // Image Modal Styles
   imageModalOverlay: {
     flex: 1,
-    backgroundColor: "rgba(0,0,0,0.4)",
+    backgroundColor: theme.overlay,
   },
   imageModalContainer: {
     backgroundColor: theme.background,

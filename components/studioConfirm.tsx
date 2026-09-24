@@ -188,7 +188,7 @@ export default function StudioConfirm({optionsDict, visible, setVisible, title, 
                         />
                     ) : (
                         <View style={styles.placeholderImage}>
-                            <FontAwesome name="image" size={50} color="rgba(255,255,255,0.3)" />
+                            <FontAwesome name="image" size={50} color={theme.cardTextDisabled} />
                             <Text style={styles.placeholderText}>No image selected</Text>
                         </View>
                     )}
@@ -244,7 +244,7 @@ export default function StudioConfirm({optionsDict, visible, setVisible, title, 
                                 onPress={() => setPickTimer(true)}
                             >
                                 <Text style={styles.settingButtonText}>{time}</Text>
-                                <FontAwesome name="chevron-right" size={12} color="#ffffff" />
+                                <FontAwesome name="chevron-right" size={12} color={theme.cardText} />
                             </TouchableOpacity>
                         </View>
                     </View>
@@ -297,7 +297,7 @@ export default function StudioConfirm({optionsDict, visible, setVisible, title, 
                         <Text style={styles.postButtonText}>Creating Event...</Text>
                     ) : (
                         <>
-                            <FontAwesome name="rocket" size={20} color="#ffffff" />
+                            <FontAwesome name="rocket" size={20} color={theme.onAccent} />
                             <Text style={styles.postButtonText}>Create Event</Text>
                         </>
                     )}
@@ -405,7 +405,7 @@ const createStyles = (theme: Theme) => StyleSheet.create({
     alignItems: 'center',
   },
   placeholderText: {
-    color: 'rgba(255,255,255,0.5)',
+    color: theme.cardTextFaint,
     fontFamily: "Roboto",
     marginTop: 10,
   },
@@ -424,14 +424,14 @@ const createStyles = (theme: Theme) => StyleSheet.create({
   title: {
     fontSize: 28,
     fontWeight: 'bold',
-    color: '#ffffff',
+    color: theme.cardText,
     fontFamily: "Roboto",
     marginBottom: 10,
     textAlign: 'center',
   },
   description: {
     fontSize: 16,
-    color: 'rgba(255,255,255,0.8)',
+    color: theme.cardTextSecondary,
     fontFamily: "Roboto",
     textAlign: 'center',
     marginBottom: 20,
@@ -442,7 +442,7 @@ const createStyles = (theme: Theme) => StyleSheet.create({
     justifyContent: 'space-around',
     marginBottom: 25,
     paddingVertical: 15,
-    backgroundColor: 'rgba(0,0,0,0.2)',
+    backgroundColor: theme.insetFill,
     borderRadius: 12,
   },
   statItem: {
@@ -450,7 +450,7 @@ const createStyles = (theme: Theme) => StyleSheet.create({
     flexDirection: 'row',
   },
   statText: {
-    color: '#ffffff',
+    color: theme.cardText,
     fontFamily: "Roboto",
     fontWeight: '500',
     marginLeft: 8,
@@ -461,7 +461,7 @@ const createStyles = (theme: Theme) => StyleSheet.create({
   sectionTitle: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: '#ffffff',
+    color: theme.cardText,
     fontFamily: "Roboto",
     marginBottom: 15,
   },
@@ -471,20 +471,20 @@ const createStyles = (theme: Theme) => StyleSheet.create({
     justifyContent: 'space-between',
     paddingVertical: 15,
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255,255,255,0.1)',
+    borderBottomColor: theme.cardDivider,
   },
   settingInfo: {
     flexDirection: 'row',
     alignItems: 'center',
   },
   settingLabel: {
-    color: '#ffffff',
+    color: theme.cardText,
     fontSize: 16,
     fontFamily: "Roboto",
     marginLeft: 12,
   },
   settingButton: {
-    backgroundColor: 'rgba(255,255,255,0.1)',
+    backgroundColor: theme.cardChip,
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 20,
@@ -497,7 +497,7 @@ const createStyles = (theme: Theme) => StyleSheet.create({
     backgroundColor: theme.primary,
   },
   settingButtonText: {
-    color: '#ffffff',
+    color: theme.cardText,
     fontFamily: "Roboto",
     fontWeight: '500',
     marginRight: 4,
@@ -511,7 +511,7 @@ const createStyles = (theme: Theme) => StyleSheet.create({
   quickTimeTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#ffffff',
+    color: theme.cardText,
     fontFamily: "Roboto",
     marginBottom: 12,
   },
@@ -521,7 +521,7 @@ const createStyles = (theme: Theme) => StyleSheet.create({
     gap: 10,
   },
   quickTimeButton: {
-    backgroundColor: 'rgba(255,255,255,0.1)',
+    backgroundColor: theme.cardChip,
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 16,
@@ -533,12 +533,12 @@ const createStyles = (theme: Theme) => StyleSheet.create({
     borderColor: theme.primary,
   },
   quickTimeButtonText: {
-    color: 'rgba(255,255,255,0.7)',
+    color: theme.cardTextMuted,
     fontFamily: "Roboto",
     fontWeight: '500',
   },
   quickTimeButtonTextActive: {
-    color: '#ffffff',
+    color: theme.onAccent,
     fontWeight: 'bold',
   },
   bottomContainer: {
@@ -567,10 +567,10 @@ const createStyles = (theme: Theme) => StyleSheet.create({
     elevation: 5,
   },
   postButtonDisabled: {
-    backgroundColor: 'rgba(255,255,255,0.3)',
+    backgroundColor: theme.disabledFill,
   },
   postButtonText: {
-    color: '#ffffff',
+    color: theme.onAccent,
     fontSize: 18,
     fontWeight: 'bold',
     fontFamily: "Roboto",
@@ -598,7 +598,7 @@ const createStyles = (theme: Theme) => StyleSheet.create({
   timerTitle: {
     fontSize: 22,
     fontWeight: 'bold',
-    color: '#ffffff',
+    color: theme.cardText,
     textAlign: 'center',
     marginBottom: 25,
     fontFamily: "Roboto",
@@ -610,7 +610,7 @@ const createStyles = (theme: Theme) => StyleSheet.create({
   },
   pickerDivider: {
     width: 2,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    backgroundColor: theme.cardDividerStrong,
     marginHorizontal: 10,
     borderRadius: 1,
   },
@@ -621,7 +621,7 @@ const createStyles = (theme: Theme) => StyleSheet.create({
   scrollPickerLabel: {
     fontSize: 16,
     fontWeight: 'bold',
-    color: '#ffffff',
+    color: theme.cardText,
     marginBottom: 15,
     fontFamily: "Roboto",
   },
@@ -652,12 +652,12 @@ const createStyles = (theme: Theme) => StyleSheet.create({
   },
   scrollPickerItemText: {
     fontSize: 18,
-    color: 'rgba(255, 255, 255, 0.5)',
+    color: theme.cardTextFaint,
     fontFamily: "Roboto",
     fontWeight: '500',
   },
   scrollPickerItemTextSelected: {
-    color: '#ffffff',
+    color: theme.onAccent,
     fontWeight: 'bold',
     fontSize: 20,
   },
@@ -678,7 +678,7 @@ const createStyles = (theme: Theme) => StyleSheet.create({
     elevation: 3,
   },
   timerCancelButton: {
-    backgroundColor: '#666666',
+    backgroundColor: theme.neutralFill,
   },
   timerConfirmButton: {
     backgroundColor: theme.primary,
@@ -686,7 +686,7 @@ const createStyles = (theme: Theme) => StyleSheet.create({
   timerButtonText: {
     fontSize: 16,
     fontWeight: 'bold',
-    color: '#ffffff',
+    color: theme.onAccent,
     fontFamily: "Roboto",
   },
 });

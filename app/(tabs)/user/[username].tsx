@@ -308,7 +308,7 @@ export default function Profile() {
                     <FontAwesome
                       name="gear"
                       size={20}
-                      color={option.isDestructive ? '#FF3B30' : theme.text}
+                      color={option.isDestructive ? theme.destructiveLabel : theme.text}
                       style={styles.settingIcon}
                     />
                     <Text
@@ -710,7 +710,7 @@ const createStyles = (theme: Theme) => StyleSheet.create({
     marginBottom: 12,
     borderRadius: 70,
     shadowRadius: 10,
-    shadowColor: '#fff',
+    shadowColor: theme.glow,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 1,
     elevation: 10,
@@ -883,7 +883,7 @@ const createStyles = (theme: Theme) => StyleSheet.create({
     color: theme.text,
   },
   destructiveText: {
-    color: '#FF3B30',
+    color: theme.destructiveLabel,
   },
 
   // Followers / following list

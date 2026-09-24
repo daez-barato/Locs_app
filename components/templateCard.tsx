@@ -19,21 +19,6 @@ export default function TemplateCard({ item }: {item: SearchTemplate}) {
     const styles = useThemedStyles(createStyles);
     const router = useRouter();
 
-    const getTypeColor = (type?: string) => {
-        switch (type?.toLowerCase()) {
-            case 'event':
-                return '#FF6B6B';
-            case 'poll':
-                return '#4ECDC4';
-            case 'survey':
-                return '#45B7D1';
-            case 'quiz':
-                return '#96CEB4';
-            default:
-                return theme.primary;
-        }
-    };
-
     const getTypeIcon = (type?: string) => {
         switch (type?.toLowerCase()) {
             case 'event':
@@ -71,14 +56,11 @@ export default function TemplateCard({ item }: {item: SearchTemplate}) {
                         resizeMode="cover"
                     />
                     {item.type && (
-                        <View style={[
-                            styles.typeOverlay,
-                            { backgroundColor: getTypeColor(item.type) }
-                        ]}>
+                        <View style={styles.typeOverlay}>
                             <FontAwesome 
                                 name={getTypeIcon(item.type)} 
                                 size={14} 
-                                color="white" 
+                                color={theme.onAccent}
                             />
                         </View>
                     )}
@@ -94,14 +76,8 @@ export default function TemplateCard({ item }: {item: SearchTemplate}) {
                             {item.title}
                         </Text>
                         {item.type && (
-                            <View style={[
-                                styles.typeBadge,
-                                { backgroundColor: getTypeColor(item.type) + '20' }
-                            ]}>
-                                <Text style={[
-                                    styles.typeText,
-                                    { color: getTypeColor(item.type) }
-                                ]}>
+                            <View style={styles.typeBadge}>
+                                <Text style={styles.typeText}>
                                     {item.type}
                                 </Text>
                             </View>
@@ -146,7 +122,7 @@ const createStyles = (theme: Theme) => StyleSheet.create({
         elevation: 4,
         overflow: 'hidden',
         borderWidth: 1,
-        borderColor: theme.cardBorder + '40',
+        borderColor: theme.cardOutline,
     },
     cardTouchable: {
         flexDirection: 'row',
@@ -173,6 +149,7 @@ const createStyles = (theme: Theme) => StyleSheet.create({
         alignItems: 'center',
         borderWidth: 2,
         borderColor: theme.card,
+        backgroundColor: theme.primary,
     },
     cardContent: {
         flex: 1,
@@ -193,11 +170,13 @@ const createStyles = (theme: Theme) => StyleSheet.create({
         marginRight: 8,
     },
     typeBadge: {
+        backgroundColor: theme.primarySurface,
         paddingHorizontal: 8,
         paddingVertical: 3,
         borderRadius: 8,
     },
     typeText: {
+        color: theme.primary,
         fontSize: 10,
         fontWeight: '600',
         textTransform: 'uppercase',

@@ -131,7 +131,7 @@ export default function UserCard({ user }: { user: SearchUser }) {
                   accessibilityLabel={`Accept follow request from ${userState.username}`}
                   onPress={handleAccept}
                 >
-                  <Text>Accept</Text>
+                  <Text style={styles.acceptText}>Accept</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
                   style={styles.refuseButton}
@@ -139,7 +139,7 @@ export default function UserCard({ user }: { user: SearchUser }) {
                   accessibilityLabel={`Reject follow request from ${userState.username}`}
                   onPress={handleRefuse}
                 >
-                  <FontAwesome name="times" size={18} color={theme.void} />
+                  <FontAwesome name="times" size={18} color={theme.destructiveText} />
                 </TouchableOpacity>
               </View>
             )}
@@ -151,7 +151,7 @@ export default function UserCard({ user }: { user: SearchUser }) {
                     style={(followLabel === "Following" || followLabel === "Requested") ? styles.followingIndicator : styles.actionIndicator}
                   >
                     {(followLabel === "Following" || followLabel === "Requested") ?
-                    <FontAwesome name="check" size={12} color="#4CAF50" />
+                    <FontAwesome name="check" size={12} color={theme.success} />
                     : <FontAwesome name="user-plus" size={12} color={theme.primary} />}
 
                     <Text style={(followLabel === "Following" || followLabel === "Requested") ? styles.followingText : styles.actionText}>
@@ -183,7 +183,7 @@ const createStyles = (theme: Theme) => StyleSheet.create({
         elevation: 4,
         overflow: 'hidden',
         borderWidth: 1,
-        borderColor: theme.cardBorder + '40',
+        borderColor: theme.cardOutline,
     },
     userCardTouchable: {
         flexDirection: 'row',
@@ -239,22 +239,25 @@ const createStyles = (theme: Theme) => StyleSheet.create({
         gap: 4,
         paddingHorizontal: 8,
         paddingVertical: 4,
-        backgroundColor: '#4CAF50' + '20',
+        backgroundColor: theme.successTint,
         borderRadius: 8,
     },
     followingText: {
-        color: '#4CAF50',
+        color: theme.success,
         fontSize: 12,
         fontWeight: '600',
     },
     acceptButton: {
-        backgroundColor: "#4CAF50",
+        backgroundColor: theme.success,
         paddingVertical: 4,
         paddingHorizontal: 10,
         borderRadius: 8,
     },
+    acceptText: {
+        color: theme.void,
+    },
     refuseButton: {
-        backgroundColor: "#F44336",
+        backgroundColor: theme.destructive,
         paddingVertical: 4,
         paddingHorizontal: 8,
         borderRadius: 8,

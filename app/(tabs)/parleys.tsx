@@ -146,7 +146,7 @@ export default function Parleys() {
                         <FontAwesome 
                             name={errorMessage ? "exclamation-triangle" : activeTab === 'participating' ? "calendar-o" : "star-o"} 
                             size={48} 
-                            color={errorMessage ? theme.destructive : theme.text + '40'} 
+                            color={errorMessage ? theme.destructive : theme.textFaint} 
                         />
                         <Text style={styles.emptyTitle}>
                             {errorMessage
@@ -196,7 +196,7 @@ const createStyles = (theme: Theme) => StyleSheet.create({
         paddingHorizontal: 20,
         paddingVertical: 16,
         borderBottomWidth: 1,
-        borderBottomColor: theme.cardBorder + '30',
+        borderBottomColor: theme.cardBorder,
     },
     headerTitle: {
         fontSize: 24,

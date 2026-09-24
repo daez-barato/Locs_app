@@ -138,7 +138,7 @@ export default function Explore() {
                     />
                     <TextInput
                         placeholder="Search for events, templates, users..."
-                        placeholderTextColor={theme.text + '60'}
+                        placeholderTextColor={theme.placeholder}
                         value={query}
                         onChangeText={handleQueryChange}
                         style={styles.searchInput}
@@ -149,7 +149,7 @@ export default function Explore() {
                             onPress={() => setQuery("")}
                             style={styles.clearButton}
                         >
-                            <FontAwesome name="times" size={16} color={theme.text + '80'} />
+                            <FontAwesome name="times" size={16} color={theme.textSecondary} />
                         </TouchableOpacity>
                     )}
                 </View>
@@ -213,7 +213,7 @@ export default function Explore() {
                         <FontAwesome
                         name={errorMessage ? "exclamation-triangle" : isSearching ? "search" : "compass"}
                         size={48}
-                        color={errorMessage ? theme.destructive : theme.text + '40'}
+                        color={errorMessage ? theme.destructive : theme.textFaint}
                         />
                         <Text style={styles.emptyText}>
                         {errorMessage ? "Something went wrong" : `No ${activeTab} found`}
@@ -339,7 +339,7 @@ const createStyles = (theme: Theme) => StyleSheet.create({
         paddingVertical: 12,
         backgroundColor: theme.background,
         borderBottomWidth: 1,
-        borderBottomColor: theme.primary + '30',
+        borderBottomColor: theme.primaryBorder,
     },
     searchBar: {
         height: 44,

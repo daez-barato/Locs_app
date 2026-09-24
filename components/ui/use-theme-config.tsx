@@ -35,6 +35,50 @@ export interface Theme {
   overlay: string;
   /** de-emphasised body copy */
   muted: string;
+
+  // Second token pass: the remaining literals and `theme.x + 'NN'` alpha
+  // suffixes, each kept at the exact value it rendered before.
+
+  /** `text` at reduced alpha: secondary copy, input placeholders, faint icons */
+  textSecondary: string;
+  placeholder: string;
+  textFaint: string;
+  /** tinted fill and outline for primary-coloured chips and badges */
+  primarySurface: string;
+  primaryBorder: string;
+  warningBorder: string;
+  /** background of a card the user has a stake in */
+  successSurface: string;
+  successTint: string;
+  /** destructive copy drawn straight on `background`, where `destructive` is too dark */
+  destructiveLabel: string;
+  /** event lifecycle: the Lock action / LOCKED badge, the End action / ENDED badge */
+  locked: string;
+  lockedBadge: string;
+  ended: string;
+  endedBadge: string;
+  /** greys for a locked bet and secondary buttons */
+  neutral: string;
+  neutralSurface: string;
+  neutralBorder: string;
+  neutralFill: string;
+  /** dark scrims behind text over images, and faint dark fills */
+  scrim: string;
+  insetFill: string;
+  subtleFill: string;
+  /** light halo around the profile avatar */
+  glow: string;
+  /** `cardText` at reduced alpha, for copy and chrome on card-coloured surfaces */
+  cardTextSecondary: string;
+  cardTextMuted: string;
+  cardTextFaint: string;
+  cardTextDisabled: string;
+  cardChip: string;
+  cardDivider: string;
+  cardDividerStrong: string;
+  disabledFill: string;
+  /** hairline around list cards */
+  cardOutline: string;
 }
 
 export function useThemeConfig(): Theme {

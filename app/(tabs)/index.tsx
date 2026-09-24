@@ -99,7 +99,7 @@ export default function Home(){
                 <FontAwesome
                   name={errorMessage ? "exclamation-triangle" : "users"}
                   size={48}
-                  color={errorMessage ? theme.destructive : theme.text + '40'}
+                  color={errorMessage ? theme.destructive : theme.textFaint}
                 />
                 <Text style={styles.emptyTitle}>
                   {errorMessage ? "Something went wrong" : "Your feed is empty"}
@@ -182,7 +182,7 @@ const createStyles = (theme: Theme) => StyleSheet.create({
     textAlign: 'center',
   },
   emptySubtext: {
-    color: theme.text + '80',
+    color: theme.textSecondary,
     fontSize: 14,
     marginTop: 8,
     textAlign: 'center',

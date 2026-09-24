@@ -322,7 +322,7 @@ export default function eventScreen() {
           </Text>
           {hasUserBet && (
             <View style={styles.userBetBadge}>
-              <FontAwesome5 name="star" size={12} color="#ffffff" />
+              <FontAwesome5 name="star" size={12} color={theme.onAccent} />
             </View>
           )}
         </View>
@@ -352,7 +352,7 @@ export default function eventScreen() {
             <FontAwesome5
               name={eventInfo?.decided ? "trophy" : "lock"} 
               size={16} 
-              color={eventInfo?.decided ? "#F59E0B" : "#6B7280"} 
+              color={eventInfo?.decided ? theme.warning : theme.neutral} 
             />
             <Text style={styles.lockedBetText}>
               {eventInfo?.decided ? `Payout: $${betInfo.userBet?.options[option] ?? 0}` : `Locked: $${betInfo.userBet?.options[option] ?? 0}`}
@@ -367,7 +367,7 @@ export default function eventScreen() {
               style={styles.increaseBetButton}
               onPress={() => showBetConfirmation(question, option, true)}
             >
-              <FontAwesome5 name="plus" size={14} color="#ffffff" />
+              <FontAwesome5 name="plus" size={14} color={theme.onAccent} />
               <Text style={styles.increaseBetButtonText}>Increase</Text>
             </TouchableOpacity>
           </View>
@@ -376,7 +376,7 @@ export default function eventScreen() {
             style={styles.betButton}
             onPress={() => showBetConfirmation(question, option, false)}
           >
-            <FontAwesome5 name="chart-line" size={16} color="#ffffff" />
+            <FontAwesome5 name="chart-line" size={16} color={theme.onAccent} />
             <Text style={styles.betButtonText}>Place Bet</Text>
           </TouchableOpacity>
         )}
@@ -401,7 +401,7 @@ export default function eventScreen() {
             onPress={onRefresh}
             activeOpacity={0.8}
           >
-            <FontAwesome5 name="redo" size={14} color="#ffffff" />
+            <FontAwesome5 name="redo" size={14} color={theme.onAccent} />
             <Text style={styles.loadErrorButtonText}>Try again</Text>
           </TouchableOpacity>
         </View>
@@ -441,7 +441,7 @@ export default function eventScreen() {
               accessibilityLabel="Delete event"
               onPress={() => setShowDeleteModal(true)}
             >
-              <FontAwesome5 name="trash" size={14} color="#ffffff" />
+              <FontAwesome5 name="trash" size={14} color={theme.destructiveText} />
             </TouchableOpacity>
           )}
 
@@ -465,7 +465,7 @@ export default function eventScreen() {
                   <FontAwesome5 
                     name={eventInfo?.locked ? (eventInfo?.decided ? "upload" : "flag-checkered") : "lock"} 
                     size={14} 
-                    color="#ffffff" 
+                    color={theme.onAccent} 
                   />
                   <Text style={styles.actionButtonText}>
                     {eventInfo?.locked ? (eventInfo?.decided ? 'Post' : 'End') : 'Lock'}
@@ -501,14 +501,14 @@ export default function eventScreen() {
               />
             ) : (
               <View style={styles.placeholderImage}>
-                <FontAwesome5 name="image" size={40} color={theme.primary + '40'} />
+                <FontAwesome5 name="image" size={40} color={theme.textFaint} />
                 <Text style={styles.placeholderText}>No Image</Text>
               </View>
             )}
             
             {/* Gradient Overlay for better text readability */}
             <LinearGradient
-              colors={['transparent', 'rgba(0,0,0,0.7)']}
+              colors={['transparent', theme.scrim]}
               style={styles.imageOverlay}
             />
             
@@ -516,7 +516,7 @@ export default function eventScreen() {
             <View style={styles.statusOverlay}>
               {eventInfo?.expire_date && (
                 <View style={styles.expiryBadge}>
-                  <FontAwesome5 name="clock" size={12} color="#ffffff" />
+                  <FontAwesome5 name="clock" size={12} color={theme.onAccent} />
                   <Text style={styles.expiryText}>
                     {new Date(eventInfo.expire_date).toLocaleDateString()}
                   </Text>
@@ -531,7 +531,7 @@ export default function eventScreen() {
                   <FontAwesome5 
                     name={eventInfo?.decided ? "flag-checkered" : "lock"} 
                     size={12} 
-                    color="#ffffff" 
+                    color={theme.onAccent} 
                   />
                   <Text style={styles.statusBadgeText}>
                     {eventInfo?.decided ? 'ENDED' : 'LOCKED'}
@@ -610,7 +610,7 @@ export default function eventScreen() {
                       }
                     }}
                   >
-                    <FontAwesome5 name="bookmark" size={14} color="#10B981" />
+                    <FontAwesome5 name="bookmark" size={14} color={theme.success} />
                   </TouchableOpacity>
                 )}
               </View>
@@ -635,7 +635,7 @@ export default function eventScreen() {
                   </View>
                   
                   <View style={styles.totalPotContainer}>
-                    <FontAwesome5 name="trophy" size={16} color="#F59E0B" />
+                    <FontAwesome5 name="trophy" size={16} color={theme.warning} />
                     <View style={styles.potInfo}>
                       <Text style={styles.totalPotLabel}>Total Pool</Text>
                       <Text style={styles.totalPotAmount}>
@@ -720,7 +720,7 @@ export default function eventScreen() {
                     }
                   }}
                   placeholder="0.00"
-                  placeholderTextColor={theme.text + '60'}
+                  placeholderTextColor={theme.placeholder}
                   keyboardType="numeric"
                   autoFocus={true}
                 />
@@ -739,7 +739,7 @@ export default function eventScreen() {
                 style={styles.modalConfirmButton}
                 onPress={confirmBet}
               >
-                <FontAwesome5 name="check" size={16} color="#ffffff" />
+                <FontAwesome5 name="check" size={16} color={theme.onAccent} />
                 <Text style={styles.modalConfirmText}>Confirm</Text>
               </TouchableOpacity>
             </View>
@@ -779,7 +779,7 @@ export default function eventScreen() {
                 onPress={confirmDeleteEvent}
                 disabled={isDeleting}
               >
-                <FontAwesome5 name="trash" size={16} color="#ffffff" />
+                <FontAwesome5 name="trash" size={16} color={theme.destructiveText} />
                 <Text style={styles.modalConfirmText}>
                   {isDeleting ? 'Deleting...' : 'Delete & refund'}
                 </Text>
@@ -799,7 +799,7 @@ export default function eventScreen() {
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
-              <FontAwesome5 name="lock" size={24} color="#F59E0B" />
+              <FontAwesome5 name="lock" size={24} color={theme.warning} />
               <Text style={styles.modalTitle}>Lock Event</Text>
             </View>
             <Text style={styles.modalText}>
@@ -818,7 +818,7 @@ export default function eventScreen() {
                 style={styles.modalConfirmButton}
                 onPress={confirmLockEvent}
               >
-                <FontAwesome5 name="lock" size={16} color="#ffffff" />
+                <FontAwesome5 name="lock" size={16} color={theme.onAccent} />
                 <Text style={styles.modalConfirmText}>Lock Event</Text>
               </TouchableOpacity>
             </View>
@@ -837,7 +837,7 @@ export default function eventScreen() {
           <ScrollView contentContainerStyle={styles.endEventModalContainer}>
             <View style={styles.modalContent}>
               <View style={styles.modalHeader}>
-                <FontAwesome5 name="flag-checkered" size={24} color="#DC2626" />
+                <FontAwesome5 name="flag-checkered" size={24} color={theme.ended} />
                 <Text style={styles.modalTitle}>End Event</Text>
               </View>
               <Text style={styles.modalText}>
@@ -885,7 +885,7 @@ export default function eventScreen() {
                   style={styles.modalConfirmButton}
                   onPress={confirmEndEvent}
                 >
-                  <FontAwesome5 name="flag-checkered" size={16} color="#ffffff" />
+                  <FontAwesome5 name="flag-checkered" size={16} color={theme.onAccent} />
                   <Text style={styles.modalConfirmText}>End Event</Text>
                 </TouchableOpacity>
               </View>
@@ -944,7 +944,7 @@ export default function eventScreen() {
                     }
                   }}
                 >
-                  <FontAwesome5 name="upload" size={16} color="#ffffff" />
+                  <FontAwesome5 name="upload" size={16} color={theme.onAccent} />
                   <Text style={styles.modalConfirmText}>Post Template</Text>
                 </TouchableOpacity>
               </View>
@@ -987,7 +987,7 @@ const createStyles = (theme: Theme) => StyleSheet.create({
     textAlign: 'center',
   },
   loadErrorText: {
-    color: theme.text + '90',
+    color: theme.textSecondary,
     fontSize: 15,
     lineHeight: 22,
     marginTop: 8,
@@ -1004,7 +1004,7 @@ const createStyles = (theme: Theme) => StyleSheet.create({
     backgroundColor: theme.primary,
   },
   loadErrorButtonText: {
-    color: '#ffffff',
+    color: theme.onAccent,
     fontSize: 16,
     fontWeight: '600',
   },
@@ -1018,7 +1018,7 @@ const createStyles = (theme: Theme) => StyleSheet.create({
     paddingVertical: 12,
     backgroundColor: theme.background,
     borderBottomWidth: 1,
-    borderBottomColor: theme.border || '#E5E5E5',
+    borderBottomColor: theme.border,
     elevation: 2,
     shadowColor: theme.shadow,
     shadowOffset: { width: 0, height: 1 },
@@ -1029,7 +1029,7 @@ const createStyles = (theme: Theme) => StyleSheet.create({
   backButton: {
     padding: 12,
     borderRadius: 12,
-    backgroundColor: theme.primary + '10',
+    backgroundColor: theme.primarySurface,
   },
   
   headerActions: {
@@ -1045,9 +1045,9 @@ const createStyles = (theme: Theme) => StyleSheet.create({
     paddingVertical: 10,
     paddingHorizontal: 16,
     borderRadius: 12,
-    backgroundColor: theme.primary + '15',
+    backgroundColor: theme.primarySurface,
     borderWidth: 1,
-    borderColor: theme.primary + '30',
+    borderColor: theme.primaryBorder,
   },
 
   shareButtonText: {
@@ -1063,11 +1063,11 @@ const createStyles = (theme: Theme) => StyleSheet.create({
     paddingVertical: 10,
     paddingHorizontal: 16,
     borderRadius: 12,
-    backgroundColor: '#FF6B35',
+    backgroundColor: theme.locked,
   },
 
   endButton: {
-    backgroundColor: '#DC2626',
+    backgroundColor: theme.ended,
   },
 
   postTemplateButton: {
@@ -1075,7 +1075,7 @@ const createStyles = (theme: Theme) => StyleSheet.create({
   },
 
   actionButtonText: {
-    color: '#ffffff',
+    color: theme.onAccent,
     fontSize: 14,
     fontWeight: '600',
   },
@@ -1089,7 +1089,7 @@ const createStyles = (theme: Theme) => StyleSheet.create({
     position: 'relative',
     width: '100%',
     aspectRatio: 16/9, // 16:9 aspect ratio
-    backgroundColor: theme.card || '#F8F9FA',
+    backgroundColor: theme.card,
     borderBottomLeftRadius: 24,
     borderBottomRightRadius: 24,
     overflow: 'hidden',
@@ -1109,11 +1109,11 @@ const createStyles = (theme: Theme) => StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: theme.card || '#F8F9FA',
+    backgroundColor: theme.card,
   },
   
   placeholderText: {
-    color: theme.text + '60',
+    color: theme.placeholder,
     fontSize: 16,
     fontWeight: '500',
     marginTop: 8,
@@ -1141,11 +1141,11 @@ const createStyles = (theme: Theme) => StyleSheet.create({
     paddingVertical: 8,
     paddingHorizontal: 12,
     borderRadius: 20,
-    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    backgroundColor: theme.scrim,
   },
   
   expiryText: {
-    color: '#ffffff',
+    color: theme.onAccent,
     fontSize: 12,
     fontWeight: '600',
   },
@@ -1157,15 +1157,15 @@ const createStyles = (theme: Theme) => StyleSheet.create({
     paddingVertical: 8,
     paddingHorizontal: 12,
     borderRadius: 20,
-    backgroundColor: 'rgba(255, 107, 53, 0.9)',
+    backgroundColor: theme.lockedBadge,
   },
 
   decidedBadge: {
-    backgroundColor: 'rgba(220, 38, 38, 0.9)',
+    backgroundColor: theme.endedBadge,
   },
 
   statusBadgeText: {
-    color: '#ffffff',
+    color: theme.onAccent,
     fontSize: 12,
     fontWeight: '700',
     letterSpacing: 0.5,
@@ -1187,7 +1187,7 @@ const createStyles = (theme: Theme) => StyleSheet.create({
   },
   
   eventDescription: {
-    color: theme.text + '80',
+    color: theme.textSecondary,
     fontSize: 16,
     lineHeight: 22,
     marginBottom: 16,
@@ -1202,9 +1202,9 @@ const createStyles = (theme: Theme) => StyleSheet.create({
     paddingVertical: 8,
     paddingHorizontal: 12,
     borderRadius: 20,
-    backgroundColor: theme.primary + '15',
+    backgroundColor: theme.primarySurface,
     borderWidth: 1,
-    borderColor: theme.primary + '30',
+    borderColor: theme.primaryBorder,
   },
 
   creatorText: {
@@ -1220,7 +1220,7 @@ const createStyles = (theme: Theme) => StyleSheet.create({
   },
   
   questionContainer: {
-    backgroundColor: theme.card || '#FFFFFF',
+    backgroundColor: theme.card,
     borderRadius: 24,
     overflow: 'hidden',
     elevation: 8,
@@ -1229,14 +1229,14 @@ const createStyles = (theme: Theme) => StyleSheet.create({
     shadowOpacity: 0.12,
     shadowRadius: 16,
     borderWidth: 1,
-    borderColor: theme.border || '#E5E5E5',
+    borderColor: theme.border,
   },
   
   questionHeader: {
     padding: 20,
     backgroundColor: theme.background,
     borderBottomWidth: 2,
-    borderBottomColor: theme.primary + '20',
+    borderBottomColor: theme.primaryBorder,
   },
   
   questionTitleRow: {
@@ -1261,7 +1261,7 @@ const createStyles = (theme: Theme) => StyleSheet.create({
   },
   
   questionNumberText: {
-    color: '#ffffff',
+    color: theme.onAccent,
     fontSize: 14,
     fontWeight: '800',
     letterSpacing: 0.5,
@@ -1284,7 +1284,7 @@ const createStyles = (theme: Theme) => StyleSheet.create({
     borderRadius: 16,
     backgroundColor: theme.warningSurface,
     borderWidth: 1,
-    borderColor: theme.warning + '30',
+    borderColor: theme.warningBorder,
   },
   
   potInfo: {
@@ -1318,11 +1318,11 @@ const createStyles = (theme: Theme) => StyleSheet.create({
   
   optionCard: {
     width: width * 0.75,
-    backgroundColor: theme.card || '#FFFFFF',
+    backgroundColor: theme.card,
     borderRadius: 20,
     padding: 20,
     borderWidth: 2,
-    borderColor: theme.border || '#E5E5E5',
+    borderColor: theme.border,
     elevation: 4,
     shadowColor: theme.shadow,
     shadowOffset: { width: 0, height: 4 },
@@ -1332,7 +1332,7 @@ const createStyles = (theme: Theme) => StyleSheet.create({
   
   userBetCard: {
     borderColor: theme.success,
-    backgroundColor: '#F0FDF4',
+    backgroundColor: theme.successSurface,
     elevation: 8,
     shadowColor: theme.success,
     shadowOpacity: 0.2,
@@ -1383,14 +1383,14 @@ const createStyles = (theme: Theme) => StyleSheet.create({
   },
   
   optionBetAmount: {
-    color: theme.text + '80',
+    color: theme.textSecondary,
     fontSize: 16,
     fontWeight: '600',
   },
   
   progressBarContainer: {
     height: 8,
-    backgroundColor: theme.border || '#E5E5E5',
+    backgroundColor: theme.border,
     borderRadius: 4,
     overflow: 'hidden',
   },
@@ -1419,7 +1419,7 @@ const createStyles = (theme: Theme) => StyleSheet.create({
   },
   
   betButtonText: {
-    color: '#ffffff',
+    color: theme.onAccent,
     fontSize: 16,
     fontWeight: '700',
   },
@@ -1429,11 +1429,11 @@ const createStyles = (theme: Theme) => StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
-    backgroundColor: '#F3F4F6',
+    backgroundColor: theme.neutralSurface,
     paddingVertical: 16,
     borderRadius: 16,
     borderWidth: 2,
-    borderColor: '#D1D5DB',
+    borderColor: theme.neutralBorder,
   },
 
   decidedBetInfo: {
@@ -1442,7 +1442,7 @@ const createStyles = (theme: Theme) => StyleSheet.create({
   },
 
   lockedBetText: {
-    color: '#6B7280',
+    color: theme.neutral,
     fontSize: 15,
     fontWeight: '600',
   },
@@ -1475,7 +1475,7 @@ const createStyles = (theme: Theme) => StyleSheet.create({
   },
   
   increaseBetButtonText: {
-    color: '#ffffff',
+    color: theme.onAccent,
     fontSize: 15,
     fontWeight: '600',
   },
@@ -1521,7 +1521,7 @@ const createStyles = (theme: Theme) => StyleSheet.create({
   },
   
   modalText: {
-    color: theme.text + '90',
+    color: theme.textSecondary,
     fontSize: 16,
     textAlign: 'center',
     lineHeight: 24,
@@ -1529,12 +1529,12 @@ const createStyles = (theme: Theme) => StyleSheet.create({
   },
   
   modalOption: {
-    backgroundColor: theme.primary + '15',
+    backgroundColor: theme.primarySurface,
     padding: 16,
     borderRadius: 16,
     marginBottom: 20,
     borderWidth: 1,
-    borderColor: theme.primary + '30',
+    borderColor: theme.primaryBorder,
   },
 
   modalOptionText: {
@@ -1551,7 +1551,7 @@ const createStyles = (theme: Theme) => StyleSheet.create({
     gap: 8,
     marginBottom: 20,
     padding: 12,
-    backgroundColor: theme.primary + '10',
+    backgroundColor: theme.primarySurface,
     borderRadius: 12,
   },
 
@@ -1576,7 +1576,7 @@ const createStyles = (theme: Theme) => StyleSheet.create({
   inputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: theme.card || '#F8F9FA',
+    backgroundColor: theme.card,
     borderRadius: 16,
     paddingHorizontal: 16,
     paddingVertical: 12,
@@ -1608,7 +1608,7 @@ const createStyles = (theme: Theme) => StyleSheet.create({
   
   modalCancelButton: {
     flex: 1,
-    backgroundColor: theme.border || '#E5E5E5',
+    backgroundColor: theme.border,
     paddingVertical: 16,
     borderRadius: 16,
     alignItems: 'center',
@@ -1637,7 +1637,7 @@ const createStyles = (theme: Theme) => StyleSheet.create({
   },
   
   modalConfirmText: {
-    color: '#ffffff',
+    color: theme.onAccent,
     fontSize: 16,
     fontWeight: '700',
   },
@@ -1663,17 +1663,17 @@ const createStyles = (theme: Theme) => StyleSheet.create({
   },
 
   optionSelectionButton: {
-    backgroundColor: theme.card || '#F8F9FA',
+    backgroundColor: theme.card,
     paddingVertical: 16,
     paddingHorizontal: 20,
     borderRadius: 12,
     marginBottom: 8,
     borderWidth: 2,
-    borderColor: theme.border || '#E5E5E5',
+    borderColor: theme.border,
   },
 
   selectedOptionButton: {
-    backgroundColor: theme.primary + '15',
+    backgroundColor: theme.primarySurface,
     borderColor: theme.primary,
   },
 
@@ -1709,7 +1709,7 @@ const createStyles = (theme: Theme) => StyleSheet.create({
   creatorActionButton: {
     padding: 6,
     borderRadius: 8,
-    backgroundColor: 'rgba(0,0,0,0.05)',
+    backgroundColor: theme.subtleFill,
   },
 
 });

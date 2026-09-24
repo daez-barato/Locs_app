@@ -120,7 +120,7 @@ const createStyles = (theme: Theme) => StyleSheet.create({
         elevation: 3,
         overflow: 'hidden',
         borderWidth: 1,
-        borderColor: theme.cardBorder + "40",
+        borderColor: theme.cardOutline,
     },
     cardTouchable: {
         flexDirection: 'row',
@@ -158,7 +158,7 @@ const createStyles = (theme: Theme) => StyleSheet.create({
     statusText: {
         fontSize: 10,
         fontWeight: '600',
-        color: 'white',
+        color: theme.onAccent,
     },
     eventDescription: {
         fontSize: 13,
