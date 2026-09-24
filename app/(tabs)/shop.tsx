@@ -3,19 +3,17 @@ import AvatarImage from "@/components/ui/avatar-image";
 import { CoinAmount, CoinIcon } from "@/components/ui/coin";
 import RarityBadge, { rarityColor } from "@/components/ui/rarity-badge";
 import { withAlpha } from "@/theme";
-import { haptics } from "@/utils/haptics";
 import { useThemedStyles } from "@/hooks/use-themed-styles";
 import { useCoinContext } from "@/hooks/use-coin-context";
-import { useAuthContext } from "@/hooks/use-auth-context";
-import { equipItem, getShopItems, purchaseItem } from "@/services/shop";
+import { getShopItems } from "@/services/shop";
 import { getMyCoins } from "@/services/users";
 import { ShopItem } from "@/types/interfaces";
 import { FontAwesome } from "@expo/vector-icons";
 import { Tabs, useFocusEffect, useRouter } from "expo-router";
 import React, { useCallback, useRef, useState } from "react";
+import { LinearGradient } from "expo-linear-gradient";
 import {
   ActivityIndicator,
-  Alert,
   FlatList,
   RefreshControl,
   StyleSheet,
@@ -28,210 +26,81 @@ export default function Shop() {
   const theme = useThemeConfig();
   const styles = useThemedStyles(createStyles);
   const { coins, setCoinAmount } = useCoinContext();
-  const { updateUser } = useAuthContext();
   const router = useRouter();
 
   const [items, setItems] = useState<ShopItem[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [refreshing, setRefreshing] = useState<boolean>(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [busy, setBusy] = useState<Record<string, boolean>>({});
-
-  // State updates are async, so a fast double tap could get past a
-  // state-based check; the ref is the real guard, `busy` drives the UI.
-  const busyRef = useRef<Set<string>>(new Set());
   const hasLoaded = useRef(false);
-  // Bumped on every local mutation, so a load that started before a purchase
-  // or equip can't land afterwards and overwrite the newer local state.
-  const mutationSeq = useRef(0);
 
   const load = useCallback(async (mode: "initial" | "refresh" | "silent") => {
     if (mode === "initial") setLoading(true);
     if (mode === "refresh") setRefreshing(true);
-    const seq = mutationSeq.current;
-
     const [result, balance] = await Promise.all([getShopItems(), getMyCoins()]);
 
-    if (seq === mutationSeq.current) {
-      if (result.error) {
-        // A failed background refresh keeps what's on screen; only an empty
-        // screen gets the error state.
-        if (!hasLoaded.current) setErrorMessage(result.msg);
-      } else {
-        setItems(result.items);
-        setErrorMessage(null);
-        hasLoaded.current = true;
-      }
-      if (balance !== null) setCoinAmount(balance);
+    if (result.error) {
+      // A failed background refresh keeps what's on screen; only an empty
+      // screen gets the error state.
+      if (!hasLoaded.current) setErrorMessage(result.msg);
+    } else {
+      setItems(result.items);
+      setErrorMessage(null);
+      hasLoaded.current = true;
     }
+    if (balance !== null) setCoinAmount(balance);
 
     setLoading(false);
     setRefreshing(false);
   }, [setCoinAmount]);
 
-  // Reload whenever the tab gains focus, so ownership and balance stay current
-  // after betting elsewhere or equipping from another device.
+  // Reload whenever the tab gains focus: after buying or equipping in the
+  // avatar sheet, betting elsewhere, or equipping from another device.
   useFocusEffect(
     useCallback(() => {
       load(hasLoaded.current ? "silent" : "initial");
     }, [load])
   );
 
-  const setItemBusy = (id: string, value: boolean) => {
-    if (value) busyRef.current.add(id);
-    else busyRef.current.delete(id);
-    setBusy((prev) => ({ ...prev, [id]: value }));
-  };
-
-  const handleEquip = async (item: ShopItem) => {
-    if (busyRef.current.has(item.id)) return;
-    setItemBusy(item.id, true);
-    try {
-      const result = await equipItem(item.id);
-      if (result.error) {
-        Alert.alert("Couldn't equip", result.msg);
-        return;
-      }
-      mutationSeq.current += 1;
-      setItems((prev) =>
-        prev.map((i) => (i.kind === item.kind ? { ...i, equipped: i.id === item.id } : i))
-      );
-      updateUser({ avatar_url: result.avatarPath });
-      haptics.tap();
-    } finally {
-      setItemBusy(item.id, false);
-    }
-  };
-
-  const doPurchase = async (item: ShopItem) => {
-    if (busyRef.current.has(item.id)) return;
-    setItemBusy(item.id, true);
-    let purchased = false;
-    try {
-      const result = await purchaseItem(item.id);
-      if (result.error) {
-        Alert.alert("Purchase failed", result.msg);
-        return;
-      }
-      mutationSeq.current += 1;
-      setCoinAmount(result.coins);
-      setItems((prev) => prev.map((i) => (i.id === item.id ? { ...i, owned: true } : i)));
-      purchased = true;
-      haptics.success();
-    } finally {
-      setItemBusy(item.id, false);
-    }
-
-    if (purchased) {
-      Alert.alert("Purchased!", `Equip ${item.name} now?`, [
-        { text: "Not now", style: "cancel" },
-        { text: "Equip", onPress: () => handleEquip({ ...item, owned: true }) },
-      ]);
-    }
-  };
-
-  const handleBuy = (item: ShopItem) => {
-    if (busyRef.current.has(item.id)) return;
-    Alert.alert("Confirm purchase", `Buy ${item.name} for ${item.price} coins?`, [
-      { text: "Cancel", style: "cancel" },
-      { text: "Buy", onPress: () => doPurchase(item) },
-    ]);
-  };
-
-  const renderAction = (item: ShopItem) => {
-    const isBusy = !!busy[item.id];
-
-    if (item.equipped) {
-      return (
-        <View style={[styles.actionButton, styles.actionDisabled]}>
-          <FontAwesome name="check" size={12} color={theme.muted} />
-          <Text style={styles.actionDisabledText}>Equipped</Text>
-        </View>
-      );
-    }
-
-    if (item.owned) {
-      return (
-        <TouchableOpacity
-          style={[styles.actionButton, styles.equipButton]}
-          onPress={() => handleEquip(item)}
-          disabled={isBusy}
-          accessibilityRole="button"
-          accessibilityLabel={`Equip ${item.name}`}
-        >
-          {isBusy ? (
-            <ActivityIndicator size="small" color={theme.buttonText} />
-          ) : (
-            <Text style={styles.equipButtonText}>Equip</Text>
-          )}
-        </TouchableOpacity>
-      );
-    }
-
-    if (item.price > coins) {
-      return (
-        <View style={[styles.actionButton, styles.actionDisabled]}>
-          <CoinAmount prefix="Need" amount={item.price - coins} size={14} textStyle={styles.actionDisabledText} />
-        </View>
-      );
-    }
-
+  // The whole card opens the avatar sheet, which is where buying happens:
+  // you see the character and its story before spending on it.
+  const renderItem = ({ item }: { item: ShopItem }) => {
+    const tier = rarityColor(theme, item.rarity);
     return (
       <TouchableOpacity
-        style={[styles.actionButton, styles.buyButton]}
-        onPress={() => handleBuy(item)}
-        disabled={isBusy}
+        style={[styles.card, { borderColor: withAlpha(tier, 0.7) }, item.equipped && styles.cardEquipped]}
+        onPress={() => router.push({ pathname: "/avatar", params: { path: item.imagePath } })}
+        activeOpacity={0.85}
         accessibilityRole="button"
-        accessibilityLabel={`Buy ${item.name} for ${item.price} coins`}
+        accessibilityLabel={`${item.name}, ${item.rarity} rarity, ${
+          item.equipped ? "equipped" : item.owned ? "owned" : `${item.price} coins`
+        }`}
       >
-        {isBusy ? (
-          <ActivityIndicator size="small" color={theme.void} />
+        {/* The tier's colour washing down over the card purple. */}
+        <LinearGradient
+          colors={[withAlpha(tier, 0.42), withAlpha(tier, 0.1)]}
+          style={StyleSheet.absoluteFill}
+        />
+        <View style={styles.imageWrapper}>
+          <AvatarImage uri={item.imageUrl} style={styles.image} contentFit="cover" />
+          {item.equipped && (
+            <View style={styles.badge}>
+              <Text style={styles.badgeText}>Equipped</Text>
+            </View>
+          )}
+          <RarityBadge rarity={item.rarity} style={styles.rarityBadge} />
+        </View>
+        <Text style={styles.name} numberOfLines={1}>
+          {item.name}
+        </Text>
+        {item.owned || item.price === 0 ? (
+          <Text style={styles.price}>{item.equipped ? "Equipped" : "Owned"}</Text>
         ) : (
-          <>
-            <Text style={styles.buyButtonText}>Buy</Text>
-            <CoinIcon size={16} />
-            <Text style={styles.buyButtonText}>{item.price}</Text>
-          </>
+          <CoinAmount amount={item.price} size={14} textStyle={styles.price} style={styles.priceRow} />
         )}
       </TouchableOpacity>
     );
   };
-
-  const renderItem = ({ item }: { item: ShopItem }) => (
-    <View
-      style={[
-        styles.card,
-        // A soft edge in the tier's colour; the equipped card keeps its teal.
-        { borderColor: withAlpha(rarityColor(theme, item.rarity), 0.45) },
-        item.equipped && styles.cardEquipped,
-      ]}
-    >
-      <TouchableOpacity
-        style={styles.imageWrapper}
-        onPress={() => router.push({ pathname: "/avatar", params: { path: item.imagePath } })}
-        activeOpacity={0.85}
-        accessibilityRole="button"
-        accessibilityLabel={`About ${item.name}, ${item.rarity} rarity`}
-      >
-        <AvatarImage uri={item.imageUrl} style={styles.image} contentFit="cover" />
-        {item.equipped && (
-          <View style={styles.badge}>
-            <Text style={styles.badgeText}>Equipped</Text>
-          </View>
-        )}
-        <RarityBadge rarity={item.rarity} style={styles.rarityBadge} />
-      </TouchableOpacity>
-      <Text style={styles.name} numberOfLines={1}>
-        {item.name}
-      </Text>
-      {item.owned || item.price === 0 ? (
-        <Text style={styles.price}>{item.owned ? "Owned" : "Free"}</Text>
-      ) : (
-        <CoinAmount amount={item.price} size={14} textStyle={styles.price} style={styles.priceRow} />
-      )}
-      {renderAction(item)}
-    </View>
-  );
 
   const renderBody = () => {
     if (loading && !hasLoaded.current) {
@@ -265,7 +134,6 @@ export default function Shop() {
         columnWrapperStyle={styles.column}
         contentContainerStyle={styles.listContent}
         showsVerticalScrollIndicator={false}
-        extraData={{ busy, coins }}
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
@@ -337,9 +205,13 @@ const createStyles = (theme: Theme) =>
       width: "48%",
       marginBottom: 12,
       padding: 10,
-      borderRadius: 16,
+      paddingBottom: 12,
+      borderRadius: 18,
+      borderCurve: "continuous",
+      // Clips the rarity gradient to the rounded corners.
+      overflow: "hidden",
       backgroundColor: theme.card,
-      borderWidth: 1,
+      borderWidth: 1.5,
       borderColor: theme.cardBorder,
     },
     cardEquipped: {
@@ -388,42 +260,10 @@ const createStyles = (theme: Theme) =>
       color: theme.muted,
       fontSize: 13,
       marginTop: 2,
-      marginBottom: 8,
     },
-    // CoinAmount is a row; the margins that sat on the old Text move to it.
+    // CoinAmount is a row; the margin that sat on the old Text moves to it.
     priceRow: {
       marginTop: 2,
-      marginBottom: 8,
-    },
-    actionButton: {
-      flexDirection: "row",
-      alignItems: "center",
-      justifyContent: "center",
-      gap: 6,
-      minHeight: 34,
-      borderRadius: 10,
-      paddingHorizontal: 8,
-    },
-    buyButton: {
-      backgroundColor: theme.primary,
-    },
-    buyButtonText: {
-      color: theme.void,
-      fontWeight: "700",
-    },
-    equipButton: {
-      backgroundColor: theme.button,
-    },
-    equipButtonText: {
-      color: theme.buttonText,
-      fontWeight: "700",
-    },
-    actionDisabled: {
-      backgroundColor: theme.cardBorder,
-    },
-    actionDisabledText: {
-      color: theme.muted,
-      fontWeight: "600",
     },
     centered: {
       flex: 1,

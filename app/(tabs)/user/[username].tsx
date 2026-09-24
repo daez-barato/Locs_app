@@ -274,7 +274,16 @@ export default function Profile() {
             accessibilityRole={user?.owner ? "button" : undefined}
             accessibilityLabel={user?.owner ? "Change avatar in the shop" : undefined}
           >
-            <AvatarImage uri={resolveAvatarUrl(userImage)} style={styles.profileImage} />
+            {/* The square avatar sits whole in the middle; a blurred copy of
+                itself fills the rest of the wide frame, so nothing is cropped. */}
+            <AvatarImage
+              uri={resolveAvatarUrl(userImage)}
+              style={StyleSheet.absoluteFill}
+              contentFit="cover"
+              blurRadius={28}
+            />
+            <View style={styles.profileImageScrim} />
+            <AvatarImage uri={resolveAvatarUrl(userImage)} style={styles.profileImage} contentFit="cover" />
           </TouchableOpacity>
 
           <Text style={styles.username}>{user?.username}</Text>
@@ -442,23 +451,40 @@ const createStyles = (theme: Theme) => StyleSheet.create({
     paddingHorizontal: 20,
     paddingVertical: 12,
   },
-  // A wide rounded frame. The halo follows the frame's shape; it used to be
-  // shaped for a circle around a rectangle.
+  // A wide rounded frame holding the whole square avatar, with a blurred
+  // copy of it behind (see the JSX). Cropping the square to fill the frame
+  // cut off ears, hats and props.
   profileImageContainer: {
     marginBottom: 12,
-    width: "82%",
-    maxWidth: 360,
+    width: "86%",
+    maxWidth: 380,
     aspectRatio: 16 / 10,
-    borderRadius: 24,
+    padding: 10,
+    alignItems: "center",
+    justifyContent: "center",
+    borderRadius: 26,
     borderCurve: "continuous",
-    boxShadow: `0 4px 20px ${withAlpha(theme.glow, 0.35)}`,
-  },
-  profileImage: {
-    width: "100%",
-    height: "100%",
-    borderRadius: 24,
     borderWidth: 2,
     borderColor: theme.primary,
+    overflow: "hidden",
+    backgroundColor: theme.card,
+    boxShadow: "0 8px 24px rgba(0, 0, 0, 0.3)",
+  },
+  profileImageScrim: {
+    position: "absolute",
+    top: 0,
+    right: 0,
+    bottom: 0,
+    left: 0,
+    backgroundColor: theme.insetFill,
+  },
+  profileImage: {
+    height: "100%",
+    aspectRatio: 1,
+    borderRadius: 18,
+    borderCurve: "continuous",
+    borderWidth: 2,
+    borderColor: withAlpha(theme.glow, 0.25),
   },
   username: {
     fontSize: 24,
