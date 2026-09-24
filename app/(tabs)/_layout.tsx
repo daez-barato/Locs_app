@@ -1,7 +1,6 @@
-import { Tabs, useRouter} from "expo-router";
+import { DefaultTheme, Tabs, useRouter } from "expo-router";
 
 import FontAwesome from "@expo/vector-icons/FontAwesome";
-import { DefaultTheme } from "@react-navigation/native";
 import { Theme, useThemeConfig } from "@/components/ui/use-theme-config";
 import { useThemedStyles } from "@/hooks/use-themed-styles";
 import { StyleSheet, TouchableOpacity } from "react-native";
