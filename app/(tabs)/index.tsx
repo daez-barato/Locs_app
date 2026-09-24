@@ -21,7 +21,6 @@ export default function Home(){
   const styles = useThemedStyles(createStyles);
   const router = useRouter()
   const [followingPostsList, updateFollowingPostsList] = useState<Event[]>([]);
-  const [activeTab, setActiveTab] = useState<'Following' | 'Shop'>('Following');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   async function fetchData(currentOffset = 0) {
@@ -63,85 +62,72 @@ export default function Home(){
   return (
     <SafeAreaView style={styles.backgroundContainer}>
       <View style= {[styles.topTabs]}>
-        <TouchableOpacity
-          style={[styles.tabButton, activeTab === 'Following' && styles.selectedTabButton]}
-          onPress={() => setActiveTab('Following')}
-        >
-          <Text style={[styles.tabText, activeTab === 'Following' && styles.selectedTabText]}>
+        <View style={[styles.tabButton, styles.selectedTabButton]}>
+          <Text style={[styles.tabText, styles.selectedTabText]}>
             Following
           </Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={[styles.tabButton, activeTab === 'Shop' && styles.selectedTabButton]}
-          onPress={() => setActiveTab('Shop')}
-        >
-          <Text style={[styles.tabText, activeTab === 'Shop' && styles.selectedTabText]}>
+        </View>
+        {/* The shop is its own tab now; this shortcut just goes there. */}
+        <TouchableOpacity style={styles.tabButton} onPress={() => router.push("/shop")}>
+          <Text style={styles.tabText}>
             Shop
           </Text>
         </TouchableOpacity>
       </View>
-      { activeTab === 'Following' ? (
-        <View style={styles.followingEventsContainer}>
-          <FlatList
-            data={followingPostsList}
-            keyExtractor={(item) => item.id.toString()}
-            renderItem={({ item }) => (
-              <EventCard
-                event={item}
-              />
-            )}
-            refreshing={refresh}
-            onRefresh={() => {activateRefresh(true)}}
-            contentContainerStyle={{ paddingBottom: 20 }}
-            onEndReached={() => {if (!loadingMore && hasMore) {setLoadingMore(true); fetchData(offset);}}}
-            onEndReachedThreshold={0.2}
-            ListFooterComponent={
-              loadingMore ? (
-                <ActivityIndicator size="small" color={theme.primary} />
-              ) : null
-            }
-            ListEmptyComponent={
-              loadingMore || refresh ? null : (
-                <View style={styles.emptyState}>
+      <View style={styles.followingEventsContainer}>
+        <FlatList
+          data={followingPostsList}
+          keyExtractor={(item) => item.id.toString()}
+          renderItem={({ item }) => (
+            <EventCard
+              event={item}
+            />
+          )}
+          refreshing={refresh}
+          onRefresh={() => {activateRefresh(true)}}
+          contentContainerStyle={{ paddingBottom: 20 }}
+          onEndReached={() => {if (!loadingMore && hasMore) {setLoadingMore(true); fetchData(offset);}}}
+          onEndReachedThreshold={0.2}
+          ListFooterComponent={
+            loadingMore ? (
+              <ActivityIndicator size="small" color={theme.primary} />
+            ) : null
+          }
+          ListEmptyComponent={
+            loadingMore || refresh ? null : (
+              <View style={styles.emptyState}>
+                <FontAwesome
+                  name={errorMessage ? "exclamation-triangle" : "users"}
+                  size={48}
+                  color={errorMessage ? theme.destructive : theme.text + '40'}
+                />
+                <Text style={styles.emptyTitle}>
+                  {errorMessage ? "Something went wrong" : "Your feed is empty"}
+                </Text>
+                <Text style={styles.emptySubtext}>
+                  {errorMessage
+                    ? errorMessage
+                    : "Follow people to see the events they create here."}
+                </Text>
+                <TouchableOpacity
+                  style={styles.emptyAction}
+                  onPress={() => (errorMessage ? activateRefresh(true) : router.push("/explore"))}
+                  activeOpacity={0.8}
+                >
                   <FontAwesome
-                    name={errorMessage ? "exclamation-triangle" : "users"}
-                    size={48}
-                    color={errorMessage ? theme.destructive : theme.text + '40'}
+                    name={errorMessage ? "refresh" : "search"}
+                    size={14}
+                    color={theme.buttonText}
                   />
-                  <Text style={styles.emptyTitle}>
-                    {errorMessage ? "Something went wrong" : "Your feed is empty"}
+                  <Text style={styles.emptyActionText}>
+                    {errorMessage ? "Try again" : "Find people to follow"}
                   </Text>
-                  <Text style={styles.emptySubtext}>
-                    {errorMessage
-                      ? errorMessage
-                      : "Follow people to see the events they create here."}
-                  </Text>
-                  <TouchableOpacity
-                    style={styles.emptyAction}
-                    onPress={() => (errorMessage ? activateRefresh(true) : router.push("/explore"))}
-                    activeOpacity={0.8}
-                  >
-                    <FontAwesome
-                      name={errorMessage ? "refresh" : "search"}
-                      size={14}
-                      color={theme.buttonText}
-                    />
-                    <Text style={styles.emptyActionText}>
-                      {errorMessage ? "Try again" : "Find people to follow"}
-                    </Text>
-                  </TouchableOpacity>
-                </View>
-              )
-            }
-          />
-        </View>
-      ) : (
-        <View style={styles.shopContainer}>
-          <FontAwesome name="shopping-cart" size={50} color={theme.primary} />
-          <Text style={styles.shopText}>
-            Shop coming soon!
-          </Text>
-        </View>
-      )}
+                </TouchableOpacity>
+              </View>
+            )
+          }
+        />
+      </View>
     </SafeAreaView>
   )
 }
@@ -176,16 +162,6 @@ const createStyles = (theme: Theme) => StyleSheet.create({
     color: theme.primary,
     fontSize: 16,
     fontWeight: 'bold',
-  },
-  shopContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  shopText: {
-    color: theme.text,
-    fontSize: 18,
-    fontWeight: 'bold', 
   },
   followingEventsContainer: {
     flex: 1,
