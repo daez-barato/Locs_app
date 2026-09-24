@@ -383,7 +383,7 @@ const createStyles = (theme: Theme) => StyleSheet.create({
     flex: 1,
   },
   scrollContent: {
-    paddingBottom: 100,
+    paddingBottom: 20,
   },
   imageContainer: {
     margin: 20,
@@ -543,15 +543,15 @@ const createStyles = (theme: Theme) => StyleSheet.create({
     color: theme.onAccent,
     fontWeight: 'bold',
   },
+  // In normal flow below the ScrollView rather than absolutely positioned: an
+  // absolute child ignores its parent's padding, so the SafeAreaView's bottom
+  // inset never reached it and the button sat under the home indicator or the
+  // Android navigation bar.
   bottomContainer: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
     backgroundColor: theme.background,
     paddingHorizontal: 20,
     paddingTop: 15,
-    paddingBottom: 30,
+    paddingBottom: 15,
     borderTopWidth: 1,
     borderTopColor: theme.button_darker_primary,
   },

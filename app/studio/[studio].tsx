@@ -1,4 +1,4 @@
-import { SafeAreaView } from "react-native-safe-area-context"
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context"
 import { Modal, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View, Platform, Image, Pressable, FlatList, Alert } from "react-native"
 
 import { useThemeConfig, Theme } from "@/components/ui/use-theme-config"
@@ -19,6 +19,7 @@ export default function Studio(){
     const isTemplate = Boolean(studio);
     const theme = useThemeConfig();
     const styles = useThemedStyles(createStyles);
+    const insets = useSafeAreaInsets();
     const [question, setQuestion] = useState("+");
     const [questionMenu, expandQuestionMenu] = useState(false);
     const [questionModal, setQuestionModal] = useState(false);
@@ -841,7 +842,9 @@ export default function Studio(){
               style={styles.imageModalOverlay} 
               onPress={() => setShowMenu(false)} 
             />
-            <View style={styles.imageModalContainer}>
+            {/* Pinned to the bottom of the screen, so it has to clear the home
+                indicator / Android navigation bar itself: 20 is its own padding. */}
+            <View style={[styles.imageModalContainer, { paddingBottom: 20 + insets.bottom }]}>
               <TouchableOpacity 
                 style={styles.imageMenuOption} 
                 onPress={() => { setShowMenu(false); takePhotoAsync(); }}
