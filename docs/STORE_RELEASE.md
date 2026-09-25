@@ -164,6 +164,34 @@ coins and a few events, since Google and Apple sign-in are hard for them to use.
 **Assets.** Phone screenshots for each store (iPad is off: `supportsTablet` is
 `false`), a 512×512 icon and a 1024×500 feature graphic for Play.
 
+## Test builds for iPhone testers
+
+Both routes need a paid Apple Developer Program membership ($99/year).
+
+**TestFlight (recommended).** Testers install Apple's TestFlight app and you
+invite them by email or a public link; no device registration.
+
+```bash
+eas build -p ios --profile production --auto-submit
+```
+
+The first run asks for your Apple ID, creates the signing certificate and the
+App Store Connect record, and uploads the build. Then in App Store Connect →
+TestFlight: add internal testers (up to 100 people on your team, available as
+soon as the build finishes processing) or an external group with a public
+link (up to 10,000, after a short beta review).
+
+**Ad hoc (`preview` profile).** Installs from a link like the Android APK, but
+only on iPhones registered in advance, up to 100 a year:
+
+```bash
+eas device:create                 # share the link it prints; each tester opens it on their iPhone
+eas build -p ios --profile preview
+```
+
+Register everyone before building; a new device needs a new build. The
+`simulator` profile makes a build for the iOS Simulator on a Mac.
+
 ## Every release
 
 ```bash

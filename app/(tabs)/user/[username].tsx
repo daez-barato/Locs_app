@@ -24,7 +24,8 @@ import { haptics } from "@/utils/haptics";
 import { getUserProfile, fetchUserCreatedEvents, fetchUserParticipatedEvents } from "@/services/users";
 import { Event, Rarity, UserProfile } from "@/types/interfaces";
 import { getAvatarItem } from "@/services/shop";
-import RarityBadge, { rarityColor } from "@/components/ui/rarity-badge";
+import { rarityColor } from "@/components/ui/rarity-badge";
+import TierBadge from "@/components/ui/tier-badge";
 import { followRequest, unfollowRequest} from "@/api/followers/followers";
 import { useAuthContext } from "@/hooks/use-auth-context";
 import { useCoinContext } from "@/hooks/use-coin-context";
@@ -57,6 +58,7 @@ export default function Profile() {
   // phone's whole first screen.
   // Every tier tints the page a little, from barely (grey) to clearly (gold).
   const pageTint = avatarRarity ? rarityTint(theme, avatarRarity) : theme.background;
+  const tier = avatarRarity ? tierStyles(theme, avatarRarity) : null;
   const heroHeight = Math.round(Math.min(Math.max(windowWidth * 0.9, 300), 440));
 
   const [activeList, setActiveList] = useState<ActiveList>("created");
@@ -325,12 +327,12 @@ export default function Profile() {
             pointerEvents="none"
           />
           <View style={styles.nameRow}>
-            <Text style={styles.username} numberOfLines={1}>{user?.username}</Text>
-            {avatarRarity && <RarityBadge rarity={avatarRarity} style={styles.rarityBadge} />}
+            <Text style={[styles.username, tier?.name]} numberOfLines={1}>{user?.username}</Text>
+            {avatarRarity && <TierBadge rarity={avatarRarity} />}
           </View>
 
             {/* Stats Container */}
-            <View style={[styles.statsContainer, avatarRarity && statsHighlight(theme, avatarRarity)]}>
+            <View style={[styles.statsContainer, tier?.stats]}>
             <TouchableOpacity 
               style={styles.statItem} 
               onPress={() => openSheet("/connections", "followers")}
@@ -388,7 +390,7 @@ export default function Profile() {
             <TouchableOpacity
               style={[
                 styles.tab,
-                activeList === "created" && styles.activeTab,
+                activeList === "created" && [styles.activeTab, tier?.activeTab],
               ]}
               onPress={() => setActiveList("created")}
             >
@@ -405,7 +407,7 @@ export default function Profile() {
             <TouchableOpacity
               style={[
                 styles.tab,
-                activeList === "participated" && styles.activeTab,
+                activeList === "participated" && [styles.activeTab, tier?.activeTab],
               ]}
               onPress={() => setActiveList("participated")}
             >
@@ -453,12 +455,13 @@ export default function Profile() {
   );
 }
 
-// How strongly each tier shows: the page tint, and the stats card's glow.
-const TIER: Record<Rarity, { tint: number; glow: number; blur: number }> = {
-  grey: { tint: 0.12, glow: 0.25, blur: 10 },
-  bronze: { tint: 0.22, glow: 0.4, blur: 14 },
-  silver: { tint: 0.22, glow: 0.5, blur: 16 },
-  gold: { tint: 0.3, glow: 0.7, blur: 22 },
+// How strongly each tier shows. Grey is the free default, so it stays quiet;
+// gold is meant to be seen from across the room.
+const TIER: Record<Rarity, { tint: number; card: number; glow: number; blur: number; colourName: boolean }> = {
+  grey: { tint: 0.15, card: 0.08, glow: 0.3, blur: 10, colourName: false },
+  bronze: { tint: 0.32, card: 0.2, glow: 0.55, blur: 16, colourName: true },
+  silver: { tint: 0.3, card: 0.2, glow: 0.65, blur: 20, colourName: true },
+  gold: { tint: 0.42, card: 0.28, glow: 0.85, blur: 28, colourName: true },
 };
 
 /** The page background leaning towards the equipped avatar's tier. */
@@ -466,14 +469,29 @@ function rarityTint(theme: Theme, rarity: Rarity) {
   return blend(theme.background, rarityColor(theme, rarity), TIER[rarity].tint);
 }
 
-/** A tier-coloured edge and glow on the stats card. */
-function statsHighlight(theme: Theme, rarity: Rarity) {
+/** Everything on the profile that takes the tier's colour. */
+function tierStyles(theme: Theme, rarity: Rarity) {
   const color = rarityColor(theme, rarity);
-  const { glow, blur } = TIER[rarity];
+  const { card, glow, blur, colourName } = TIER[rarity];
   return {
-    borderWidth: 1,
-    borderColor: withAlpha(color, 0.8),
-    boxShadow: `0 0 ${blur}px ${withAlpha(color, glow)}`,
+    name: colourName
+      ? {
+          color,
+          textShadowColor: withAlpha(color, 0.7),
+          textShadowOffset: { width: 0, height: 0 },
+          textShadowRadius: 14,
+        }
+      : null,
+    stats: {
+      backgroundColor: blend(theme.button_darker_primary, color, card),
+      borderWidth: 1.5,
+      borderColor: color,
+      boxShadow: `0 0 ${blur}px ${withAlpha(color, glow)}`,
+    },
+    // Every tier colour is light, so the tab's dark label still reads.
+    activeTab: {
+      backgroundColor: color,
+    },
   };
 }
 
@@ -567,9 +585,6 @@ const createStyles = (theme: Theme) => StyleSheet.create({
     gap: 8,
     maxWidth: '100%',
     marginBottom: 14,
-  },
-  rarityBadge: {
-    alignSelf: 'center',
   },
   username: {
     flexShrink: 1,
