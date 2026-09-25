@@ -114,7 +114,7 @@ export function NotificationsProvider({ children }: PropsWithChildren) {
   const handledResponseId = useRef<string | undefined>(undefined)
 
   useEffect(() => {
-    if (!userId) return
+    if (!userId || Platform.OS === 'web') return
 
     registerForPushNotifications().catch((error) => {
       console.error('Error registering for push notifications:', error)
@@ -133,7 +133,8 @@ export function NotificationsProvider({ children }: PropsWithChildren) {
   }, [userId])
 
   useEffect(() => {
-    if (!canNavigate) return
+    // Push is native-only; the web build has no notification responses.
+    if (!canNavigate || Platform.OS === 'web') return
 
     const handleResponse = (response: Notifications.NotificationResponse) => {
       const id = response.notification.request.identifier

@@ -82,7 +82,7 @@ function RootNavigator() {
               contentStyle: { backgroundColor: theme.background },
             }}
           />
-          {["connections", "requests"].map((name) => (
+          {["connections", "requests", "bettors/[eventId]"].map((name) => (
             <Stack.Screen
               key={name}
               name={name}

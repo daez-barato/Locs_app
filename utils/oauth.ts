@@ -74,6 +74,31 @@ export async function signInWithGoogle(): Promise<void> {
   if (exchangeError) throw exchangeError;
 }
 
+export type EnabledProviders = { google: boolean; apple: boolean };
+
+/**
+ * Which social providers are switched on in Supabase. Offering a disabled one
+ * sent people to a browser page showing a raw "provider is not enabled" error,
+ * so the login screen only shows what works. Reads the public auth settings;
+ * if that fails (offline), assumes both are on and lets sign-in report errors.
+ */
+export async function getEnabledProviders(): Promise<EnabledProviders> {
+  try {
+    const response = await fetch(`${process.env.EXPO_PUBLIC_SUPABASE_URL}/auth/v1/settings`, {
+      headers: { apikey: process.env.EXPO_PUBLIC_SUPABASE_KEY ?? "" },
+    });
+    if (!response.ok) throw new Error(`auth settings returned ${response.status}`);
+    const settings = await response.json();
+    return {
+      google: settings?.external?.google === true,
+      apple: settings?.external?.apple === true,
+    };
+  } catch (error) {
+    console.error("Error reading enabled sign-in providers:", error);
+    return { google: true, apple: true };
+  }
+}
+
 /** True only where the native Apple button can actually be shown. */
 export async function isAppleSignInAvailable(): Promise<boolean> {
   if (Platform.OS !== "ios") return false;

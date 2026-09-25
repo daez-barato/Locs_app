@@ -37,6 +37,8 @@ export default function eventScreen() {
   const [winningOptions, setWinningOptions] = useState<Record<string, string>>({});
   // question title -> winning option title, for decided events.
   const [winners, setWinners] = useState<Record<string, string>>({});
+  // Distinct people with a stake, for the "who's betting" button.
+  const [bettorCount, setBettorCount] = useState(0);
   const [postTemplateModal, setPostTemplateModal] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -118,6 +120,7 @@ export default function eventScreen() {
       }
 
       setBetInfos(bet_infos);
+      setBettorCount(new Set(bets.map((b) => b.user_id)).size);
 
     } catch (err: any) {
       console.error('Failed to fetch data', err);
@@ -342,6 +345,10 @@ export default function eventScreen() {
       haptics.success();
       // add_bet returns nothing, so read the new balance back.
       refreshCoins();
+      // A first stake anywhere on the event makes you one more bettor.
+      if (!Object.values(betInfos).some((info) => info.userBet)) {
+        setBettorCount((count) => count + 1);
+      }
       
       setBetInfos(prevBetInfos => {
         const newBetInfos = { ...prevBetInfos };
@@ -739,6 +746,20 @@ export default function eventScreen() {
                 )}
               </View>
             </View>
+
+            <TouchableOpacity
+              style={styles.bettorsButton}
+              onPress={() => router.push({ pathname: '/bettors/[eventId]', params: { eventId } })}
+              accessibilityRole="button"
+              accessibilityLabel={`See who's betting: ${bettorCount} ${bettorCount === 1 ? 'bettor' : 'bettors'}`}
+            >
+              <FontAwesome5 name="users" size={14} color={theme.primary} />
+              <Text style={styles.bettorsButtonText}>
+                {bettorCount === 0 ? 'No bets yet' : `${bettorCount} ${bettorCount === 1 ? 'bettor' : 'bettors'}`}
+              </Text>
+              <Text style={styles.bettorsButtonAction}>See who&apos;s betting</Text>
+              <FontAwesome5 name="chevron-right" size={12} color={theme.textSecondary} />
+            </TouchableOpacity>
           </View>
         </View>
 
@@ -1832,6 +1853,33 @@ const createStyles = (theme: Theme) => StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     marginTop: 4,
+  },
+
+  // Opens the sheet listing everyone with a stake on this event.
+  bettorsButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    marginTop: 14,
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    borderRadius: 14,
+    borderCurve: 'continuous',
+    backgroundColor: theme.primarySurface,
+    borderWidth: 1,
+    borderColor: theme.primaryBorder,
+  },
+  bettorsButtonText: {
+    color: theme.text,
+    fontSize: 15,
+    fontWeight: '700',
+  },
+  bettorsButtonAction: {
+    flex: 1,
+    textAlign: 'right',
+    color: theme.textSecondary,
+    fontSize: 13,
+    fontWeight: '600',
   },
 
   creatorLeftRow: {

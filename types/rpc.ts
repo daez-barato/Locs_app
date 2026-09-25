@@ -41,6 +41,8 @@ export type EventInformationPayload = {
 export type EventBetPayload = {
   user_id: string;
   username: string;
+  /** object path in the avatar bucket; null means the default */
+  avatar_url: string | null;
   question: string;
   option: string;
   amount: number;

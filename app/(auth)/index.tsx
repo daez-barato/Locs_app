@@ -14,7 +14,7 @@ import { friendlyLoginError, friendlyOAuthError, friendlySignupError, usernamePr
 import * as Linking from "expo-linking";
 import { EMAIL_CONFIRM_URL } from "@/constants/links";
 import { rememberEventLink } from "@/utils/pending-link";
-import { isAppleSignInAvailable, OAuthCancelledError, signInWithApple, signInWithGoogle } from "@/utils/oauth";
+import { EnabledProviders, getEnabledProviders, isAppleSignInAvailable, OAuthCancelledError, signInWithApple, signInWithGoogle } from "@/utils/oauth";
 
 export default function SignIn() {
     const theme = useThemeConfig();
@@ -36,9 +36,11 @@ export default function SignIn() {
     const [resending, setResending] = useState(false);
     const [oauthBusy, setOauthBusy] = useState<"google" | "apple" | null>(null);
     const [appleAvailable, setAppleAvailable] = useState(false);
+    const [providers, setProviders] = useState<EnabledProviders>({ google: false, apple: false });
 
     useEffect(() => {
         isAppleSignInAvailable().then(setAppleAvailable);
+        getEnabledProviders().then(setProviders);
     }, []);
 
     // Includes the link that launched the app, so an event opened while
@@ -164,6 +166,11 @@ export default function SignIn() {
             setResending(false);
         }
     };
+
+    // Only what is switched on in Supabase. On iOS, Google is offered only
+    // alongside Sign in with Apple, which App Review requires (guideline 4.8).
+    const showApple = appleAvailable && providers.apple;
+    const showGoogle = providers.google && (Platform.OS !== "ios" || showApple);
 
     const handleGoogle = async () => {
         setNotice("");
@@ -303,54 +310,60 @@ export default function SignIn() {
                         </Text>
                     </TouchableOpacity>
 
-                    <Text style={styles.divider}>or</Text>
+                    {(showGoogle || showApple) && (
+                        <>
+                            <Text style={styles.divider}>or</Text>
 
-                    <TouchableOpacity
-                        style={[styles.button, styles.socialButton, oauthBusy !== null && styles.buttonDisabled]}
-                        onPress={handleGoogle}
-                        disabled={oauthBusy !== null}
-                        activeOpacity={0.8}
-                        accessibilityRole="button"
-                        accessibilityLabel="Continue with Google"
-                    >
-                        {oauthBusy === "google" ? (
-                            <ActivityIndicator color={theme.cardText} />
-                        ) : (
-                            <>
-                                <FontAwesome name="google" size={18} color={theme.cardText} style={styles.socialIcon} />
-                                <Text style={styles.buttonText}>Continue with Google</Text>
-                            </>
-                        )}
-                    </TouchableOpacity>
+                            {showGoogle && (
+                                <TouchableOpacity
+                                    style={[styles.button, styles.socialButton, oauthBusy !== null && styles.buttonDisabled]}
+                                    onPress={handleGoogle}
+                                    disabled={oauthBusy !== null}
+                                    activeOpacity={0.8}
+                                    accessibilityRole="button"
+                                    accessibilityLabel="Continue with Google"
+                                >
+                                    {oauthBusy === "google" ? (
+                                        <ActivityIndicator color={theme.cardText} />
+                                    ) : (
+                                        <>
+                                            <FontAwesome name="google" size={18} color={theme.cardText} style={styles.socialIcon} />
+                                            <Text style={styles.buttonText}>Continue with Google</Text>
+                                        </>
+                                    )}
+                                </TouchableOpacity>
+                            )}
 
-                    {appleAvailable && (
-                        <AppleAuthentication.AppleAuthenticationButton
-                            buttonType={AppleAuthentication.AppleAuthenticationButtonType.CONTINUE}
-                            buttonStyle={AppleAuthentication.AppleAuthenticationButtonStyle.WHITE}
-                            cornerRadius={8}
-                            style={styles.appleButton}
-                            onPress={handleApple}
-                        />
+                            {showApple && (
+                                <AppleAuthentication.AppleAuthenticationButton
+                                    buttonType={AppleAuthentication.AppleAuthenticationButtonType.CONTINUE}
+                                    buttonStyle={AppleAuthentication.AppleAuthenticationButtonStyle.WHITE}
+                                    cornerRadius={8}
+                                    style={styles.appleButton}
+                                    onPress={handleApple}
+                                />
+                            )}
+
+                            <Text style={styles.socialDisclaimer}>
+                                {showApple && showGoogle ? "By continuing with Google or Apple" : showApple ? "By continuing with Apple" : "By continuing with Google"} you confirm you are 18 or older and agree to the{" "}
+                                <Text
+                                    style={styles.socialDisclaimerLink}
+                                    onPress={() => router.push(`/legal/terms`)}
+                                    accessibilityRole="link"
+                                >
+                                    Terms of Service
+                                </Text>{" "}
+                                and{" "}
+                                <Text
+                                    style={styles.socialDisclaimerLink}
+                                    onPress={() => router.push(`/legal/privacy`)}
+                                    accessibilityRole="link"
+                                >
+                                    Privacy Policy
+                                </Text>
+                            </Text>
+                        </>
                     )}
-
-                    <Text style={styles.socialDisclaimer}>
-                        By continuing with Google or Apple you confirm you are 18 or older and agree to the{" "}
-                        <Text
-                            style={styles.socialDisclaimerLink}
-                            onPress={() => router.push(`/legal/terms`)}
-                            accessibilityRole="link"
-                        >
-                            Terms of Service
-                        </Text>{" "}
-                        and{" "}
-                        <Text
-                            style={styles.socialDisclaimerLink}
-                            onPress={() => router.push(`/legal/privacy`)}
-                            accessibilityRole="link"
-                        >
-                            Privacy Policy
-                        </Text>
-                    </Text>
 
                 </ScrollView>
             </KeyboardAvoidingView>

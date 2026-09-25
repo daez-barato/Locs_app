@@ -1,5 +1,5 @@
 import { Theme, useThemeConfig } from "@/components/ui/use-theme-config";
-import { blend, withAlpha } from "@/theme";
+import { withAlpha } from "@/theme";
 import { LinearGradient } from "expo-linear-gradient";
 import { useThemedStyles } from "@/hooks/use-themed-styles";
 import { 
@@ -13,6 +13,7 @@ import {
   ScrollView,
   NativeScrollEvent,
   NativeSyntheticEvent,
+  useWindowDimensions,
 } from "react-native";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -23,7 +24,7 @@ import { haptics } from "@/utils/haptics";
 import { getUserProfile, fetchUserCreatedEvents, fetchUserParticipatedEvents } from "@/services/users";
 import { Event, Rarity, UserProfile } from "@/types/interfaces";
 import { getAvatarItem } from "@/services/shop";
-import { rarityColor } from "@/components/ui/rarity-badge";
+import RarityBadge from "@/components/ui/rarity-badge";
 import { followRequest, unfollowRequest} from "@/api/followers/followers";
 import { useAuthContext } from "@/hooks/use-auth-context";
 import { useCoinContext } from "@/hooks/use-coin-context";
@@ -51,6 +52,10 @@ export default function Profile() {
   const { username } = useLocalSearchParams();
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const { width: windowWidth } = useWindowDimensions();
+  // Close to square, like the avatar art itself, without taking over a tall
+  // phone's whole first screen.
+  const heroHeight = Math.round(Math.min(Math.max(windowWidth * 0.9, 300), 440));
 
   const [activeList, setActiveList] = useState<ActiveList>("created");
   const [loading, setLoading] = useState<boolean>(true);
@@ -251,14 +256,15 @@ export default function Profile() {
         }
         onMomentumScrollEnd={handleScroll}
       >
-        {/* Hero: the equipped avatar fills the top of the page as a
-            background, with the username and stats card overlaid. */}
-        <View style={styles.hero}>
+        {/* Hero: the equipped avatar, shown clearly across the top of the
+            page. Only its bottom edge fades, into the page background, where
+            the name and stats take over below it. */}
+        <View style={[styles.hero, { height: heroHeight }]}>
           <TouchableOpacity
             style={styles.heroImageWrap}
             onPress={() => router.push("/shop")}
             disabled={!user?.owner}
-            activeOpacity={0.8}
+            activeOpacity={0.9}
             accessibilityRole={user?.owner ? "button" : undefined}
             accessibilityLabel={user?.owner ? "Change avatar in the shop" : undefined}
           >
@@ -268,21 +274,16 @@ export default function Profile() {
               contentFit="cover"
             />
           </TouchableOpacity>
-          {/* The gradient carries the tier's hue and darkens for legibility
-              before fading into the page background; the rarity-coloured
-              line sits on top, marking the hero's bottom edge. */}
+          {/* Keeps the status bar and floating buttons readable over a
+              bright avatar. */}
           <LinearGradient
-            colors={
-              avatarRarity
-                ? [
-                    "transparent",
-                    withAlpha(rarityHue(theme, avatarRarity), 0.55),
-                    theme.background,
-                  ]
-                : ["transparent", withAlpha(theme.void, 0.45), theme.background]
-            }
-            locations={[0, 0.6, 1]}
-            style={styles.heroFade}
+            colors={[withAlpha(theme.void, 0.55), "transparent"]}
+            style={[styles.topScrim, { height: insets.top + 72 }]}
+            pointerEvents="none"
+          />
+          <LinearGradient
+            colors={["transparent", theme.background]}
+            style={styles.bottomFade}
             pointerEvents="none"
           />
           {user?.owner && (
@@ -311,13 +312,13 @@ export default function Profile() {
               </TouchableOpacity>
             </View>
           )}
-          {avatarRarity && (
-            <View style={[styles.rarityEdge, rarityEdgeGlow(theme, avatarRarity)]} />
-          )}
+        </View>
 
-          {/* Profile Section, overlaid on the hero's lower part */}
-          <View style={styles.profileSection}>
-            <Text style={styles.username}>{user?.username}</Text>
+        <View style={styles.profileSection}>
+          <View style={styles.nameRow}>
+            <Text style={styles.username} numberOfLines={1}>{user?.username}</Text>
+            {avatarRarity && <RarityBadge rarity={avatarRarity} style={styles.rarityBadge} />}
+          </View>
 
             {/* Stats Container */}
             <View style={styles.statsContainer}>
@@ -369,7 +370,6 @@ export default function Profile() {
               </Text>
             </TouchableOpacity>
           )}
-          </View>
         </View>
 
         {/* Tabs Section */}
@@ -444,32 +444,6 @@ export default function Profile() {
   );
 }
 
-// The hero takes the equipped avatar's tier colour, leaning in harder for
-// higher tiers: faint for grey, strongest for gold.
-const GLOW: Record<Rarity, { hue: number }> = {
-  grey: { hue: 0.1 },
-  bronze: { hue: 0.16 },
-  silver: { hue: 0.16 },
-  gold: { hue: 0.22 },
-};
-
-/** The hero's tint: the background leaning towards the avatar's tier. */
-function rarityHue(theme: Theme, rarity: Rarity) {
-  return blend(theme.background, rarityColor(theme, rarity), GLOW[rarity].hue);
-}
-
-// Grey barely glows; gold glows hardest — same ladder the frame used to draw.
-const EDGE_GLOW: Record<Rarity, number> = { grey: 0.35, bronze: 0.5, silver: 0.6, gold: 0.85 };
-
-/** The hero's bottom-edge line: solid tier colour with a matching glow. */
-function rarityEdgeGlow(theme: Theme, rarity: Rarity) {
-  const color = rarityColor(theme, rarity);
-  return {
-    backgroundColor: color,
-    boxShadow: `0 0 10px ${withAlpha(color, EDGE_GLOW[rarity])}`,
-  };
-}
-
 const createStyles = (theme: Theme) => StyleSheet.create({
   container: {
     flex: 1,
@@ -509,12 +483,10 @@ const createStyles = (theme: Theme) => StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  // Hero: the equipped avatar as a full-width background for the top of
-  // the page. Children stack (image, fade, content) rather than absolute
-  // positioning the content, so the profile section sits at its bottom.
+  // Hero: the equipped avatar across the top of the page.
   hero: {
-    minHeight: 460,
-    justifyContent: 'flex-end',
+    width: '100%',
+    overflow: 'hidden',
   },
   heroImageWrap: {
     ...StyleSheet.absoluteFill,
@@ -523,34 +495,44 @@ const createStyles = (theme: Theme) => StyleSheet.create({
     width: '100%',
     height: '100%',
   },
-  // Fades the image into the page background, carrying a hint of the
-  // avatar's tier and darkening enough for the username to read over it.
-  heroFade: {
-    ...StyleSheet.absoluteFill,
+  topScrim: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
   },
-  // A thin glowing line at the hero's bottom edge; rarityEdgeGlow fills in
-  // the tier's colour and glow strength.
-  rarityEdge: {
-    position: "absolute",
+  // Only the last stretch of the image, so the avatar itself stays true to
+  // colour and the page picks up where it ends.
+  bottomFade: {
+    position: 'absolute',
     left: 0,
     right: 0,
     bottom: 0,
-    height: 2,
+    height: '35%',
   },
-  // Profile Section
+  // Name and stats, starting on the faded edge of the hero.
   profileSection: {
     alignItems: 'center',
     paddingHorizontal: 20,
-    paddingVertical: 12,
+    marginTop: -36,
+    paddingBottom: 12,
+  },
+  nameRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    maxWidth: '100%',
+    marginBottom: 14,
+  },
+  rarityBadge: {
+    alignSelf: 'center',
   },
   username: {
-    fontSize: 24,
-    fontWeight: '700',
+    flexShrink: 1,
+    fontSize: 28,
+    fontWeight: '800',
     color: theme.cardText,
-    marginBottom: 12,
-    textShadowColor: "rgba(0, 0, 0, 0.5)",
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 6,
   },
 
   // Stats
