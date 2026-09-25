@@ -45,3 +45,6 @@ app-example
 /ios
 # locsapp.net build output (npm run web:build)
 /web/dist
+
+# wrangler state
+.wrangler
