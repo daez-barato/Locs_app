@@ -25,7 +25,6 @@ import { getUserProfile, fetchUserCreatedEvents, fetchUserParticipatedEvents } f
 import { Event, Rarity, UserProfile } from "@/types/interfaces";
 import { getAvatarItem } from "@/services/shop";
 import { rarityColor } from "@/components/ui/rarity-badge";
-import TierBadge from "@/components/ui/tier-badge";
 import { followRequest, unfollowRequest} from "@/api/followers/followers";
 import { useAuthContext } from "@/hooks/use-auth-context";
 import { useCoinContext } from "@/hooks/use-coin-context";
@@ -56,9 +55,9 @@ export default function Profile() {
   const { width: windowWidth } = useWindowDimensions();
   // Close to square, like the avatar art itself, without taking over a tall
   // phone's whole first screen.
-  // Every tier tints the page a little, from barely (grey) to clearly (gold).
+  // The equipped avatar's tier gives the whole page its hue, from barely
+  // (grey) to clearly (gold).
   const pageTint = avatarRarity ? rarityTint(theme, avatarRarity) : theme.background;
-  const tier = avatarRarity ? tierStyles(theme, avatarRarity) : null;
   const heroHeight = Math.round(Math.min(Math.max(windowWidth * 0.9, 300), 440));
 
   const [activeList, setActiveList] = useState<ActiveList>("created");
@@ -244,7 +243,7 @@ export default function Profile() {
     router.push(kind ? { pathname, params: { username: username as string, kind } } : pathname);
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: pageTint }]}>
       {/* No navigation header: the avatar runs to the top of the screen, and
           your own profile's actions float over it instead. */}
       <Tabs.Screen options={{ headerShown: false }} />
@@ -285,8 +284,7 @@ export default function Profile() {
             style={[styles.topScrim, { height: insets.top + 72 }]}
             pointerEvents="none"
           />
-          {/* The avatar's last quarter fades into the tier's tint, which the
-              wash below then carries down behind the name and stats. */}
+          {/* The avatar's last quarter fades into the page's tier hue. */}
           <LinearGradient
             colors={["transparent", pageTint]}
             style={styles.bottomFade}
@@ -321,18 +319,12 @@ export default function Profile() {
         </View>
 
         <View style={styles.profileSection}>
-          <LinearGradient
-            colors={[pageTint, theme.background]}
-            style={styles.rarityWash}
-            pointerEvents="none"
-          />
           <View style={styles.nameRow}>
-            <Text style={[styles.username, tier?.name]} numberOfLines={1}>{user?.username}</Text>
-            {avatarRarity && <TierBadge rarity={avatarRarity} />}
+            <Text style={styles.username} numberOfLines={1}>{user?.username}</Text>
           </View>
 
             {/* Stats Container */}
-            <View style={[styles.statsContainer, tier?.stats]}>
+            <View style={styles.statsContainer}>
             <TouchableOpacity 
               style={styles.statItem} 
               onPress={() => openSheet("/connections", "followers")}
@@ -390,7 +382,7 @@ export default function Profile() {
             <TouchableOpacity
               style={[
                 styles.tab,
-                activeList === "created" && [styles.activeTab, tier?.activeTab],
+                activeList === "created" && styles.activeTab,
               ]}
               onPress={() => setActiveList("created")}
             >
@@ -407,7 +399,7 @@ export default function Profile() {
             <TouchableOpacity
               style={[
                 styles.tab,
-                activeList === "participated" && [styles.activeTab, tier?.activeTab],
+                activeList === "participated" && styles.activeTab,
               ]}
               onPress={() => setActiveList("participated")}
             >
@@ -455,44 +447,18 @@ export default function Profile() {
   );
 }
 
-// How strongly each tier shows. Grey is the free default, so it stays quiet;
-// gold is meant to be seen from across the room.
-const TIER: Record<Rarity, { tint: number; card: number; glow: number; blur: number; colourName: boolean }> = {
-  grey: { tint: 0.15, card: 0.08, glow: 0.3, blur: 10, colourName: false },
-  bronze: { tint: 0.32, card: 0.2, glow: 0.55, blur: 16, colourName: true },
-  silver: { tint: 0.3, card: 0.2, glow: 0.65, blur: 20, colourName: true },
-  gold: { tint: 0.42, card: 0.28, glow: 0.85, blur: 28, colourName: true },
+// How strongly each tier tints the page. Grey is the free default, so it
+// stays quiet.
+const TIER_TINT: Record<Rarity, number> = {
+  grey: 0.12,
+  bronze: 0.26,
+  silver: 0.24,
+  gold: 0.34,
 };
 
 /** The page background leaning towards the equipped avatar's tier. */
 function rarityTint(theme: Theme, rarity: Rarity) {
-  return blend(theme.background, rarityColor(theme, rarity), TIER[rarity].tint);
-}
-
-/** Everything on the profile that takes the tier's colour. */
-function tierStyles(theme: Theme, rarity: Rarity) {
-  const color = rarityColor(theme, rarity);
-  const { card, glow, blur, colourName } = TIER[rarity];
-  return {
-    name: colourName
-      ? {
-          color,
-          textShadowColor: withAlpha(color, 0.7),
-          textShadowOffset: { width: 0, height: 0 },
-          textShadowRadius: 14,
-        }
-      : null,
-    stats: {
-      backgroundColor: blend(theme.button_darker_primary, color, card),
-      borderWidth: 1.5,
-      borderColor: color,
-      boxShadow: `0 0 ${blur}px ${withAlpha(color, glow)}`,
-    },
-    // Every tier colour is light, so the tab's dark label still reads.
-    activeTab: {
-      backgroundColor: color,
-    },
-  };
+  return blend(theme.background, rarityColor(theme, rarity), TIER_TINT[rarity]);
 }
 
 const createStyles = (theme: Theme) => StyleSheet.create({
@@ -568,15 +534,6 @@ const createStyles = (theme: Theme) => StyleSheet.create({
     marginTop: -28,
     paddingTop: 0,
     paddingBottom: 12,
-  },
-  // Continues the tier's tint from under the avatar down behind the stats.
-  // It starts at the section's top, which sits on the hero's faded edge.
-  rarityWash: {
-    position: 'absolute',
-    top: 28,
-    left: 0,
-    right: 0,
-    height: 240,
   },
   nameRow: {
     flexDirection: 'row',
