@@ -3,11 +3,26 @@ import { supabase } from '@/lib/supabase'
 import { User } from '@/types/interfaces'
 import { PropsWithChildren, useCallback, useEffect, useState } from 'react'
 
+/**
+ * Whether the signed-in account still has to accept the terms (OAuth signups
+ * and accounts from before they existed). A failed check is not a reason to
+ * trap anyone on the onboarding screen, so it counts as "already onboarded".
+ */
+async function fetchNeedsOnboarding(): Promise<boolean> {
+  const { data, error } = await supabase.rpc('needs_onboarding')
+  if (error) {
+    console.error('Error checking onboarding status:', error)
+    return false
+  }
+  return !!data
+}
+
 export default function AuthProvider({ children }: PropsWithChildren) {
   const [claims, setClaims] = useState<Record<string, any> | undefined | null>()
   const [user, setUser] = useState<User>()
   const [claimsLoading, setClaimsLoading] = useState<boolean>(true)
   const [profileFailed, setProfileFailed] = useState<boolean>(false)
+  const [needsOnboarding, setNeedsOnboarding] = useState<boolean>(false)
 
   // Fetch the claims once, and subscribe to auth state changes
   useEffect(() => {
@@ -63,8 +78,13 @@ export default function AuthProvider({ children }: PropsWithChildren) {
             return
           }
 
+          // Read alongside the profile and set in the same update: resolving
+          // the user first let the tabs guard pass for a frame on a stale
+          // "no onboarding needed" before the onboarding screen took over.
+          setNeedsOnboarding(await fetchNeedsOnboarding())
           setUser(User(data[0]))
         } else {
+          setNeedsOnboarding(false)
           setUser(undefined)
         }
       } catch (error) {
@@ -75,6 +95,14 @@ export default function AuthProvider({ children }: PropsWithChildren) {
 
     fetchProfile()
   }, [claims])
+
+  const completeOnboarding = useCallback(async (username: string) => {
+    const { data, error } = await supabase.rpc('complete_onboarding', { _username: username })
+    if (error) throw error
+    setUser((prev) => (prev ? { ...prev, username: data } : prev))
+    setNeedsOnboarding(false)
+    return data
+  }, [])
 
   // A restored session resolves in two steps: claims first, profile a moment
   // later. Reporting "not loading" in between rendered one frame with a valid
@@ -107,6 +135,8 @@ export default function AuthProvider({ children }: PropsWithChildren) {
         user,
         isLoggedIn: claims != undefined,
         updateUser,
+        needsOnboarding,
+        completeOnboarding,
       }}
     >
       {children}

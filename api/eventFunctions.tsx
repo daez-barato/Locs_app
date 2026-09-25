@@ -165,6 +165,40 @@ export const endEvent = async (eventId: string, winningOptions: Record<string, s
   }
 };
 
+export const setEventPublic = async (eventId: string, isPublic: boolean) => {
+  try {
+    const { data, error } = await supabase.rpc("set_event_public", {
+      _event_id: eventId,
+      _public: isPublic,
+    });
+
+    if (error) {
+      throw new Error(error.message);
+    }
+
+    return { success: true, public: data as boolean };
+  } catch (err: any) {
+    console.error("Error updating event visibility:", err);
+    return { error: true as const, msg: err.message };
+  }
+};
+
+export const getEventWinners = async (eventId: string) => {
+  try {
+    const { data, error } = await supabase.rpc("get_event_winners", { p_event_id: eventId });
+
+    if (error) {
+      throw new Error(error.message);
+    }
+
+    // Empty for undecided events; the screen only calls this once decided.
+    return (data ?? []) as { question: string; option: string }[];
+  } catch (err: any) {
+    console.error("Error fetching event winners:", err);
+    return { error: true as const, msg: err.message };
+  }
+};
+
 export const saveTemplate = async (templateId: string) => {
   try {
     const { error } = await supabase.rpc("save_template", { _template_id: templateId });

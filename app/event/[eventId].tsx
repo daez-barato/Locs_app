@@ -5,8 +5,8 @@ import { Theme, useThemeConfig } from '@/components/ui/use-theme-config';
 import { withAlpha } from "@/theme";
 import { useThemedStyles } from '@/hooks/use-themed-styles';
 import { useEffect, useState } from 'react';
-import { deleteEvent, endEvent, eventInformation, fetchEventBets, lockEvent, placeBet, postTemplate, saveTemplate } from '@/api/eventFunctions';
-import * as Linking from 'expo-linking';
+import { deleteEvent, endEvent, eventInformation, fetchEventBets, getEventWinners, lockEvent, placeBet, postTemplate, saveTemplate, setEventPublic } from '@/api/eventFunctions';
+import { eventUrl } from '@/constants/links';
 import { FontAwesome5 } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { followRequest } from '@/api/followers/followers';
@@ -35,12 +35,16 @@ export default function eventScreen() {
   const [pendingBet, setPendingBet] = useState<{question: string, option: string, isIncrease: boolean} | null>(null);
   const [modalBetAmount, setModalBetAmount] = useState<string>('10');
   const [winningOptions, setWinningOptions] = useState<Record<string, string>>({});
+  // question title -> winning option title, for decided events.
+  const [winners, setWinners] = useState<Record<string, string>>({});
   const [postTemplateModal, setPostTemplateModal] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const userName = useAuthContext().user?.username || '';
-  const url = Linking.createURL(`event/${eventId}`);
+  // An https link rather than the app scheme: it opens the app when installed
+  // and the website (then the app store) when not.
+  const url = eventUrl(eventId);
 
   const isEventCreator = eventInfo?.is_creator;
   // Locked but not yet decided: the creator action is End, on a red fill.
@@ -62,6 +66,17 @@ export default function eventScreen() {
       if (event.is_creator && event.decided && !event.template_posted) {
           setPostTemplateModal(true);
       };
+
+      if (event.decided) {
+        const winnersResult = await getEventWinners(eventId);
+        if (Array.isArray(winnersResult)) {
+          setWinners(Object.fromEntries(winnersResult.map((w) => [w.question, w.option])));
+        } else {
+          console.error('Failed to fetch winners:', winnersResult.msg);
+        }
+      } else {
+        setWinners({});
+      }
 
       const bets = await fetchEventBets(eventId);
 
@@ -148,6 +163,43 @@ export default function eventScreen() {
     setShowLockModal(true);
   };
 
+  const handleToggleVisibility = () => {
+    if (!eventInfo) return;
+    const next = !eventInfo.public;
+
+    Alert.alert(
+      next ? 'Make event public?' : 'Make event private?',
+      next
+        ? "Public events appear in your followers' feeds and in Explore."
+        : 'Private events are hidden from feeds and Explore; only people with the link can open it.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { text: next ? 'Make public' : 'Make private', onPress: () => confirmToggleVisibility(next) },
+      ]
+    );
+  };
+
+  const confirmToggleVisibility = async (next: boolean) => {
+    const previous = eventInfo?.public;
+    // Flip immediately so the pill tracks the tap; undo on failure.
+    setEventInfo(prev => prev ? { ...prev, public: next } : prev);
+
+    try {
+      const result = await setEventPublic(eventId, next);
+
+      if (result.error) {
+        throw new Error(result.msg);
+      }
+
+      setEventInfo(prev => prev ? { ...prev, public: result.public } : prev);
+      haptics.success();
+    } catch (error) {
+      console.error('Error updating event visibility:', error);
+      setEventInfo(prev => prev ? { ...prev, public: previous ?? prev.public } : prev);
+      Alert.alert('Error', 'Failed to update event visibility');
+    }
+  };
+
   const confirmDeleteEvent = async () => {
     setIsDeleting(true);
     try {
@@ -225,6 +277,9 @@ export default function eventScreen() {
       };
       
       setEventInfo(prev => prev ? { ...prev, decided: true } : null);
+      // The chosen winners are already known here, so highlight them without
+      // a round trip to get_event_winners.
+      setWinners(winningOptions);
       setShowEndEventModal(false);
       haptics.success();
       // Deciding pays out winners, the creator included if they bet.
@@ -334,13 +389,24 @@ export default function eventScreen() {
     const betPercentage = betInfo.totalPot > 0 ? ((optionBetAmount / betInfo.totalPot) * 100) : 0;
     const hasUserBet = betInfo.userBet?.options[option] !== undefined;
     const isLocked = eventInfo?.locked || eventInfo?.decided;
+    const isWinner = !!eventInfo?.decided && winners[question] === option;
+    // Only dim siblings once we actually know who won this question.
+    const isNonWinner = !!eventInfo?.decided && !!winners[question] && !isWinner;
 
     return (
       <View key={option} style={[
         styles.optionCard,
         { width: windowWidth * 0.75 },
-        hasUserBet && styles.userBetCard
+        hasUserBet && styles.userBetCard,
+        isWinner && styles.winnerCard,
+        isNonWinner && styles.nonWinnerCard
       ]}>
+        {isWinner && (
+          <View style={styles.winnerBadge}>
+            <FontAwesome5 name="trophy" size={12} color={theme.onPrimary} />
+            <Text style={styles.winnerBadgeText}>Winner</Text>
+          </View>
+        )}
         <View style={styles.optionHeader}>
           <Text style={styles.optionTitle} numberOfLines={3}>
             {option}
@@ -588,15 +654,34 @@ export default function eventScreen() {
             
             {/* Creator badge */}
             <View style={styles.creatorRow}>
-              <TouchableOpacity
-                style={styles.creatorBadge}
-                accessibilityRole="link"
-                accessibilityLabel={`View ${eventInfo?.creator?.username}'s profile`}
-                onPress={() => router.push(`/(tabs)/user/${eventInfo?.creator?.username}`)}
-              >
-                <FontAwesome5 name="user" size={12} color={theme.primary} />
-                <Text style={styles.creatorText}>by {eventInfo?.creator?.username}</Text>
-              </TouchableOpacity>
+              <View style={styles.creatorLeftRow}>
+                <TouchableOpacity
+                  style={styles.creatorBadge}
+                  accessibilityRole="link"
+                  accessibilityLabel={`View ${eventInfo?.creator?.username}'s profile`}
+                  onPress={() => router.push(`/(tabs)/user/${eventInfo?.creator?.username}`)}
+                >
+                  <FontAwesome5 name="user" size={12} color={theme.primary} />
+                  <Text style={styles.creatorText}>by {eventInfo?.creator?.username}</Text>
+                </TouchableOpacity>
+
+                {/* Only the creator can flip visibility; the RPC rejects anyone else. */}
+                {isEventCreator && (
+                  <TouchableOpacity
+                    style={styles.visibilityBadge}
+                    accessibilityRole="button"
+                    accessibilityLabel={eventInfo?.public ? 'Make event private' : 'Make event public'}
+                    onPress={handleToggleVisibility}
+                  >
+                    <FontAwesome5
+                      name={eventInfo?.public ? 'globe-americas' : 'lock'}
+                      size={12}
+                      color={theme.primary}
+                    />
+                    <Text style={styles.creatorText}>{eventInfo?.public ? 'Public' : 'Private'}</Text>
+                  </TouchableOpacity>
+                )}
+              </View>
 
               <View style={styles.creatorActions}>
                 {/* Follow button */}
@@ -1361,7 +1446,39 @@ const createStyles = (theme: Theme) => StyleSheet.create({
     borderColor: theme.success,
     boxShadow: `0 0 6px ${withAlpha(theme.success, 0.2)}`,
   },
-  
+
+  // Gold border for the decided winner, distinct from the green "you bet
+  // here" ring above so both can't be confused on a card the viewer backed.
+  winnerCard: {
+    borderColor: theme.warning,
+    boxShadow: `0 0 8px ${withAlpha(theme.warning, 0.3)}`,
+  },
+
+  // Once a question is decided, fade the losing options so the winner reads
+  // first in the horizontal scroll.
+  nonWinnerCard: {
+    opacity: 0.6,
+  },
+
+  winnerBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'flex-start',
+    gap: 6,
+    backgroundColor: theme.warning,
+    paddingVertical: 4,
+    paddingHorizontal: 10,
+    borderRadius: 10,
+    marginBottom: 12,
+  },
+
+  winnerBadgeText: {
+    color: theme.onPrimary,
+    fontSize: 11,
+    fontWeight: '800',
+    letterSpacing: 0.4,
+  },
+
   optionHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -1715,6 +1832,27 @@ const createStyles = (theme: Theme) => StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     marginTop: 4,
+  },
+
+  creatorLeftRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    flexShrink: 1,
+    flexWrap: 'wrap',
+  },
+
+  visibilityBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    alignSelf: 'flex-start',
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 20,
+    backgroundColor: theme.primarySurface,
+    borderWidth: 1,
+    borderColor: theme.primaryBorder,
   },
 
   creatorActions: {

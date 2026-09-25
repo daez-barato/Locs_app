@@ -9,6 +9,7 @@ import { useThemedStyles } from "@/hooks/use-themed-styles";
 import { supabase } from "@/lib/supabase";
 import { changePrivacy, getUserProfile } from "@/services/users";
 import { haptics } from "@/utils/haptics";
+import { unregisterPushToken } from "@/providers/notifications-provider";
 
 /** Account settings, presented as a sheet over the profile. */
 export default function Settings() {
@@ -19,6 +20,7 @@ export default function Settings() {
 
     const [isPublic, setIsPublic] = useState<boolean | null>(null);
     const [saving, setSaving] = useState(false);
+    const [deleting, setDeleting] = useState(false);
 
     useEffect(() => {
         if (!user?.username) return;
@@ -58,6 +60,7 @@ export default function Settings() {
                 style: "destructive",
                 onPress: async () => {
                     try {
+                        await unregisterPushToken();
                         await supabase.auth.signOut();
                         router.replace("/(auth)");
                     } catch (error) {
@@ -67,6 +70,36 @@ export default function Settings() {
                 },
             },
         ]);
+    };
+
+    const deleteAccount = () => {
+        Alert.alert(
+            "Delete account",
+            "This permanently deletes your account: your events, bets, coins, and owned avatars are all removed, and any coins others staked on your still-open events are refunded to them. This can't be undone.",
+            [
+                { text: "Cancel", style: "cancel" },
+                {
+                    text: "Delete account",
+                    style: "destructive",
+                    onPress: async () => {
+                        setDeleting(true);
+                        try {
+                            const { error } = await supabase.rpc("delete_my_account");
+                            if (error) throw error;
+                            // The account and its push tokens are already gone server
+                            // side, so only the stored session needs clearing; a server
+                            // sign-out for a deleted user can fail and keep it around.
+                            await supabase.auth.signOut({ scope: "local" }).catch(() => {});
+                            router.replace("/(auth)");
+                        } catch (error) {
+                            console.error("Delete account error:", error);
+                            setDeleting(false);
+                            Alert.alert("Couldn't delete account", "Please try again.");
+                        }
+                    },
+                },
+            ],
+        );
     };
 
     return (
@@ -102,9 +135,49 @@ export default function Settings() {
 
                 <View style={styles.divider} />
 
+                <TouchableOpacity
+                    style={styles.row}
+                    onPress={() => router.push(`/legal/terms`)}
+                    accessibilityRole="button"
+                >
+                    <FontAwesome name="file-text-o" size={20} color={theme.text} style={styles.icon} />
+                    <Text style={styles.rowTitle}>Terms of Service</Text>
+                </TouchableOpacity>
+
+                <View style={styles.divider} />
+
+                <TouchableOpacity
+                    style={styles.row}
+                    onPress={() => router.push(`/legal/privacy`)}
+                    accessibilityRole="button"
+                >
+                    <FontAwesome name="shield" size={20} color={theme.text} style={styles.icon} />
+                    <Text style={styles.rowTitle}>Privacy Policy</Text>
+                </TouchableOpacity>
+
+                <View style={styles.divider} />
+
                 <TouchableOpacity style={styles.row} onPress={logOut} accessibilityRole="button">
                     <FontAwesome name="sign-out" size={20} color={theme.destructiveLabel} style={styles.icon} />
                     <Text style={[styles.rowTitle, styles.destructive]}>Log out</Text>
+                </TouchableOpacity>
+
+                <View style={styles.divider} />
+
+                <TouchableOpacity
+                    style={styles.row}
+                    onPress={deleteAccount}
+                    disabled={deleting}
+                    accessibilityRole="button"
+                >
+                    {deleting ? (
+                        <ActivityIndicator color={theme.destructiveLabel} style={styles.icon} />
+                    ) : (
+                        <FontAwesome name="trash" size={20} color={theme.destructiveLabel} style={styles.icon} />
+                    )}
+                    <Text style={[styles.rowTitle, styles.destructive]}>
+                        {deleting ? "Deleting…" : "Delete account"}
+                    </Text>
                 </TouchableOpacity>
             </View>
         </View>

@@ -15,6 +15,7 @@ import {
   NativeSyntheticEvent,
 } from "react-native";
 import React, { useCallback, useEffect, useRef, useState } from "react";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Tabs, useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import { FontAwesome } from "@expo/vector-icons";
 import EventCard from "@/components/eventCard";
@@ -49,6 +50,7 @@ export default function Profile() {
   const styles = useThemedStyles(createStyles);
   const { username } = useLocalSearchParams();
   const router = useRouter();
+  const insets = useSafeAreaInsets();
 
   const [activeList, setActiveList] = useState<ActiveList>("created");
   const [loading, setLoading] = useState<boolean>(true);
@@ -177,6 +179,7 @@ export default function Profile() {
   if (loading) {
     return (
       <View style={styles.container}>
+        <Tabs.Screen options={{ headerShown: false }} />
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={theme.primary} />
           <Text style={styles.loadingText}>Loading profile...</Text>
@@ -233,52 +236,10 @@ export default function Profile() {
 
   return (
     <View style={styles.container}>
-      {/* The name is already large under the avatar, so the header carries
-          only actions: requests and settings on your own profile. */}
-      <Tabs.Screen
-        options={{
-          headerTitle: "",
-          headerStyle: { backgroundColor: avatarRarity ? rarityHue(theme, avatarRarity) : theme.background },
-          headerRight: user?.owner
-            ? () => (
-                <View style={styles.headerActions}>
-                  <TouchableOpacity
-                    style={styles.headerButton}
-                    onPress={() => openSheet("/requests")}
-                    accessibilityRole="button"
-                    accessibilityLabel={`Follow requests: ${user.requests}`}
-                  >
-                    <FontAwesome name="inbox" size={22} color={theme.text} />
-                    {/* Only when there's something to act on; it used to show "0". */}
-                    {user.requests > 0 && (
-                      <View style={styles.alert}>
-                        <Text style={styles.alertNumber}>{user.requests}</Text>
-                      </View>
-                    )}
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    style={styles.headerButton}
-                    onPress={() => openSheet("/settings")}
-                    accessibilityRole="button"
-                    accessibilityLabel="Settings"
-                  >
-                    <FontAwesome name="cog" size={22} color={theme.text} />
-                  </TouchableOpacity>
-                </View>
-              )
-            : undefined,
-        }}
-      />
-      {/* The page carries a hue of the avatar's tier, strongest under the
-          header and gone by the stats. */}
-      {avatarRarity && (
-        <LinearGradient
-          colors={[rarityHue(theme, avatarRarity), theme.background]}
-          style={styles.rarityWash}
-          pointerEvents="none"
-        />
-      )}
-      <ScrollView 
+      {/* No navigation header: the avatar runs to the top of the screen, and
+          your own profile's actions float over it instead. */}
+      <Tabs.Screen options={{ headerShown: false }} />
+      <ScrollView
         style={styles.scrollContainer}
         showsVerticalScrollIndicator={false}
         refreshControl={
@@ -290,10 +251,11 @@ export default function Profile() {
         }
         onMomentumScrollEnd={handleScroll}
       >
-        {/* Profile Section */}
-        <View style={styles.profileSection}>
+        {/* Hero: the equipped avatar fills the top of the page as a
+            background, with the username and stats card overlaid. */}
+        <View style={styles.hero}>
           <TouchableOpacity
-            style={[styles.profileImageContainer, avatarRarity && frameHighlight(theme, avatarRarity).container]}
+            style={styles.heroImageWrap}
             onPress={() => router.push("/shop")}
             disabled={!user?.owner}
             activeOpacity={0.8}
@@ -302,15 +264,63 @@ export default function Profile() {
           >
             <AvatarImage
               uri={resolveAvatarUrl(userImage)}
-              style={[styles.profileImage, avatarRarity && frameHighlight(theme, avatarRarity).image]}
+              style={styles.heroImage}
               contentFit="cover"
             />
           </TouchableOpacity>
+          {/* The gradient carries the tier's hue and darkens for legibility
+              before fading into the page background; the rarity-coloured
+              line sits on top, marking the hero's bottom edge. */}
+          <LinearGradient
+            colors={
+              avatarRarity
+                ? [
+                    "transparent",
+                    withAlpha(rarityHue(theme, avatarRarity), 0.55),
+                    theme.background,
+                  ]
+                : ["transparent", withAlpha(theme.void, 0.45), theme.background]
+            }
+            locations={[0, 0.6, 1]}
+            style={styles.heroFade}
+            pointerEvents="none"
+          />
+          {user?.owner && (
+            <View style={[styles.headerActions, { top: insets.top + 8 }]}>
+              <TouchableOpacity
+                style={styles.headerButton}
+                onPress={() => openSheet("/requests")}
+                accessibilityRole="button"
+                accessibilityLabel={`Follow requests: ${user.requests}`}
+              >
+                <FontAwesome name="inbox" size={22} color={theme.text} />
+                {/* Only when there's something to act on; it used to show "0". */}
+                {user.requests > 0 && (
+                  <View style={styles.alert}>
+                    <Text style={styles.alertNumber}>{user.requests}</Text>
+                  </View>
+                )}
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.headerButton}
+                onPress={() => openSheet("/settings")}
+                accessibilityRole="button"
+                accessibilityLabel="Settings"
+              >
+                <FontAwesome name="cog" size={22} color={theme.text} />
+              </TouchableOpacity>
+            </View>
+          )}
+          {avatarRarity && (
+            <View style={[styles.rarityEdge, rarityEdgeGlow(theme, avatarRarity)]} />
+          )}
 
-          <Text style={styles.username}>{user?.username}</Text>
+          {/* Profile Section, overlaid on the hero's lower part */}
+          <View style={styles.profileSection}>
+            <Text style={styles.username}>{user?.username}</Text>
 
-          {/* Stats Container */}
-          <View style={styles.statsContainer}>
+            {/* Stats Container */}
+            <View style={styles.statsContainer}>
             <TouchableOpacity 
               style={styles.statItem} 
               onPress={() => openSheet("/connections", "followers")}
@@ -359,6 +369,7 @@ export default function Profile() {
               </Text>
             </TouchableOpacity>
           )}
+          </View>
         </View>
 
         {/* Tabs Section */}
@@ -433,26 +444,29 @@ export default function Profile() {
   );
 }
 
-// The frame takes the equipped avatar's tier colour, with a glow that grows
-// with the tier: faint for grey, strongest for gold.
-const GLOW: Record<Rarity, { alpha: number; blur: number; hue: number }> = {
-  grey: { alpha: 0.35, blur: 14, hue: 0.1 },
-  bronze: { alpha: 0.5, blur: 18, hue: 0.16 },
-  silver: { alpha: 0.6, blur: 22, hue: 0.16 },
-  gold: { alpha: 0.8, blur: 28, hue: 0.22 },
+// The hero takes the equipped avatar's tier colour, leaning in harder for
+// higher tiers: faint for grey, strongest for gold.
+const GLOW: Record<Rarity, { hue: number }> = {
+  grey: { hue: 0.1 },
+  bronze: { hue: 0.16 },
+  silver: { hue: 0.16 },
+  gold: { hue: 0.22 },
 };
 
-/** The page's top colour: the background leaning towards the avatar's tier. */
+/** The hero's tint: the background leaning towards the avatar's tier. */
 function rarityHue(theme: Theme, rarity: Rarity) {
   return blend(theme.background, rarityColor(theme, rarity), GLOW[rarity].hue);
 }
 
-function frameHighlight(theme: Theme, rarity: Rarity) {
+// Grey barely glows; gold glows hardest — same ladder the frame used to draw.
+const EDGE_GLOW: Record<Rarity, number> = { grey: 0.35, bronze: 0.5, silver: 0.6, gold: 0.85 };
+
+/** The hero's bottom-edge line: solid tier colour with a matching glow. */
+function rarityEdgeGlow(theme: Theme, rarity: Rarity) {
   const color = rarityColor(theme, rarity);
-  const { alpha, blur } = GLOW[rarity];
   return {
-    container: { boxShadow: `0 0 ${blur}px ${withAlpha(color, alpha)}` },
-    image: { borderColor: color },
+    backgroundColor: color,
+    boxShadow: `0 0 10px ${withAlpha(color, EDGE_GLOW[rarity])}`,
   };
 }
 
@@ -478,16 +492,50 @@ const createStyles = (theme: Theme) => StyleSheet.create({
     color: theme.text,
   },
 
-  // Header
+  // Requests and settings, floating over the top of the hero. Each sits on a
+  // dark disc so it reads over any avatar.
   headerActions: {
+    position: 'absolute',
+    right: 12,
+    zIndex: 1,
     flexDirection: 'row',
-    gap: 4,
-    marginRight: 8,
+    gap: 8,
   },
   headerButton: {
-    padding: 8,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: withAlpha(theme.void, 0.45),
     alignItems: "center",
     justifyContent: "center",
+  },
+  // Hero: the equipped avatar as a full-width background for the top of
+  // the page. Children stack (image, fade, content) rather than absolute
+  // positioning the content, so the profile section sits at its bottom.
+  hero: {
+    minHeight: 460,
+    justifyContent: 'flex-end',
+  },
+  heroImageWrap: {
+    ...StyleSheet.absoluteFill,
+  },
+  heroImage: {
+    width: '100%',
+    height: '100%',
+  },
+  // Fades the image into the page background, carrying a hint of the
+  // avatar's tier and darkening enough for the username to read over it.
+  heroFade: {
+    ...StyleSheet.absoluteFill,
+  },
+  // A thin glowing line at the hero's bottom edge; rarityEdgeGlow fills in
+  // the tier's colour and glow strength.
+  rarityEdge: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    bottom: 0,
+    height: 2,
   },
   // Profile Section
   profileSection: {
@@ -495,35 +543,14 @@ const createStyles = (theme: Theme) => StyleSheet.create({
     paddingHorizontal: 20,
     paddingVertical: 12,
   },
-  // The original wide rectangle with a teal edge and a drop shadow (what
-  // Android drew for the old elevation), with slightly softened corners.
-  // Once the avatar's tier is known, frameHighlight recolours edge and glow.
-  rarityWash: {
-    position: "absolute",
-    top: 0,
-    left: 0,
-    right: 0,
-    height: 460,
-  },
-  profileImageContainer: {
-    marginBottom: 12,
-    borderRadius: 12,
-    borderCurve: "continuous",
-    boxShadow: "0 5px 20px rgba(0, 0, 0, 0.3)",
-  },
-  profileImage: {
-    width: 240,
-    height: 150,
-    borderRadius: 12,
-    borderCurve: "continuous",
-    borderWidth: 2,
-    borderColor: theme.primary,
-  },
   username: {
     fontSize: 24,
     fontWeight: '700',
-    color: theme.text,
+    color: theme.cardText,
     marginBottom: 12,
+    textShadowColor: "rgba(0, 0, 0, 0.5)",
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 6,
   },
 
   // Stats

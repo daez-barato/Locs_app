@@ -43,3 +43,5 @@ app-example
 
 /android
 /ios
+# locsapp.net build output (npm run web:build)
+/web/dist

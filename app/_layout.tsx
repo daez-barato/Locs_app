@@ -1,12 +1,14 @@
-import { Stack } from "expo-router";
-import React from "react";
+import { Stack, useRouter } from "expo-router";
+import React, { useEffect } from "react";
 import { StatusBar } from "expo-status-bar";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import AuthProvider from "@/providers/auth-provider";
 import { CoinProvider } from "@/providers/coin-provider";
+import { NotificationsProvider } from "@/providers/notifications-provider";
 import { useAuthContext } from "@/hooks/use-auth-context";
 import { SplashScreenController } from "@/components/splash-screen-controller";
 import { useThemeConfig } from "@/components/ui/use-theme-config";
+import { takePendingEventId } from "@/utils/pending-link";
 
 export default function RootLayout() {
   return (
@@ -20,8 +22,18 @@ export default function RootLayout() {
 }
 
 function RootNavigator() {
-  const { isLoggedIn, isInitializing, user } = useAuthContext();
+  const { isLoggedIn, isInitializing, user, needsOnboarding } = useAuthContext();
   const theme = useThemeConfig();
+  const router = useRouter();
+  const ready = !isInitializing && isLoggedIn && user !== undefined && !needsOnboarding;
+
+  // An event link opened while signed out was parked by the login screen;
+  // open it now that the event route exists.
+  useEffect(() => {
+    if (!ready) return;
+    const eventId = takePendingEventId();
+    if (eventId) router.push({ pathname: "/event/[eventId]", params: { eventId } });
+  }, [ready, router]);
 
   // Render no routes until auth is resolved. Rendering the Stack here would
   // briefly evaluate the guards against an unresolved session and show the
@@ -34,7 +46,7 @@ function RootNavigator() {
     <>
       <StatusBar style="auto" />
       <Stack>
-        <Stack.Protected guard={isLoggedIn && user !== undefined}>
+        <Stack.Protected guard={isLoggedIn && user !== undefined && !needsOnboarding}>
           <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
           <Stack.Screen
             name="event/[eventId]"
@@ -97,9 +109,26 @@ function RootNavigator() {
             }}
           />
         </Stack.Protected>
+        <Stack.Protected guard={isLoggedIn && user !== undefined && needsOnboarding}>
+          <Stack.Screen name="onboarding" options={{ headerShown: false }} />
+        </Stack.Protected>
         <Stack.Protected guard={!isLoggedIn || user === undefined}>
           <Stack.Screen name="(auth)" options={{ headerShown: false }} />
         </Stack.Protected>
+        {/* Outside both Protected groups: reachable logged-in or logged-out. */}
+        <Stack.Screen
+          name="legal/[doc]"
+          options={{
+            presentation: "formSheet",
+            headerShown: false,
+            sheetAllowedDetents: [0.92],
+            sheetGrabberVisible: true,
+            sheetCornerRadius: 24,
+            contentStyle: { backgroundColor: theme.background },
+          }}
+        />
+        <Stack.Screen name="auth/callback" options={{ headerShown: false }} />
+        <Stack.Screen name="auth/confirm" options={{ headerShown: false }} />
       </Stack>
     </>
   );
@@ -109,9 +138,11 @@ function Providers({ children }: { children: React.ReactNode }) {
   return (
     <AuthProvider>
       <CoinProvider>
-        <GestureHandlerRootView style={{ flex: 1 }}>
-          {children}
-        </GestureHandlerRootView>
+        <NotificationsProvider>
+          <GestureHandlerRootView style={{ flex: 1 }}>
+            {children}
+          </GestureHandlerRootView>
+        </NotificationsProvider>
       </CoinProvider>
     </AuthProvider>
   );

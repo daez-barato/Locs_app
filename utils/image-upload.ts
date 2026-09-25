@@ -1,4 +1,12 @@
+import { ImageManipulator, SaveFormat } from "expo-image-manipulator";
 import { supabase } from "@/lib/supabase";
+
+// Thumbnails render at most card width on a phone, so a full-resolution photo
+// (often 4000px and several MB) was uploaded only to be scaled down on every
+// device that showed it. Everything is shrunk to this width and re-encoded as
+// JPEG first, which keeps uploads around 100–200 KB.
+const MAX_IMAGE_WIDTH = 1280;
+const JPEG_QUALITY = 0.7;
 
 // Keep these in sync with the buckets' own limits in Supabase Storage, so an
 // oversized pick fails here with a readable message instead of a raw 413 from
@@ -64,7 +72,29 @@ export async function signThumbnails<T extends Record<string, any>>(
 type Bucket = keyof typeof IMAGE_LIMITS;
 
 /**
- * Uploads a picked image and returns its storage path.
+ * Downscales a picked image to MAX_IMAGE_WIDTH (never upscales) and re-encodes
+ * it as JPEG, returning the URI of the smaller file. Falls back to the original
+ * URI if the image can't be processed, so a manipulator failure costs size, not
+ * the upload.
+ */
+export async function shrinkImage(uri: string): Promise<string> {
+  try {
+    const original = await ImageManipulator.manipulate(uri).renderAsync();
+    const context = ImageManipulator.manipulate(original);
+    if (original.width > MAX_IMAGE_WIDTH) {
+      context.resize({ width: MAX_IMAGE_WIDTH });
+    }
+    const rendered = await context.renderAsync();
+    const saved = await rendered.saveAsync({ compress: JPEG_QUALITY, format: SaveFormat.JPEG });
+    return saved.uri;
+  } catch (error) {
+    console.error("Error shrinking image, uploading the original:", error);
+    return uri;
+  }
+}
+
+/**
+ * Shrinks and uploads a picked image, returning its storage path.
  *
  * Reads via arrayBuffer rather than blob: React Native's Blob doesn't carry the
  * underlying bytes in a way supabase-js can upload, which silently produces
@@ -76,7 +106,7 @@ export async function uploadImage(
   userId: string,
   fileName?: string
 ): Promise<string> {
-  const response = await fetch(uri);
+  const response = await fetch(await shrinkImage(uri));
 
   if (!response.ok) {
     throw new Error("Could not read the selected image.");

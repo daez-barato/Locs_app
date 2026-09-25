@@ -25,10 +25,10 @@ beforeEach(() => {
 describe("resolveAvatarUrl", () => {
   it.each([null, undefined, "", "   "])("falls back to the default avatar for %p", (value) => {
     expect(resolveAvatarUrl(value as any)).toBe(
-      "https://cdn.test/storage/v1/object/public/avatar/default_avatar.png"
+      "https://cdn.test/storage/v1/object/public/avatar/default_avatar.webp"
     );
     expect(mockFrom).toHaveBeenCalledWith("avatar");
-    expect(mockGetPublicUrl).toHaveBeenCalledWith("default_avatar.png");
+    expect(mockGetPublicUrl).toHaveBeenCalledWith("default_avatar.webp");
   });
 
   it("passes full http(s) URLs through untouched", () => {

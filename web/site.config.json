@@ -1,0 +1,11 @@
+{
+  "siteUrl": "https://locsapp.net",
+  "appScheme": "locs.com",
+  "iosBundleId": "com.daez.locsapp",
+  "androidPackage": "com.daez.locsapp",
+  "appleTeamId": "",
+  "appStoreId": "",
+  "androidSha256Fingerprints": [
+    "99:25:ED:92:74:D0:7D:86:21:77:B2:04:7C:E7:B1:A6:85:22:C1:8C:15:0E:A8:86:B3:E0:4B:40:F2:A7:68:36"
+  ]
+}

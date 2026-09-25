@@ -1,16 +1,25 @@
-import React, { useState } from "react";
-import { TextInput, Text, StyleSheet, TouchableOpacity, KeyboardAvoidingView, Platform, ScrollView } from "react-native";
+import React, { useEffect, useState } from "react";
+import { TextInput, Text, StyleSheet, TouchableOpacity, KeyboardAvoidingView, Platform, ScrollView, ActivityIndicator } from "react-native";
 import { Image } from "expo-image";
+import { useRouter } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
+import FontAwesome from "@expo/vector-icons/FontAwesome";
+import * as AppleAuthentication from "expo-apple-authentication";
 import { Theme, useThemeConfig } from "@/components/ui/use-theme-config";
+import LegalAgreement from "@/components/ui/legal-agreement";
 import { useThemedStyles } from "@/hooks/use-themed-styles";
 import { supabase } from "@/lib/supabase";
 import { isValidEmail } from "@/utils/parsing";
-import { friendlyLoginError, friendlySignupError, usernameProblem } from "@/utils/auth-errors";
+import { friendlyLoginError, friendlyOAuthError, friendlySignupError, usernameProblem } from "@/utils/auth-errors";
+import * as Linking from "expo-linking";
+import { EMAIL_CONFIRM_URL } from "@/constants/links";
+import { rememberEventLink } from "@/utils/pending-link";
+import { isAppleSignInAvailable, OAuthCancelledError, signInWithApple, signInWithGoogle } from "@/utils/oauth";
 
 export default function SignIn() {
     const theme = useThemeConfig();
     const styles = useThemedStyles(createStyles);
+    const router = useRouter();
 
     const [isRegistering, setIsRegistering] = useState(false);
     const [username, setUsername] = useState("");
@@ -20,9 +29,26 @@ export default function SignIn() {
     // Non-error feedback, e.g. "check your inbox" after signing up.
     const [notice, setNotice] = useState("");
     const [confirmPassword, setConfirmPassword] = useState("");
+    const [termsAccepted, setTermsAccepted] = useState(false);
+    // Set while an account is waiting on its confirmation email, so the
+    // screen can offer to send it again.
+    const [unconfirmedEmail, setUnconfirmedEmail] = useState<string | null>(null);
+    const [resending, setResending] = useState(false);
+    const [oauthBusy, setOauthBusy] = useState<"google" | "apple" | null>(null);
+    const [appleAvailable, setAppleAvailable] = useState(false);
+
+    useEffect(() => {
+        isAppleSignInAvailable().then(setAppleAvailable);
+    }, []);
+
+    // Includes the link that launched the app, so an event opened while
+    // signed out is still waiting after login.
+    const openedUrl = Linking.useURL();
+    useEffect(() => rememberEventLink(openedUrl), [openedUrl]);
 
     const handleLogin = async () => {
         setNotice("");
+        setUnconfirmedEmail(null);
         const trimmedEmail = email.trim();
         if (!isValidEmail(trimmedEmail)) {
             setError("That doesn't look like an email address. Check for typos or stray spaces.");
@@ -38,6 +64,7 @@ export default function SignIn() {
                 password: password,
             });
             setError(response.error ? friendlyLoginError(response.error) : "");
+            if (response.error?.code === "email_not_confirmed") setUnconfirmedEmail(trimmedEmail);
         } catch (error: any) {
             setError(friendlyLoginError(error));
         }
@@ -73,6 +100,11 @@ export default function SignIn() {
             return;
         }
 
+        if (!termsAccepted) {
+            setError("You need to be 18 or older and agree to the Terms of Service and Privacy Policy to create an account.");
+            return;
+        }
+
         try {
             const response = await supabase.auth.signUp({
                 email: trimmedEmail,
@@ -80,7 +112,9 @@ export default function SignIn() {
                 options: {
                     data: {
                         username: trimmedUsername,
+                        terms_accepted: true,
                     },
+                    emailRedirectTo: EMAIL_CONFIRM_URL,
                 },
             })
 
@@ -92,16 +126,72 @@ export default function SignIn() {
             setUsername("");
             setPassword("");
             setConfirmPassword("");
+            setTermsAccepted(false);
             setError("");
             setIsRegistering(false);
             // With email confirmation on there is no session yet; without this
             // the form just flipped to Login with no explanation.
             if (!response.data.session) {
-                setNotice("Account created. Open the confirmation link we emailed you, then log in.");
+                setNotice(`Account created. We sent a confirmation link to ${trimmedEmail}. Open it on this phone to sign straight in, or confirm anywhere and then log in.`);
+                setUnconfirmedEmail(trimmedEmail);
             }
 
         } catch (error: any) {
             setError(friendlySignupError(error));
+        }
+    };
+
+    const handleResend = async () => {
+        if (!unconfirmedEmail) return;
+        setResending(true);
+        try {
+            const { error } = await supabase.auth.resend({
+                type: "signup",
+                email: unconfirmedEmail,
+                options: { emailRedirectTo: EMAIL_CONFIRM_URL },
+            });
+            if (error) {
+                setError(
+                    error.code === "over_email_send_rate_limit"
+                        ? "An email was sent very recently. Wait a minute before asking for another."
+                        : "Couldn't send the email. Try again in a moment."
+                );
+                return;
+            }
+            setError("");
+            setNotice(`We sent a new confirmation link to ${unconfirmedEmail}. Check your spam folder too.`);
+        } finally {
+            setResending(false);
+        }
+    };
+
+    const handleGoogle = async () => {
+        setNotice("");
+        setError("");
+        setOauthBusy("google");
+        try {
+            await signInWithGoogle();
+        } catch (error: any) {
+            if (!(error instanceof OAuthCancelledError)) {
+                setError(friendlyOAuthError(error));
+            }
+        } finally {
+            setOauthBusy(null);
+        }
+    };
+
+    const handleApple = async () => {
+        setNotice("");
+        setError("");
+        setOauthBusy("apple");
+        try {
+            await signInWithApple();
+        } catch (error: any) {
+            if (!(error instanceof OAuthCancelledError)) {
+                setError(friendlyOAuthError(error));
+            }
+        } finally {
+            setOauthBusy(null);
         }
     };
 
@@ -116,7 +206,7 @@ export default function SignIn() {
                     keyboardShouldPersistTaps="handled"
                 >
                     <Image
-                        source={require('@/assets/images/SayWhen.png')}
+                        source={require('@/assets/images/Locs_Icon.png')}
                         style={styles.logo}
                         contentFit="contain"
                     />
@@ -163,11 +253,27 @@ export default function SignIn() {
                         />
                     )}
 
+                    {isRegistering && (
+                        <LegalAgreement accepted={termsAccepted} onToggle={setTermsAccepted} />
+                    )}
+
                     {error ? (
                         <Text style={styles.error} accessibilityLiveRegion="polite" selectable>{error}</Text>
                     ) : null}
                     {notice ? (
                         <Text style={styles.notice} accessibilityLiveRegion="polite">{notice}</Text>
+                    ) : null}
+                    {unconfirmedEmail ? (
+                        <TouchableOpacity
+                            onPress={handleResend}
+                            disabled={resending}
+                            accessibilityRole="button"
+                            style={styles.resend}
+                        >
+                            <Text style={styles.resendText}>
+                                {resending ? "Sending…" : "Resend confirmation email"}
+                            </Text>
+                        </TouchableOpacity>
                     ) : null}
 
                     <TouchableOpacity
@@ -188,6 +294,7 @@ export default function SignIn() {
                             setIsRegistering(!isRegistering);
                             setError("");
                             setNotice("");
+                            setTermsAccepted(false);
                         }}
                         activeOpacity={0.8}
                     >
@@ -195,6 +302,55 @@ export default function SignIn() {
                             {isRegistering ? "Switch to Login" : "Switch to Register"}
                         </Text>
                     </TouchableOpacity>
+
+                    <Text style={styles.divider}>or</Text>
+
+                    <TouchableOpacity
+                        style={[styles.button, styles.socialButton, oauthBusy !== null && styles.buttonDisabled]}
+                        onPress={handleGoogle}
+                        disabled={oauthBusy !== null}
+                        activeOpacity={0.8}
+                        accessibilityRole="button"
+                        accessibilityLabel="Continue with Google"
+                    >
+                        {oauthBusy === "google" ? (
+                            <ActivityIndicator color={theme.cardText} />
+                        ) : (
+                            <>
+                                <FontAwesome name="google" size={18} color={theme.cardText} style={styles.socialIcon} />
+                                <Text style={styles.buttonText}>Continue with Google</Text>
+                            </>
+                        )}
+                    </TouchableOpacity>
+
+                    {appleAvailable && (
+                        <AppleAuthentication.AppleAuthenticationButton
+                            buttonType={AppleAuthentication.AppleAuthenticationButtonType.CONTINUE}
+                            buttonStyle={AppleAuthentication.AppleAuthenticationButtonStyle.WHITE}
+                            cornerRadius={8}
+                            style={styles.appleButton}
+                            onPress={handleApple}
+                        />
+                    )}
+
+                    <Text style={styles.socialDisclaimer}>
+                        By continuing with Google or Apple you confirm you are 18 or older and agree to the{" "}
+                        <Text
+                            style={styles.socialDisclaimerLink}
+                            onPress={() => router.push(`/legal/terms`)}
+                            accessibilityRole="link"
+                        >
+                            Terms of Service
+                        </Text>{" "}
+                        and{" "}
+                        <Text
+                            style={styles.socialDisclaimerLink}
+                            onPress={() => router.push(`/legal/privacy`)}
+                            accessibilityRole="link"
+                        >
+                            Privacy Policy
+                        </Text>
+                    </Text>
 
                 </ScrollView>
             </KeyboardAvoidingView>
@@ -238,6 +394,16 @@ const createStyles = (theme: Theme) => StyleSheet.create({
         marginBottom: 10,
         textAlign: "center",
     },
+    resend: {
+        padding: 8,
+        marginBottom: 4,
+    },
+    resendText: {
+        color: theme.primary,
+        fontSize: 14,
+        fontWeight: "600",
+        textDecorationLine: "underline",
+    },
     notice: {
         color: theme.successLabel,
         marginTop: 4,
@@ -271,5 +437,36 @@ const createStyles = (theme: Theme) => StyleSheet.create({
         color: theme.buttonText,
         fontSize: 16,
         fontWeight: '600',
+    },
+    buttonDisabled: {
+        opacity: 0.6,
+    },
+    divider: {
+        color: theme.cardTextFaint,
+        marginVertical: 8,
+    },
+    socialButton: {
+        flexDirection: "row",
+        justifyContent: "center",
+        backgroundColor: theme.neutralFill,
+    },
+    socialIcon: {
+        marginRight: 10,
+    },
+    appleButton: {
+        width: "100%",
+        height: 48,
+        marginVertical: 8,
+    },
+    socialDisclaimer: {
+        color: theme.cardTextFaint,
+        fontSize: 12,
+        textAlign: "center",
+        marginTop: 8,
+    },
+    socialDisclaimerLink: {
+        color: theme.text,
+        fontWeight: "600",
+        textDecorationLine: "underline",
     },
 });

@@ -10,6 +10,10 @@ export type AuthData = {
   isLoggedIn: boolean
   /** Patch the signed-in user in place, e.g. avatar_url after equipping an avatar. */
   updateUser: (patch: Partial<User>) => void
+  /** True once signed in until the account accepts the terms — gates the onboarding screen. */
+  needsOnboarding: boolean
+  /** Validates/renames the username, records terms acceptance, and flips needsOnboarding false. Throws on failure (e.g. "username taken"). */
+  completeOnboarding: (username: string) => Promise<string>
 }
 
 export const AuthContext = createContext<AuthData>({
@@ -19,6 +23,10 @@ export const AuthContext = createContext<AuthData>({
   isInitializing: true,
   isLoggedIn: false,
   updateUser: () => {},
+  needsOnboarding: false,
+  completeOnboarding: async () => {
+    throw new Error('completeOnboarding called outside AuthProvider')
+  },
 })
 
 export const useAuthContext = () => useContext(AuthContext)

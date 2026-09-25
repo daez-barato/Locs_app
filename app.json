@@ -1,50 +1,67 @@
 {
   "expo": {
-    "name": "Locs_app",
+    "name": "Locs",
     "slug": "Locs_app",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/images/SayWhen.png",
+    "icon": "./assets/images/Locs_Icon.png",
     "scheme": "locs.com",
     "userInterfaceStyle": "dark",
     "ios": {
-      "supportsTablet": true,
-      "bitcode": false,
+      "supportsTablet": false,
       "bundleIdentifier": "com.daez.locsapp",
       "infoPlist": {
-        "NSCameraUsageDescription": "Locs uses your camera to let you take photos for events and templates.",
-        "NSPhotoLibraryUsageDescription": "Locs uses your photo library to let you choose images for your profile, events, and templates."
-      }
+        "NSCameraUsageDescription": "Locs uses your camera so you can take a cover photo for your events and templates.",
+        "NSPhotoLibraryUsageDescription": "Locs uses your photo library so you can choose a cover image for your events and templates.",
+        "UIBackgroundModes": [
+          "remote-notification"
+        ],
+        "ITSAppUsesNonExemptEncryption": false
+      },
+      "usesAppleSignIn": true,
+      "associatedDomains": [
+        "applinks:locsapp.net"
+      ]
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
-        "backgroundColor": "#772497"
+        "backgroundColor": "#021A20"
       },
+      "permissions": [
+        "android.permission.CAMERA",
+        "android.permission.INTERNET",
+        "android.permission.ACCESS_NETWORK_STATE",
+        "android.permission.POST_NOTIFICATIONS"
+      ],
+      "package": "com.daez.locsapp",
+      "blockedPermissions": [
+        "android.permission.RECORD_AUDIO",
+        "android.permission.SYSTEM_ALERT_WINDOW",
+        "android.permission.READ_EXTERNAL_STORAGE",
+        "android.permission.WRITE_EXTERNAL_STORAGE"
+      ],
       "intentFilters": [
         {
           "action": "VIEW",
-          "data": {
-            "scheme": "https",
-            "host": "Locs_app.com",
-            "pathPrefix": "/"
-          },
+          "autoVerify": true,
+          "data": [
+            {
+              "scheme": "https",
+              "host": "locsapp.net",
+              "pathPrefix": "/event/"
+            },
+            {
+              "scheme": "https",
+              "host": "locsapp.net",
+              "pathPrefix": "/auth/confirm"
+            }
+          ],
           "category": [
             "BROWSABLE",
             "DEFAULT"
           ]
         }
-      ],
-      "permissions": [
-        "android.permission.ACCESS_NETWORK_STATE",
-        "android.permission.CAMERA",
-        "android.permission.INTERNET",
-        "android.permission.WAKE_LOCK"
-      ],
-      "package": "com.daez.locsapp",
-      "blockedPermissions": [
-        "android.permission.RECORD_AUDIO",
-        "android.permission.SYSTEM_ALERT_WINDOW"
       ]
     },
     "web": {
@@ -60,20 +77,29 @@
           "image": "./assets/images/splash-icon.png",
           "imageWidth": 200,
           "resizeMode": "contain",
-          "backgroundColor": "#772497"
+          "backgroundColor": "#021A20"
         }
       ],
-      [
-        "expo-secure-store"
-      ],
+      "expo-secure-store",
       [
         "expo-image-picker",
         {
-          "photosPermission": "Locs uses your photo library to let you choose images for your profile, events, and templates.",
-          "cameraPermission": "Locs uses your camera to let you take photos for events and templates."
+          "photosPermission": "Locs uses your photo library so you can choose a cover image for your events and templates.",
+          "cameraPermission": "Locs uses your camera so you can take a cover photo for your events and templates.",
+          "microphonePermission": false
         }
       ],
-      "expo-image"
+      "expo-image",
+      "expo-web-browser",
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/images/notification-icon.png",
+          "color": "#8BE04E",
+          "defaultChannel": "default"
+        }
+      ],
+      "expo-apple-authentication"
     ],
     "experiments": {
       "typedRoutes": true
@@ -86,6 +112,7 @@
         "projectId": "9ca2b347-d352-45aa-9d90-0aad22b2c785"
       }
     },
-    "backgroundColor": "#772497"
+    "backgroundColor": "#021A20",
+    "description": "Create prediction events, stake virtual coins with friends, and see who calls it right."
   }
 }

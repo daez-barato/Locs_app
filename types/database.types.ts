@@ -155,6 +155,7 @@ export type Database = {
           creator_id: string
           decided: boolean
           expire_date: string
+          followers_notified: boolean
           id: string
           locked: boolean
           public: boolean
@@ -165,6 +166,7 @@ export type Database = {
           creator_id: string
           decided?: boolean
           expire_date: string
+          followers_notified?: boolean
           id?: string
           locked?: boolean
           public?: boolean
@@ -175,6 +177,7 @@ export type Database = {
           creator_id?: string
           decided?: boolean
           expire_date?: string
+          followers_notified?: boolean
           id?: string
           locked?: boolean
           public?: boolean
@@ -289,6 +292,35 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "questions"
             referencedColumns: ["template_id", "id"]
+          },
+        ]
+      }
+      push_tokens: {
+        Row: {
+          platform: string
+          token: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          platform: string
+          token: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          platform?: string
+          token?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "push_tokens_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
           },
         ]
       }
@@ -420,7 +452,7 @@ export type Database = {
       templates: {
         Row: {
           created_at: string
-          creator_id: string
+          creator_id: string | null
           description: string | null
           id: string
           public: boolean | null
@@ -429,7 +461,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string
-          creator_id: string
+          creator_id?: string | null
           description?: string | null
           id?: string
           public?: boolean | null
@@ -438,7 +470,7 @@ export type Database = {
         }
         Update: {
           created_at?: string
-          creator_id?: string
+          creator_id?: string | null
           description?: string | null
           id?: string
           public?: boolean | null
@@ -498,6 +530,7 @@ export type Database = {
           created_at: string
           id: string
           public: boolean
+          terms_accepted_at: string | null
           updated_at: string | null
           username: string
         }
@@ -507,6 +540,7 @@ export type Database = {
           created_at?: string
           id: string
           public?: boolean
+          terms_accepted_at?: string | null
           updated_at?: string | null
           username: string
         }
@@ -516,6 +550,7 @@ export type Database = {
           created_at?: string
           id?: string
           public?: boolean
+          terms_accepted_at?: string | null
           updated_at?: string | null
           username?: string
         }
@@ -543,6 +578,7 @@ export type Database = {
         Args: { _expire_date: string }
         Returns: undefined
       }
+      complete_onboarding: { Args: { _username: string }; Returns: string }
       create_event: {
         Args: { _payload: Json }
         Returns: {
@@ -585,6 +621,7 @@ export type Database = {
           refunded_users: number
         }[]
       }
+      delete_my_account: { Args: never; Returns: undefined }
       distribute_event_payouts: {
         Args: { _event_id: string }
         Returns: undefined
@@ -601,6 +638,7 @@ export type Database = {
           status: string
         }[]
       }
+      generate_username: { Args: { _seed: string }; Returns: string }
       get_avatar_item: {
         Args: { _image_path: string }
         Returns: {
@@ -614,6 +652,13 @@ export type Database = {
       }
       get_event_bets_db: { Args: { p_event_id: string }; Returns: Json }
       get_event_information_db: { Args: { p_event_id: string }; Returns: Json }
+      get_event_winners: {
+        Args: { p_event_id: string }
+        Returns: {
+          option: string
+          question: string
+        }[]
+      }
       get_following_posts: {
         Args: { page_offset?: number }
         Returns: {
@@ -776,6 +821,7 @@ export type Database = {
         }[]
       }
       lock_event: { Args: { _event_id: string }; Returns: undefined }
+      needs_onboarding: { Args: never; Returns: boolean }
       publish_template: { Args: { _template_id: string }; Returns: undefined }
       purchase_item: {
         Args: { _item_id: string }
@@ -804,6 +850,10 @@ export type Database = {
         }[]
       }
       refund_expired_events: { Args: never; Returns: undefined }
+      register_push_token: {
+        Args: { _platform: string; _token: string }
+        Returns: undefined
+      }
       reject_follow_request: {
         Args: { _requester_id: string }
         Returns: undefined
@@ -851,6 +901,11 @@ export type Database = {
           username: string
         }[]
       }
+      send_push: { Args: { _messages: Json }; Returns: undefined }
+      set_event_public: {
+        Args: { _event_id: string; _public: boolean }
+        Returns: boolean
+      }
       set_user_privacy: {
         Args: { _public: boolean }
         Returns: {
@@ -886,6 +941,7 @@ export type Database = {
         }[]
       }
       unfollow_user: { Args: { _target_id: string }; Returns: undefined }
+      unregister_push_token: { Args: { _token: string }; Returns: undefined }
       unsave_template: { Args: { _template_id: string }; Returns: undefined }
       update_avatar: {
         Args: { _avatar_url: string }

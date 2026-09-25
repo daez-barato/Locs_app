@@ -58,7 +58,7 @@ describe("getShopItems", () => {
   it("maps rows to ShopItem view models", async () => {
     mockRpc.mockResolvedValue({
       data: [row, { ...row, item_id: "default_avatar", name: "Default", price: 0,
-        image_path: "default_avatar.png", owned: true, equipped: true, rarity: "grey",
+        image_path: "default_avatar.webp", owned: true, equipped: true, rarity: "grey",
         description: "Every legend starts here." }],
       error: null,
     });
@@ -85,8 +85,8 @@ describe("getShopItems", () => {
         kind: "avatar",
         name: "Default",
         price: 0,
-        imagePath: "default_avatar.png",
-        imageUrl: "https://cdn.test/avatar/default_avatar.png",
+        imagePath: "default_avatar.webp",
+        imageUrl: "https://cdn.test/avatar/default_avatar.webp",
         owned: true,
         equipped: true,
         rarity: "grey",
@@ -206,9 +206,9 @@ describe("getAvatarItem", () => {
       error: null,
     });
 
-    const result = await getAvatarItem("Bet_Turtle.jpg");
+    const result = await getAvatarItem("Bet_Turtle.webp");
 
-    expect(mockRpc).toHaveBeenCalledWith("get_avatar_item", { _image_path: "Bet_Turtle.jpg" });
+    expect(mockRpc).toHaveBeenCalledWith("get_avatar_item", { _image_path: "Bet_Turtle.webp" });
     expect(result).toEqual({
       error: false,
       item: { id: "bet_turtle", name: "Bet Turtle", rarity: "gold",

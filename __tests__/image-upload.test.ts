@@ -10,8 +10,26 @@ jest.mock("@/lib/supabase", () => ({
   supabase: { storage: { from: jest.fn() } },
 }));
 
+// Stands in for the native module: reports a 4000px wide photo and records the
+// resize and save it was asked for.
+jest.mock("expo-image-manipulator", () => {
+  const resize = jest.fn();
+  const saveAsync = jest.fn(async () => ({ uri: "file:///small.jpg" }));
+  const manipulate = jest.fn(() => ({
+    resize,
+    renderAsync: async () => ({ width: 4000, height: 2250, saveAsync }),
+  }));
+  return {
+    ImageManipulator: { manipulate },
+    SaveFormat: { JPEG: "jpeg" },
+    __mocks: { manipulate, resize, saveAsync },
+  };
+});
+
 import { supabase } from "@/lib/supabase";
-import { uploadImage, IMAGE_LIMITS } from "@/utils/image-upload";
+import { uploadImage, shrinkImage, IMAGE_LIMITS } from "@/utils/image-upload";
+
+const manipulatorMocks = jest.requireMock("expo-image-manipulator").__mocks;
 
 const mockFrom = supabase.storage.from as unknown as jest.Mock;
 const mockUpload = jest.fn();
@@ -109,5 +127,25 @@ describe("uploadImage", () => {
     await expect(uploadImage("avatar", "file:///gone.jpg", "u")).rejects.toThrow(
       /could not read/i
     );
+  });
+});
+
+describe("shrinkImage", () => {
+  it("scales a large photo down to 1280px wide and re-encodes it as JPEG", async () => {
+    const uri = await shrinkImage("file:///huge.jpg");
+
+    expect(uri).toBe("file:///small.jpg");
+    expect(manipulatorMocks.resize).toHaveBeenCalledWith({ width: 1280 });
+    expect(manipulatorMocks.saveAsync).toHaveBeenCalledWith({ compress: 0.7, format: "jpeg" });
+  });
+
+  it("uploads the original if the image can't be processed", async () => {
+    manipulatorMocks.manipulate.mockImplementationOnce(() => {
+      throw new Error("decode failed");
+    });
+    const spy = jest.spyOn(console, "error").mockImplementation(() => {});
+
+    expect(await shrinkImage("file:///odd.heic")).toBe("file:///odd.heic");
+    spy.mockRestore();
   });
 });

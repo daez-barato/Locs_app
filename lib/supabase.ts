@@ -15,6 +15,9 @@ export const supabase = createClient<Database>(
       autoRefreshToken: true,
       persistSession: true,
       detectSessionInUrl: false,
+      // PKCE lets the OAuth code exchange (utils/oauth.ts) happen from the
+      // system browser redirect without ever handling the user's tokens directly.
+      flowType: 'pkce',
     },
   }
 )

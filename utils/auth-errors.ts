@@ -75,3 +75,29 @@ export function friendlySignupError(error: AuthErrorLike): string {
   }
   return "Couldn't create the account. Check your details and try again.";
 }
+
+export function friendlyOAuthError(error: AuthErrorLike): string {
+  if (isNetworkError(error)) return "Can't reach the server. Check your internet connection and try again.";
+  if (isServerError(error)) return "Something went wrong on our side. Try again in a moment.";
+  switch (error?.code) {
+    case "provider_email_needs_verification":
+      return "Check your inbox to confirm your email, then try again.";
+    case "user_banned":
+      return "This account has been suspended.";
+  }
+  return "Couldn't sign in. Try again.";
+}
+
+/** The RPC-raised messages from complete_onboarding, made presentable as-is; anything else falls back to a generic line. */
+export function friendlyOnboardingError(error: AuthErrorLike): string {
+  const message = error?.message ?? "";
+  if (
+    message.includes("username taken") ||
+    message.includes("username must be") ||
+    message.includes("username is reserved")
+  ) {
+    return message.charAt(0).toUpperCase() + message.slice(1) + ".";
+  }
+  if (isNetworkError(error)) return "Can't reach the server. Check your internet connection and try again.";
+  return "Couldn't save that. Try again.";
+}
