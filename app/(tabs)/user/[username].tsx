@@ -1,5 +1,5 @@
 import { Theme, useThemeConfig } from "@/components/ui/use-theme-config";
-import { withAlpha } from "@/theme";
+import { blend, withAlpha } from "@/theme";
 import { LinearGradient } from "expo-linear-gradient";
 import { useThemedStyles } from "@/hooks/use-themed-styles";
 import { 
@@ -24,7 +24,7 @@ import { haptics } from "@/utils/haptics";
 import { getUserProfile, fetchUserCreatedEvents, fetchUserParticipatedEvents } from "@/services/users";
 import { Event, Rarity, UserProfile } from "@/types/interfaces";
 import { getAvatarItem } from "@/services/shop";
-import RarityBadge from "@/components/ui/rarity-badge";
+import RarityBadge, { rarityColor } from "@/components/ui/rarity-badge";
 import { followRequest, unfollowRequest} from "@/api/followers/followers";
 import { useAuthContext } from "@/hooks/use-auth-context";
 import { useCoinContext } from "@/hooks/use-coin-context";
@@ -55,6 +55,8 @@ export default function Profile() {
   const { width: windowWidth } = useWindowDimensions();
   // Close to square, like the avatar art itself, without taking over a tall
   // phone's whole first screen.
+  // Every tier tints the page a little, from barely (grey) to clearly (gold).
+  const pageTint = avatarRarity ? rarityTint(theme, avatarRarity) : theme.background;
   const heroHeight = Math.round(Math.min(Math.max(windowWidth * 0.9, 300), 440));
 
   const [activeList, setActiveList] = useState<ActiveList>("created");
@@ -281,8 +283,10 @@ export default function Profile() {
             style={[styles.topScrim, { height: insets.top + 72 }]}
             pointerEvents="none"
           />
+          {/* The avatar's last quarter fades into the tier's tint, which the
+              wash below then carries down behind the name and stats. */}
           <LinearGradient
-            colors={["transparent", theme.background]}
+            colors={["transparent", pageTint]}
             style={styles.bottomFade}
             pointerEvents="none"
           />
@@ -315,13 +319,18 @@ export default function Profile() {
         </View>
 
         <View style={styles.profileSection}>
+          <LinearGradient
+            colors={[pageTint, theme.background]}
+            style={styles.rarityWash}
+            pointerEvents="none"
+          />
           <View style={styles.nameRow}>
             <Text style={styles.username} numberOfLines={1}>{user?.username}</Text>
             {avatarRarity && <RarityBadge rarity={avatarRarity} style={styles.rarityBadge} />}
           </View>
 
             {/* Stats Container */}
-            <View style={styles.statsContainer}>
+            <View style={[styles.statsContainer, avatarRarity && statsHighlight(theme, avatarRarity)]}>
             <TouchableOpacity 
               style={styles.statItem} 
               onPress={() => openSheet("/connections", "followers")}
@@ -444,6 +453,30 @@ export default function Profile() {
   );
 }
 
+// How strongly each tier shows: the page tint, and the stats card's glow.
+const TIER: Record<Rarity, { tint: number; glow: number; blur: number }> = {
+  grey: { tint: 0.12, glow: 0.25, blur: 10 },
+  bronze: { tint: 0.22, glow: 0.4, blur: 14 },
+  silver: { tint: 0.22, glow: 0.5, blur: 16 },
+  gold: { tint: 0.3, glow: 0.7, blur: 22 },
+};
+
+/** The page background leaning towards the equipped avatar's tier. */
+function rarityTint(theme: Theme, rarity: Rarity) {
+  return blend(theme.background, rarityColor(theme, rarity), TIER[rarity].tint);
+}
+
+/** A tier-coloured edge and glow on the stats card. */
+function statsHighlight(theme: Theme, rarity: Rarity) {
+  const color = rarityColor(theme, rarity);
+  const { glow, blur } = TIER[rarity];
+  return {
+    borderWidth: 1,
+    borderColor: withAlpha(color, 0.8),
+    boxShadow: `0 0 ${blur}px ${withAlpha(color, glow)}`,
+  };
+}
+
 const createStyles = (theme: Theme) => StyleSheet.create({
   container: {
     flex: 1,
@@ -501,21 +534,31 @@ const createStyles = (theme: Theme) => StyleSheet.create({
     left: 0,
     right: 0,
   },
-  // Only the last stretch of the image, so the avatar itself stays true to
-  // colour and the page picks up where it ends.
+  // Only the bottom quarter of the image, so the avatar itself stays
+  // visible and true to colour.
   bottomFade: {
     position: 'absolute',
     left: 0,
     right: 0,
     bottom: 0,
-    height: '35%',
+    height: '25%',
   },
   // Name and stats, starting on the faded edge of the hero.
   profileSection: {
     alignItems: 'center',
     paddingHorizontal: 20,
-    marginTop: -36,
+    marginTop: -28,
+    paddingTop: 0,
     paddingBottom: 12,
+  },
+  // Continues the tier's tint from under the avatar down behind the stats.
+  // It starts at the section's top, which sits on the hero's faded edge.
+  rarityWash: {
+    position: 'absolute',
+    top: 28,
+    left: 0,
+    right: 0,
+    height: 240,
   },
   nameRow: {
     flexDirection: 'row',
