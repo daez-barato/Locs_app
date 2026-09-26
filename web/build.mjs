@@ -121,7 +121,7 @@ const pages = {
     </section>
     <section class="features">
       <div class="feature"><h2>Make an event</h2><p>Ask anything, add the options, and share the link.</p></div>
-      <div class="feature"><h2>Stake your coins</h2><p>Back the outcome you believe in. Everyone gets daily coins.</p></div>
+      <div class="feature"><h2>Stake your coins</h2><p>Back the outcome you believe in. Run low and free coins top you up every 6 hours.</p></div>
       <div class="feature"><h2>Collect the pot</h2><p>When the event is decided, winners split what was staked.</p></div>
     </section>`,
   }),

@@ -11,7 +11,7 @@ import { AppState } from "react-native";
  * broadcast, but the project has no realtime.messages policy, so private
  * subscriptions were refused and nothing ever arrived. Balances change at
  * moments the app already knows about (its own bets, purchases, decisions) or
- * on the midnight cron (top-ups, expired-event refunds), so reading the
+ * on the cron jobs (6-hourly top-ups, midnight refunds), so reading the
  * balance after those actions, on pull-to-refresh, on screen focus and when
  * the app returns to the foreground covers every case without a socket.
  */

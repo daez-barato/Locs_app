@@ -7,7 +7,7 @@ import { router } from 'expo-router'
 import { PropsWithChildren, useEffect, useRef } from 'react'
 import { Platform } from 'react-native'
 
-// Foreground notifications still need to surface, or a new-event/daily-coins
+// Foreground notifications still need to surface, or a new-event/free-coins
 // push would silently do nothing while the app is open. Set once at module
 // scope, same as the rest of the native notification setup.
 Notifications.setNotificationHandler({
