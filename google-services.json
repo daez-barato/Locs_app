@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "971406597373",
+    "project_id": "locs-8bd85",
+    "storage_bucket": "locs-8bd85.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:971406597373:android:dd40a13c55daee928a3294",
+        "android_client_info": {
+          "package_name": "com.daez.locsapp"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyB3zFFKJpzUwUr1ilczS0H8JE91QGLblyg"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
