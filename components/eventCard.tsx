@@ -4,15 +4,16 @@ import { useThemedStyles } from "@/hooks/use-themed-styles";
 import { FontAwesome } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import React from "react";
-import { 
-    Text, 
-    View, 
-    StyleSheet, 
+import {
+    Text,
+    View,
+    StyleSheet,
     TouchableOpacity
 } from "react-native";
 import { Image } from "expo-image";
+import { formatTimeLeft } from "@/utils/dates";
 
-export default function EventCard({event}: {event: Event}) {
+function EventCard({event}: {event: Event}) {
     const theme = useThemeConfig();
     const styles = useThemedStyles(createStyles);
     const router = useRouter();
@@ -29,18 +30,6 @@ export default function EventCard({event}: {event: Event}) {
     const getStatusText = (locked: boolean, decided: boolean) => {
         if (decided) return 'Decided';
         return locked ? 'Locked' : 'Open';
-    };
-
-    const formatDate = (dateString: string) => {
-        const date = new Date(dateString);
-        const now = new Date();
-        const diffTime = date.getTime() - now.getTime();
-        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-        
-        if (diffDays === 0) return 'Today';
-        if (diffDays === 1) return 'Tomorrow';
-        if (diffDays > 0) return `${diffDays} days left`;
-        return 'Expired';
     };
 
     return (
@@ -91,7 +80,7 @@ export default function EventCard({event}: {event: Event}) {
                         <View style={styles.metaItem}>
                             <FontAwesome name="calendar" size={14} color={theme.primary} />
                             <Text style={styles.metaText}>
-                                {formatDate(event.expire_date)}
+                                {formatTimeLeft(event.expire_date)}
                             </Text>
                         </View>
                     </View>
@@ -212,3 +201,5 @@ const createStyles = (theme: Theme) => StyleSheet.create({
         fontWeight: '600',
     },
 });
+
+export default React.memo(EventCard);
