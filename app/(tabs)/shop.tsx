@@ -2,6 +2,7 @@ import { Theme, useThemeConfig } from "@/components/ui/use-theme-config";
 import AvatarImage from "@/components/ui/avatar-image";
 import { CoinAmount, CoinIcon } from "@/components/ui/coin";
 import RarityBadge, { rarityColor } from "@/components/ui/rarity-badge";
+import { RaritySheen } from "@/components/ui/rarity-effects";
 import { withAlpha } from "@/theme";
 import { useThemedStyles } from "@/hooks/use-themed-styles";
 import { useCoinContext } from "@/hooks/use-coin-context";
@@ -64,8 +65,12 @@ export default function Shop() {
 
   // The whole card opens the avatar sheet, which is where buying happens:
   // you see the character and its story before spending on it.
-  const renderItem = ({ item }: { item: ShopItem }) => {
+  const renderItem = ({ item, index }: { item: ShopItem; index: number }) => {
     const tier = rarityColor(theme, item.rarity);
+    // Offsets each card's sheen so a grid of the same tier doesn't flash in
+    // unison; the modulo just keeps the delay bounded, not synced to any
+    // particular tier's own cycle length.
+    const sheenDelay = (index * 0.45) % 6;
     return (
       <TouchableOpacity
         style={[styles.card, { borderColor: withAlpha(tier, 0.7) }, item.equipped && styles.cardEquipped]}
@@ -83,6 +88,7 @@ export default function Shop() {
         />
         <View style={styles.imageWrapper}>
           <AvatarImage uri={item.imageUrl} style={styles.image} contentFit="cover" />
+          <RaritySheen rarity={item.rarity} delay={sheenDelay} />
           {item.equipped && (
             <View style={styles.badge}>
               <Text style={styles.badgeText}>Equipped</Text>

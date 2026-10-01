@@ -14,6 +14,7 @@ import {
 import AvatarImage from "@/components/ui/avatar-image";
 import { CoinAmount, CoinIcon } from "@/components/ui/coin";
 import RarityBadge, { rarityColor } from "@/components/ui/rarity-badge";
+import { RaritySheen, RaritySparkles } from "@/components/ui/rarity-effects";
 import SheetHeader from "@/components/ui/sheet-header";
 import { Theme, useThemeConfig } from "@/components/ui/use-theme-config";
 import { useAuthContext } from "@/hooks/use-auth-context";
@@ -22,6 +23,14 @@ import { useThemedStyles } from "@/hooks/use-themed-styles";
 import { equipItem, getShopItems, purchaseItem } from "@/services/shop";
 import { ShopItem } from "@/types/interfaces";
 import { haptics } from "@/utils/haptics";
+
+// What a tier adds to its owner's profile, spelled out next to the preview
+// above so buyers know what the higher price gets them.
+const SHIMMER_NOTE: Record<Exclude<ShopItem["rarity"], "grey">, string> = {
+    bronze: "Bronze avatars catch a faint sheen on your profile.",
+    silver: "Silver avatars shimmer on your profile.",
+    gold: "Gold avatars shimmer and sparkle on your profile.",
+};
 
 /**
  * A shop avatar at full size with its tier and story, and the only place to
@@ -175,6 +184,12 @@ export default function AvatarView() {
             <ScrollView contentContainerStyle={styles.content}>
                 <View style={[styles.frame, { width: size, height: size, borderColor: frame }]}>
                     <AvatarImage uri={item?.imageUrl ?? ""} style={styles.image} contentFit="cover" />
+                    {item && (
+                        <>
+                            <RaritySheen rarity={item.rarity} />
+                            <RaritySparkles rarity={item.rarity} />
+                        </>
+                    )}
                 </View>
 
                 {loading ? (
@@ -187,6 +202,9 @@ export default function AvatarView() {
                                 <RarityBadge rarity={item.rarity} />
                             </View>
                             <Text style={styles.description} selectable>{item.description}</Text>
+                            {item.rarity !== "grey" && (
+                                <Text style={styles.shimmerNote}>{SHIMMER_NOTE[item.rarity]}</Text>
+                            )}
                         </View>
                         {renderAction()}
                     </>
@@ -245,6 +263,11 @@ const createStyles = (theme: Theme) => StyleSheet.create({
         color: theme.textSecondary,
         fontSize: 16,
         lineHeight: 23,
+    },
+    shimmerNote: {
+        color: theme.textFaint,
+        fontSize: 13,
+        fontStyle: "italic",
     },
     action: {
         alignSelf: "stretch",

@@ -1,12 +1,13 @@
 import { Theme, useThemeConfig } from "@/components/ui/use-theme-config";
 import { blend, withAlpha } from "@/theme";
 import { LinearGradient } from "expo-linear-gradient";
+import Animated from "react-native-reanimated";
 import { useThemedStyles } from "@/hooks/use-themed-styles";
-import { 
-  View, 
-  StyleSheet, 
-  Text, 
-  TouchableOpacity, 
+import {
+  View,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
   RefreshControl,
   ActivityIndicator,
   Alert,
@@ -25,6 +26,7 @@ import { getUserProfile, fetchUserCreatedEvents, fetchUserParticipatedEvents } f
 import { Event, Rarity, UserProfile } from "@/types/interfaces";
 import { getAvatarItem } from "@/services/shop";
 import { rarityColor } from "@/components/ui/rarity-badge";
+import { RaritySheen, RaritySparkles } from "@/components/ui/rarity-effects";
 import { followRequest, unfollowRequest} from "@/api/followers/followers";
 import { useAuthContext } from "@/hooks/use-auth-context";
 import { useCoinContext } from "@/hooks/use-coin-context";
@@ -35,8 +37,12 @@ import { resolveAvatarUrl } from "@/utils/avatar";
 type ActiveList = "created" | "participated";
 
 export default function Profile() {
-  const [userImage, setUserImage] = useState<string | null>(null);
-  // Tier of the equipped avatar, for the frame's highlight; null until known.
+  // undefined = not known yet (profile hasn't loaded); null = known to be the
+  // default avatar. Starting at undefined, rather than null, keeps the tier
+  // lookup below from firing for "the default avatar" before the real
+  // avatar_url is in, which used to flash the wrong tint on every load.
+  const [userImage, setUserImage] = useState<string | null | undefined>(undefined);
+  // Tier of the equipped avatar, for the page's hue; null until known.
   const [avatarRarity, setAvatarRarity] = useState<Rarity | null>(null);
   
   const [createdOffset, setCreatedOffset] = useState(0);
@@ -44,6 +50,11 @@ export default function Profile() {
   const [createdEvents, setCreatedEvents] = useState<Event[]>([]);
   const [participatedEvents, setParticipatedEvents] = useState<Event[]>([]);
   const [loadingMoreEvents, setLoadingMoreEvents] = useState<boolean>(true);
+  // onScroll fires repeatedly (every scrollEventThrottle ms) while a slow
+  // drag sits near the bottom, faster than the loadingMoreEvents state
+  // update can commit — a ref closes that window so a slow drag can't
+  // trigger the same page twice.
+  const loadingMoreRef = useRef(true);
   const hero = useAuthContext().user;
   const { coins: myCoins, refreshCoins } = useCoinContext();
 
@@ -58,6 +69,12 @@ export default function Profile() {
   // The equipped avatar's tier gives the whole page its hue, from barely
   // (grey) to clearly (gold).
   const pageTint = avatarRarity ? rarityTint(theme, avatarRarity) : theme.background;
+  // Fallback tier for colour math only (grey renders no sheen/sparkles and
+  // TIER_TINT.grey is the quietest tint); the opacity is what actually holds
+  // the hue at zero until the real tier is known, so the bottom fade and page
+  // colour bloom in together instead of popping.
+  const tierRarity: Rarity = avatarRarity ?? "grey";
+  const tierOpacity = avatarRarity ? TIER_TINT[avatarRarity] : 0;
   const heroHeight = Math.round(Math.min(Math.max(windowWidth * 0.9, 300), 440));
 
   const [activeList, setActiveList] = useState<ActiveList>("created");
@@ -79,19 +96,23 @@ export default function Profile() {
       }
 
       setUser(user);
+      // The profile row is known now, so the avatar's tier can be looked up
+      // (see the effect below) while the event lists are still in flight,
+      // instead of waiting for them to finish.
+      setUserImage(user.avatar_url);
 
       if (user.owner || user.is_following || user.public) {
-        const created = await fetchUserCreatedEvents(username as string, 0);
-        const participated = await fetchUserParticipatedEvents(username as string, 0);
-        
+        const [created, participated] = await Promise.all([
+          fetchUserCreatedEvents(username as string, 0),
+          fetchUserParticipatedEvents(username as string, 0),
+        ]);
+
         setCreatedEvents(created);
         setParticipatedEvents(participated);
         setCreatedOffset(created.length);
         setParticipatedOffset(participated.length);
       }
-      
-      setUserImage(user.avatar_url);
-      
+
     } catch (err) {
       console.error("Error fetching data:", err);
       Alert.alert(
@@ -101,13 +122,17 @@ export default function Profile() {
       router.back();
     } finally {
       setLoading(false);
+      loadingMoreRef.current = false;
       setLoadingMoreEvents(false);
       setRefreshing(false);
     }
   };
 
   useEffect(() => {
-    if (loading) return;
+    // undefined means the profile hasn't resolved yet, so there's no avatar
+    // (not even "the default one") to look up. Runs concurrently with the
+    // event-list fetches above rather than waiting on them.
+    if (userImage === undefined) return;
     let active = true;
     getAvatarItem(userImage).then((result) => {
       if (active) setAvatarRarity(!result.error && result.item ? result.item.rarity : null);
@@ -115,7 +140,7 @@ export default function Profile() {
     return () => {
       active = false;
     };
-  }, [userImage, loading]);
+  }, [userImage]);
 
   const onRefresh = useCallback(() => {
     setCreatedOffset(0);
@@ -180,6 +205,13 @@ export default function Profile() {
   useEffect(() => {
       if (!username || Array.isArray(username)) return;
 
+      // The tabs stay mounted across navigations, so opening someone else's
+      // profile from a sheet would otherwise keep showing the previous one —
+      // name, stats and tier — until the new one arrives.
+      setLoading(true);
+      setUserImage(undefined);
+      setAvatarRarity(null);
+
       onRefresh();
     }, [username, hero?.username]
   );
@@ -202,12 +234,13 @@ export default function Profile() {
     const isNearBottom =
       layoutMeasurement.height + contentOffset.y >= contentSize.height - contentSize.height / 5;
 
-    if (!isNearBottom || loadingMoreEvents) return;
+    if (!isNearBottom || loadingMoreEvents || loadingMoreRef.current) return;
 
     if (
-      (activeList === "created" && user && user?.owner && user?.created > createdEvents.length) 
+      (activeList === "created" && user && user?.owner && user?.created > createdEvents.length)
       || (activeList === "participated" && user && user?.participated > participatedEvents.length)
     ) {
+      loadingMoreRef.current = true;
       setLoadingMoreEvents(true);
       try {
         let events;
@@ -232,6 +265,7 @@ export default function Profile() {
       } catch (error) {
         console.error("Error loading more events:", error);
       } finally {
+        loadingMoreRef.current = false;
         setLoadingMoreEvents(false);
       }
     }
@@ -243,7 +277,19 @@ export default function Profile() {
     router.push(kind ? { pathname, params: { username: username as string, kind } } : pathname);
 
   return (
-    <View style={[styles.container, { backgroundColor: pageTint }]}>
+    <Animated.View
+      style={[
+        styles.container,
+        {
+          backgroundColor: pageTint,
+          // The tier hue blooms in rather than popping, since it resolves
+          // after the rest of the profile (a separate RPC keyed off the
+          // avatar).
+          transitionProperty: "backgroundColor",
+          transitionDuration: 600,
+        },
+      ]}
+    >
       {/* No navigation header: the avatar runs to the top of the screen, and
           your own profile's actions float over it instead. */}
       <Tabs.Screen options={{ headerShown: false }} />
@@ -258,6 +304,8 @@ export default function Profile() {
           />
         }
         onMomentumScrollEnd={handleScroll}
+        onScroll={handleScroll}
+        scrollEventThrottle={100}
       >
         {/* Hero: the equipped avatar, shown clearly across the top of the
             page. Only its bottom edge fades, into the page background, where
@@ -277,6 +325,11 @@ export default function Profile() {
               contentFit="cover"
             />
           </TouchableOpacity>
+          {/* Rarity is the page's background hue only — no badge or frame on
+              the hero itself — but it gets to be animated: a sweeping sheen
+              (and, for gold, a few twinkles) over the equipped avatar. */}
+          <RaritySheen rarity={tierRarity} />
+          <RaritySparkles rarity={tierRarity} />
           {/* Keeps the status bar and floating buttons readable over a
               bright avatar. */}
           <LinearGradient
@@ -284,12 +337,32 @@ export default function Profile() {
             style={[styles.topScrim, { height: insets.top + 72 }]}
             pointerEvents="none"
           />
-          {/* The avatar's last quarter fades into the page's tier hue. */}
+          {/* The avatar's last quarter fades into the page's tier hue. A
+              gradient's colours can't transition, so it is two layers: a fade
+              to the plain background, and over it a fade to the tier colour
+              whose opacity blooms with the page. The tier colour at
+              TIER_TINT over the background is exactly `pageTint`. */}
           <LinearGradient
-            colors={["transparent", pageTint]}
+            colors={["transparent", theme.background]}
             style={styles.bottomFade}
             pointerEvents="none"
           />
+          <Animated.View
+            style={[
+              styles.bottomFade,
+              {
+                opacity: tierOpacity,
+                transitionProperty: "opacity",
+                transitionDuration: 600,
+              },
+            ]}
+            pointerEvents="none"
+          >
+            <LinearGradient
+              colors={["transparent", rarityColor(theme, tierRarity)]}
+              style={StyleSheet.absoluteFill}
+            />
+          </Animated.View>
           {user?.owner && (
             <View style={[styles.headerActions, { top: insets.top + 8 }]}>
               <TouchableOpacity
@@ -301,7 +374,7 @@ export default function Profile() {
                 <FontAwesome name="inbox" size={22} color={theme.text} />
                 {/* Only when there's something to act on; it used to show "0". */}
                 {user.requests > 0 && (
-                  <View style={styles.alert}>
+                  <View style={[styles.alert, { borderColor: pageTint }]}>
                     <Text style={styles.alertNumber}>{user.requests}</Text>
                   </View>
                 )}
@@ -443,7 +516,7 @@ export default function Profile() {
         )
         }
       </ScrollView>
-    </View>
+    </Animated.View>
   );
 }
 
@@ -649,7 +722,8 @@ const createStyles = (theme: Theme) => StyleSheet.create({
   },
   emptyText: {
     fontSize: 16,
-    color: theme.void,
+    // Was theme.void (near-black): unreadable on the purple page.
+    color: theme.textSecondary,
     textAlign: 'center',
   },
 
@@ -659,22 +733,27 @@ const createStyles = (theme: Theme) => StyleSheet.create({
 
   // Followers / following list
   // UserCard brings its own 16pt side margin, so the lists add none.
+  // A count pill, not a plain dot: it needs to fit two digits without
+  // clipping, which a fixed 15px circle with unsized text couldn't.
   alert: {
     position: "absolute",
     zIndex: 1,
-    right: 4,
-    bottom: 4,
+    right: 2,
+    bottom: 2,
+    minWidth: 18,
+    minHeight: 18,
+    paddingHorizontal: 4,
     backgroundColor: theme.destructive,
     borderRadius: 9999,
-    width: 15,
-    height: 15,
+    // Separates the pill from the icon disc it sits on.
+    borderWidth: 1.5,
     alignItems: "center",
     justifyContent: "center",
   },
   alertNumber: {
     color: theme.cardText,
     fontWeight: "700",
+    fontSize: 11,
     textAlign: "center",
-    position: "absolute",
   }
 });
