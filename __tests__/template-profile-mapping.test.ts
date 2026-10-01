@@ -8,7 +8,7 @@
 jest.mock("@/lib/supabase", () => ({
   supabase: {
     rpc: jest.fn(),
-    auth: { getUser: jest.fn() },
+    auth: { getSession: jest.fn() },
     storage: { from: jest.fn() },
   },
 }));
@@ -18,14 +18,14 @@ import { fetchTemplate } from "@/api/studioFunctions";
 import { fetchUserCreatedEvents } from "@/services/users";
 
 const mockRpc = supabase.rpc as unknown as jest.Mock;
-const mockGetUser = supabase.auth.getUser as unknown as jest.Mock;
+const mockGetSession = supabase.auth.getSession as unknown as jest.Mock;
 const mockFrom = supabase.storage.from as unknown as jest.Mock;
 const mockCreateSignedUrl = jest.fn();
 const mockCreateSignedUrls = jest.fn();
 
 beforeEach(() => {
   mockRpc.mockReset();
-  mockGetUser.mockReset().mockResolvedValue({ data: { user: { id: "viewer" } } });
+  mockGetSession.mockReset().mockResolvedValue({ data: { session: { user: { id: "viewer" } } } });
   mockCreateSignedUrl.mockReset().mockResolvedValue({ data: { signedUrl: "https://signed" } });
   mockCreateSignedUrls.mockReset().mockResolvedValue({
     data: [{ path: "u/t.jpg", signedUrl: "https://signed-list" }],
@@ -36,7 +36,6 @@ beforeEach(() => {
     createSignedUrls: mockCreateSignedUrls,
   });
   jest.spyOn(console, "error").mockImplementation(() => {});
-  jest.spyOn(console, "log").mockImplementation(() => {});
 });
 
 afterEach(() => jest.restoreAllMocks());
@@ -146,7 +145,7 @@ describe("fetchUserCreatedEvents", () => {
   });
 
   it("flags the viewer's own events", async () => {
-    mockGetUser.mockResolvedValue({ data: { user: { id: "c-1" } } });
+    mockGetSession.mockResolvedValue({ data: { session: { user: { id: "c-1" } } } });
     mockRpc.mockResolvedValue({ data: [row], error: null });
 
     const events = await fetchUserCreatedEvents("alice");

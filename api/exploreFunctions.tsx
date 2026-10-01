@@ -1,4 +1,5 @@
 import { supabase } from "@/lib/supabase";
+import { getViewerId } from "@/utils/viewer";
 import { signThumbnails } from "@/utils/image-upload";
 import {
   RecommendedEventRow,
@@ -58,10 +59,8 @@ function userRowToSearchUser(row: SearchUserRow) {
 
 export const fetchTrending = async (eventOffset: number = 0, templateOffset: number = 0) => {
   try {
-    const { data: userAuth } = await supabase.auth.getUser();
-    const viewerId = userAuth.user?.id;
-
-    const [eventsRes, templatesRes] = await Promise.all([
+    const [viewerId, eventsRes, templatesRes] = await Promise.all([
+      getViewerId(),
       supabase.rpc("recommended_events", { _offset: eventOffset }),
       supabase.rpc("trending_templates", { _offset: templateOffset }),
     ]);
@@ -82,10 +81,8 @@ export const fetchTrending = async (eventOffset: number = 0, templateOffset: num
 
 export const search = async (query: string, eventOffset: number = 0, templateOffset: number = 0, userOffset: number = 0) => {
   try {
-    const { data: userAuth } = await supabase.auth.getUser();
-    const viewerId = userAuth.user?.id;
-
-    const [eventsRes, templatesRes, usersRes] = await Promise.all([
+    const [viewerId, eventsRes, templatesRes, usersRes] = await Promise.all([
+      getViewerId(),
       supabase.rpc("search_events", { _word: query, _offset: eventOffset }),
       supabase.rpc("search_templates", { _word: query, _offset: templateOffset }),
       supabase.rpc("search_users", { _word: query, _offset: userOffset }),

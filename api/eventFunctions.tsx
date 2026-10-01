@@ -1,4 +1,5 @@
 import { supabase } from "@/lib/supabase";
+import { getViewerId } from "@/utils/viewer";
 import { EventBetPayload, EventDetails, EventInformationPayload, RpcQuestion } from "@/types/rpc";
 
 type QuestionIdMap = Record<string, { questionId: number; options: Record<string, number> }>;
@@ -29,7 +30,10 @@ export const eventInformation = async (
   eventId: string
 ): Promise<EventDetails | { error: true; msg: string }> => {
   try {
-    const { data, error } = await supabase.rpc("get_event_information_db", { p_event_id: eventId });
+    const [viewerId, { data, error }] = await Promise.all([
+      getViewerId(),
+      supabase.rpc("get_event_information_db", { p_event_id: eventId }),
+    ]);
 
     if (error || !data) {
       throw new Error(error?.message || "Event not found");
@@ -40,9 +44,6 @@ export const eventInformation = async (
 
     const { flat, map } = splitQuestionsPayload(event.questions);
     eventQuestionMaps.set(eventId, map);
-
-    const { data: userAuth } = await supabase.auth.getUser();
-    const viewerId = userAuth.user?.id;
 
     // The RPC returns the creator as flat fields and the thumbnail as a storage
     // path in a private bucket. The screen wants a nested creator and a URL it

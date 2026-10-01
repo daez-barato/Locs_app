@@ -8,7 +8,7 @@
 jest.mock("@/lib/supabase", () => ({
   supabase: {
     rpc: jest.fn(),
-    auth: { getUser: jest.fn() },
+    auth: { getSession: jest.fn() },
     storage: { from: jest.fn() },
   },
 }));
@@ -17,7 +17,7 @@ import { supabase } from "@/lib/supabase";
 import { eventInformation, fetchEventBets, placeBet, endEvent } from "@/api/eventFunctions";
 
 const mockRpc = supabase.rpc as unknown as jest.Mock;
-const mockGetUser = supabase.auth.getUser as unknown as jest.Mock;
+const mockGetSession = supabase.auth.getSession as unknown as jest.Mock;
 const mockFrom = supabase.storage.from as unknown as jest.Mock;
 const mockCreateSignedUrl = jest.fn();
 
@@ -54,7 +54,7 @@ const payload = {
 
 beforeEach(() => {
   mockRpc.mockReset();
-  mockGetUser.mockReset().mockResolvedValue({ data: { user: { id: "viewer" } } });
+  mockGetSession.mockReset().mockResolvedValue({ data: { session: { user: { id: "viewer" } } } });
   mockCreateSignedUrl.mockReset().mockResolvedValue({ data: { signedUrl: "https://signed" } });
   mockFrom.mockReset().mockReturnValue({ createSignedUrl: mockCreateSignedUrl });
   jest.spyOn(console, "error").mockImplementation(() => {});
@@ -100,7 +100,7 @@ describe("eventInformation", () => {
     mockRpc.mockResolvedValue({ data: payload, error: null });
     expect(((await eventInformation(EVENT_ID)) as any).is_creator).toBe(false);
 
-    mockGetUser.mockResolvedValue({ data: { user: { id: CREATOR_ID } } });
+    mockGetSession.mockResolvedValue({ data: { session: { user: { id: CREATOR_ID } } } });
     mockRpc.mockResolvedValue({ data: payload, error: null });
     expect(((await eventInformation(EVENT_ID)) as any).is_creator).toBe(true);
   });

@@ -1,4 +1,5 @@
 import { supabase } from "@/lib/supabase";
+import { getViewerId } from "@/utils/viewer";
 import { EventDto, TemplateDto } from "@/types/dtos";
 import { Event } from "@/types/interfaces";
 import { uploadImage, signThumbnails } from "@/utils/image-upload";
@@ -27,8 +28,7 @@ export async function fetchFollowingPosts(offset: number): Promise<Event[]> {
 
 export const postEvent = async (eventDto: EventDto, templateDto: TemplateDto): Promise<string | undefined> => {
   try {
-    const { data: userAuth } = await supabase.auth.getUser();
-    const userId = userAuth.user?.id;
+    const userId = await getViewerId();
 
     if (!userId) {
       throw new Error("Not authenticated");
