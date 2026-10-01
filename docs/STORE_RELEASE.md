@@ -166,8 +166,7 @@ the account, none used for tracking or advertising, none sold:
 
 Data is encrypted in transit, and users can delete their account in the app;
 deletion anonymises that person's analytics history rather than keeping it
-linked. Say so in the Privacy Policy too (`constants/legal.ts`) before
-submitting, since it doesn't mention usage analytics yet.
+linked; the Privacy Policy describes the same (sections 2, 3 and 5).
 
 **Review account.** Give the reviewers an email/password test account with some
 coins and a few events, since Google and Apple sign-in are hard for them to use.

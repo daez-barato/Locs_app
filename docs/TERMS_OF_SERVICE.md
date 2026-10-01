@@ -2,7 +2,7 @@
 
 # Terms of Service
 
-_Effective September 25, 2026. Contact: locsapp.app@gmail.com. Published at https://locsapp.net/terms._
+_Effective October 1, 2026. Contact: locsapp.app@gmail.com. Published at https://locsapp.net/terms._
 
 ## 1. Agreement
 

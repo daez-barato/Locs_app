@@ -2,7 +2,7 @@
 
 # Privacy Policy
 
-_Effective September 25, 2026. Contact: locsapp.app@gmail.com. Published at https://locsapp.net/privacy._
+_Effective October 1, 2026. Contact: locsapp.app@gmail.com. Published at https://locsapp.net/privacy._
 
 ## 1. Overview
 
@@ -18,9 +18,13 @@ Activity data: the bets you place, coins you earn or spend, events you create or
 
 Device and technical data: your device's platform (iOS/Android/web) and a push-notification token, if you enable notifications, so we can deliver them to your device.
 
+Usage data: a record of the actions you take in the App, such as opening it, placing and settling bets, creating and deciding events, following accounts, and unlocking avatars. Each record holds the time, the IDs of the items involved, any coin amounts, and your app version and platform. These records are linked to your account, but they never contain the text you write, your username, or your email address.
+
 ## 3. How we use this information
 
 To create and maintain your account, operate events, bets, and the coin economy, show you content from people you follow, send push notifications you've enabled, keep the App secure, and improve how it works.
+
+We use usage data to understand how the App is used as a whole, for example how many people play each day, which features they use, and whether the coin economy stays fair, so we can fix problems and improve it. We do this analysis ourselves, in our own database; the App contains no third-party analytics or advertising tools.
 
 We do not use your information for advertising, and we do not build advertising or tracking profiles about you.
 
@@ -39,6 +43,8 @@ We do not sell your personal information, and we do not share it with third part
 ## 5. Data retention and deletion
 
 We keep your account information for as long as your account exists. You can permanently delete your account at any time from Settings; this removes your profile, events, bets, coin balance, and owned avatars, and refunds coins staked on your still-open events by others. If you can no longer use the App, email us from the address on your account and we will delete it for you.
+
+When you delete your account, your usage records are unlinked from it. We keep them only in that unlinked form, to count overall activity such as daily totals.
 
 Some uploaded images (such as event thumbnails) may briefly persist in storage or backups for a short period after deletion before being fully purged.
 
