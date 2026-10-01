@@ -4,7 +4,8 @@ import { useLocalSearchParams, router, Stack } from 'expo-router';
 import { Theme, useThemeConfig } from '@/components/ui/use-theme-config';
 import { withAlpha } from "@/theme";
 import { useThemedStyles } from '@/hooks/use-themed-styles';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import Animated, { useReducedMotion } from 'react-native-reanimated';
 import { deleteEvent, endEvent, eventInformation, fetchEventBets, getEventWinners, lockEvent, placeBet, postTemplate, saveTemplate, setEventPublic } from '@/api/eventFunctions';
 import { eventUrl } from '@/constants/links';
 import { FontAwesome5 } from '@expo/vector-icons';
@@ -16,9 +17,9 @@ import { CoinAmount, CoinIcon } from "@/components/ui/coin";
 import { haptics } from "@/utils/haptics";
 import { Bet } from '@/types/interfaces';
 import { EventDetails } from '@/types/rpc';
+import { tallyBets } from '@/utils/bet-tally';
 
-
-export default function eventScreen() {
+export default function EventScreen() {
   const { eventId } = useLocalSearchParams() as { eventId: string };
   const { coins, refreshCoins } = useCoinContext();
   const [refreshing, setRefreshing] = useState(false);
@@ -43,6 +44,11 @@ export default function eventScreen() {
   const [loadError, setLoadError] = useState<string | null>(null);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isPlacingBet, setIsPlacingBet] = useState(false);
+  // State updates are async; the ref is what actually stops a fast double
+  // tap on Confirm from placing the bet twice.
+  const isPlacingBetRef = useRef(false);
+  const reducedMotion = useReducedMotion();
   const userName = useAuthContext().user?.username || '';
   // An https link rather than the app scheme: it opens the app when installed
   // and the website (then the app store) when not.
@@ -54,7 +60,14 @@ export default function eventScreen() {
 
   async function fetchData() {
     try {
-      const event = await eventInformation(eventId);
+      // All three round trips are independent: get_event_winners returns []
+      // for an undecided event, so it's cheap and safe to fetch unconditionally
+      // alongside the event and its bets rather than waiting on event first.
+      const [event, winnersResult, bets] = await Promise.all([
+        eventInformation(eventId),
+        getEventWinners(eventId),
+        fetchEventBets(eventId),
+      ]);
 
       // Explicit return type means no implicit optional-prop merging, so
       // narrow the union with `in` rather than a truthiness check.
@@ -70,7 +83,6 @@ export default function eventScreen() {
       };
 
       if (event.decided) {
-        const winnersResult = await getEventWinners(eventId);
         if (Array.isArray(winnersResult)) {
           setWinners(Object.fromEntries(winnersResult.map((w) => [w.question, w.option])));
         } else {
@@ -80,47 +92,16 @@ export default function eventScreen() {
         setWinners({});
       }
 
-      const bets = await fetchEventBets(eventId);
-
       if (!Array.isArray(bets)) {
         console.error('Failed to fetch bets:', bets.msg);
         return;
       }
 
-      const bet_infos: Record<string, Bet> = {};
       const questions = event.questions as Record<string, string[]>;
-
-      for (const [question, options] of Object.entries(questions)) {
-        bet_infos[question] = {
-          totalPot: 0,
-          optionPots: Object.fromEntries(
-            options.map((option: string) => [option, 0])
-          )
-        };
-      }
-
-      for (const bet of bets) {
-        const question = bet.question;
-        const option = bet.option;
-        const amount = bet.amount;
-
-        if (bet_infos[question]) {
-          bet_infos[question].totalPot += amount;
-          bet_infos[question].optionPots[option] += amount;
-
-          if (bet.username === userName) {
-            bet_infos[question].userBet = {
-              options: {
-                ...bet_infos[question].userBet?.options,
-                [option]: bet?.payout != null ? bet.payout : amount
-              }
-            };
-          }
-        }
-      }
+      const { betInfos: bet_infos, bettorCount: nextBettorCount } = tallyBets(questions, bets, userName);
 
       setBetInfos(bet_infos);
-      setBettorCount(new Set(bets.map((b) => b.user_id)).size);
+      setBettorCount(nextBettorCount);
 
     } catch (err: any) {
       console.error('Failed to fetch data', err);
@@ -131,7 +112,10 @@ export default function eventScreen() {
   }
 
   useEffect(() => {
-    fetchData();
+    const load = async () => {
+      await fetchData();
+    };
+    load();
     // The bet modal shows the balance; start from the current one.
     refreshCoins();
   }, [eventId]);
@@ -312,7 +296,9 @@ export default function eventScreen() {
 
   const confirmBet = async () => {
     if (pendingBet) {
-      const betAmount = parseFloat(modalBetAmount) || 0;
+      // The server's add_bet takes an integer; the input is already
+      // digits-only, but parseInt is the belt-and-suspenders parse.
+      const betAmount = parseInt(modalBetAmount, 10) || 0;
       if (betAmount <= 0) {
         Alert.alert('Invalid amount', 'Please enter a valid bet amount');
         return;
@@ -336,48 +322,60 @@ export default function eventScreen() {
         return;
       }
 
-      const bet = await placeBet(eventId , pendingBet.question, pendingBet.option, betAmount);
+      // A fast double tap fires this handler again before React re-renders
+      // the Confirm button disabled; the ref is what actually stops the
+      // second submit from placing the bet twice.
+      if (isPlacingBetRef.current) return;
+      isPlacingBetRef.current = true;
+      setIsPlacingBet(true);
 
-      if (bet.error){
-        Alert.alert('Error', bet.msg);
-        return;
-      }
-      haptics.success();
-      // add_bet returns nothing, so read the new balance back.
-      refreshCoins();
-      // A first stake anywhere on the event makes you one more bettor.
-      if (!Object.values(betInfos).some((info) => info.userBet)) {
-        setBettorCount((count) => count + 1);
-      }
-      
-      setBetInfos(prevBetInfos => {
-        const newBetInfos = { ...prevBetInfos };
-        const questionBetInfo = newBetInfos[pendingBet.question];
-        
-        if (questionBetInfo) {
-          const oldUserBetAmount = questionBetInfo.userBet?.options[pendingBet.option] || 0;
-          const additionalAmount = pendingBet.isIncrease ? betAmount - oldUserBetAmount : betAmount;
-          
-          const newOptionBets = { ...questionBetInfo.optionPots };
-          newOptionBets[pendingBet.option] = (newOptionBets[pendingBet.option] || 0) + additionalAmount;
-          
-          const newTotalPot = Object.values(newOptionBets).reduce((sum, amount) => sum + amount, 0);
-          
-          newBetInfos[pendingBet.question] = {
-            ...questionBetInfo,
-            totalPot: newTotalPot,
-            userBet: {
-              options: {
-                ...questionBetInfo.userBet?.options,
-                [pendingBet.option]: (questionBetInfo.userBet?.options[pendingBet.option] || 0) + additionalAmount
-              }
-            },
-            optionPots: newOptionBets
-          };
+      try {
+        const bet = await placeBet(eventId , pendingBet.question, pendingBet.option, betAmount);
+
+        if (bet.error){
+          Alert.alert('Error', bet.msg);
+          return;
         }
-        
-        return newBetInfos;
-      });
+        haptics.success();
+        // add_bet returns nothing, so read the new balance back.
+        refreshCoins();
+        // A first stake anywhere on the event makes you one more bettor.
+        if (!Object.values(betInfos).some((info) => info.userBet)) {
+          setBettorCount((count) => count + 1);
+        }
+
+        setBetInfos(prevBetInfos => {
+          const newBetInfos = { ...prevBetInfos };
+          const questionBetInfo = newBetInfos[pendingBet.question];
+
+          if (questionBetInfo) {
+            const oldUserBetAmount = questionBetInfo.userBet?.options[pendingBet.option] || 0;
+            const additionalAmount = pendingBet.isIncrease ? betAmount - oldUserBetAmount : betAmount;
+
+            const newOptionBets = { ...questionBetInfo.optionPots };
+            newOptionBets[pendingBet.option] = (newOptionBets[pendingBet.option] || 0) + additionalAmount;
+
+            const newTotalPot = Object.values(newOptionBets).reduce((sum, amount) => sum + amount, 0);
+
+            newBetInfos[pendingBet.question] = {
+              ...questionBetInfo,
+              totalPot: newTotalPot,
+              userBet: {
+                options: {
+                  ...questionBetInfo.userBet?.options,
+                  [pendingBet.option]: (questionBetInfo.userBet?.options[pendingBet.option] || 0) + additionalAmount
+                }
+              },
+              optionPots: newOptionBets
+            };
+          }
+
+          return newBetInfos;
+        });
+      } finally {
+        isPlacingBetRef.current = false;
+        setIsPlacingBet(false);
+      }
     }
     setShowConfirmModal(false);
     setPendingBet(null);
@@ -431,11 +429,18 @@ export default function eventScreen() {
             <CoinAmount amount={optionBetAmount} size={16} textStyle={styles.optionBetAmount} />
           </View>
           <View style={styles.progressBarContainer}>
-            <View 
+            <Animated.View
               style={[
-                styles.progressBar, 
-                { width: `${betPercentage}%` }
-              ]} 
+                styles.progressBar,
+                { width: `${betPercentage}%` },
+                // Eases toward the new width after a bet or a refresh
+                // changes the pots, unless the viewer asked for less motion.
+                !reducedMotion && {
+                  transitionProperty: 'width',
+                  transitionDuration: 450,
+                  transitionTimingFunction: 'ease-out',
+                },
+              ]}
             />
           </View>
         </View>
@@ -835,7 +840,7 @@ export default function eventScreen() {
             <View style={styles.betAmountContainer}>
               <Text style={styles.betAmountLabel}>Bet Amount:</Text>
               <View style={styles.inputContainer}>
-                <Text style={styles.currencySymbol}>$</Text>
+                <CoinIcon size={20} style={styles.betAmountCoinIcon} />
                 <TextInput
                   style={styles.betAmountInput}
                   value={modalBetAmount}
@@ -844,21 +849,16 @@ export default function eventScreen() {
                       setModalBetAmount('');
                       return;
                     }
-                    
-                    const numericValue = text.replace(/[^0-9.]/g, '');
-                    const parts = numericValue.split('.');
-                    
-                    if (parts.length <= 2) {
-                      if (parts.length === 2) {
-                        parts[1] = parts[1].substring(0, 2);
-                      }
-                      const finalValue = parts.join('.');
-                      setModalBetAmount(finalValue);
-                    }
+
+                    // Coins are whole numbers — add_bet rejects decimals —
+                    // so strip everything but digits, then collapse leading
+                    // zeros to a single "0" ("007" -> "7", "0" stays "0").
+                    const digitsOnly = text.replace(/[^0-9]/g, '').replace(/^0+(?=\d)/, '');
+                    setModalBetAmount(digitsOnly);
                   }}
-                  placeholder="0.00"
+                  placeholder="0"
                   placeholderTextColor={theme.placeholder}
-                  keyboardType="numeric"
+                  keyboardType="number-pad"
                   autoFocus={true}
                 />
               </View>
@@ -872,12 +872,19 @@ export default function eventScreen() {
                 <Text style={styles.modalCancelText}>Cancel</Text>
               </TouchableOpacity>
               
-              <TouchableOpacity 
+              <TouchableOpacity
                 style={styles.modalConfirmButton}
                 onPress={confirmBet}
+                disabled={isPlacingBet}
               >
-                <FontAwesome5 name="check" size={16} color={theme.onPrimary} />
-                <Text style={styles.modalConfirmText}>Confirm</Text>
+                {isPlacingBet ? (
+                  <ActivityIndicator color={theme.onPrimary} />
+                ) : (
+                  <>
+                    <FontAwesome5 name="check" size={16} color={theme.onPrimary} />
+                    <Text style={styles.modalConfirmText}>Confirm</Text>
+                  </>
+                )}
               </TouchableOpacity>
             </View>
           </View>
@@ -1742,10 +1749,8 @@ const createStyles = (theme: Theme) => StyleSheet.create({
     minWidth: 150,
   },
 
-  currencySymbol: {
-    color: theme.primary,
-    fontSize: 20,
-    fontWeight: '700',
+  // Repurposed from the old "$" text's spacing, now on the coin icon beside it.
+  betAmountCoinIcon: {
     marginRight: 8,
   },
   
