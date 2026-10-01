@@ -120,6 +120,13 @@ com.daez.locsapp`) to test.
 2. Supabase dashboard → Authentication → Providers → Apple: enable it and add
    `com.daez.locsapp` to the **Client IDs**. Native sign-in sends an identity
    token, so no Services ID or secret key is needed for the app itself.
+3. **Account deletion must revoke the Apple token.** Apple requires apps
+   that offer Sign in with Apple to call its token-revocation endpoint when
+   the account is deleted (guideline 5.1.1(v)); `delete_my_account` doesn't
+   yet. It needs a Sign in with Apple key (Apple Developer → Keys, a `.p8`
+   file plus its Key ID and your Team ID) held server-side, e.g. in a
+   Supabase Edge Function that deletion calls. Build this before submitting
+   to the App Store with Apple sign-in switched on.
 
 ### 6. Push notifications
 
@@ -155,8 +162,12 @@ the account, none used for tracking or advertising, none sold:
 | Photos (event cover images the user uploads) | App functionality |
 | User content (events, questions, bets) | App functionality |
 | Device ID (push notification token) | Notifications |
+| App activity / app interactions (bets, follows, purchases, app opens) | Analytics: the event log described in `locs_server/ANALYTICS.md` |
 
-Data is encrypted in transit, and users can delete their account in the app.
+Data is encrypted in transit, and users can delete their account in the app;
+deletion anonymises that person's analytics history rather than keeping it
+linked. Say so in the Privacy Policy too (`constants/legal.ts`) before
+submitting, since it doesn't mention usage analytics yet.
 
 **Review account.** Give the reviewers an email/password test account with some
 coins and a few events, since Google and Apple sign-in are hard for them to use.
@@ -191,6 +202,21 @@ eas build -p ios --profile preview
 
 Register everyone before building; a new device needs a new build. The
 `simulator` profile makes a build for the iOS Simulator on a Mac.
+
+## The first Google Play release
+
+- Google's API can't create an app's first release, so `eas submit` only
+  works from the second build on. Upload the first production `.aab`
+  (`eas build -p android --profile production`, then download it from the
+  build page) by hand in Play Console → Test and release.
+- Personal developer accounts created after November 2023 must run a
+  **closed test with at least 12 testers, opted in for 14 days in a row**,
+  before Play allows a production release. Start that test as early as
+  possible; it is the longest wait in the whole process.
+- `eas submit` needs a Google Cloud service account key with access to the
+  Play Console app (Play Console → Users and permissions). Its path goes in
+  `eas.json` under `submit.production.android.serviceAccountKeyPath`, or EAS
+  asks for it on the first submit and stores it.
 
 ## Every release
 
