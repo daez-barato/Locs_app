@@ -6,6 +6,7 @@ import AuthProvider from "@/providers/auth-provider";
 import { CoinProvider } from "@/providers/coin-provider";
 import { NotificationsProvider } from "@/providers/notifications-provider";
 import { useAuthContext } from "@/hooks/use-auth-context";
+import { useAppOpenLogging } from "@/hooks/use-app-open-logging";
 import { SplashScreenController } from "@/components/splash-screen-controller";
 import { useThemeConfig } from "@/components/ui/use-theme-config";
 import { takePendingEventId } from "@/utils/pending-link";
@@ -26,6 +27,8 @@ function RootNavigator() {
   const theme = useThemeConfig();
   const router = useRouter();
   const ready = !isInitializing && isLoggedIn && user !== undefined && !needsOnboarding;
+
+  useAppOpenLogging(ready);
 
   // An event link opened while signed out was parked by the login screen;
   // open it now that the event route exists.

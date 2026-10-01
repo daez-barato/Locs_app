@@ -200,6 +200,42 @@ export type Database = {
           },
         ]
       }
+      follow_notifications: {
+        Row: {
+          actor_id: string
+          kind: string
+          sent_at: string
+          target_id: string
+        }
+        Insert: {
+          actor_id: string
+          kind: string
+          sent_at?: string
+          target_id: string
+        }
+        Update: {
+          actor_id?: string
+          kind?: string
+          sent_at?: string
+          target_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "follow_notifications_actor_id_fkey"
+            columns: ["actor_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "follow_notifications_target_id_fkey"
+            columns: ["target_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       follow_requests: {
         Row: {
           created_at: string
@@ -609,7 +645,6 @@ export type Database = {
           template_id: string
         }[]
       }
-      daily_set_minimum_coins: { Args: never; Returns: undefined }
       decide_event: {
         Args: { _event_id: string; _winners: Json }
         Returns: undefined
@@ -821,7 +856,15 @@ export type Database = {
         }[]
       }
       lock_event: { Args: { _event_id: string }; Returns: undefined }
+      log_app_open: {
+        Args: { _app_version: string; _platform: string }
+        Returns: undefined
+      }
       needs_onboarding: { Args: never; Returns: boolean }
+      notify_follow: {
+        Args: { _actor: string; _kind: string; _target: string }
+        Returns: undefined
+      }
       publish_template: { Args: { _template_id: string }; Returns: undefined }
       purchase_item: {
         Args: { _item_id: string }
@@ -926,6 +969,7 @@ export type Database = {
           template_id: string
         }[]
       }
+      top_up_coins: { Args: never; Returns: undefined }
       trending_templates: {
         Args: { _limit?: number; _offset?: number }
         Returns: {
