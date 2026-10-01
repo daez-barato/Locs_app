@@ -1,6 +1,7 @@
 import { supabase } from "@/lib/supabase";
 import { Event } from "@/types/interfaces";
 import { signThumbnails } from "@/utils/image-upload";
+import { getViewerId } from "@/utils/viewer";
 import { CreatedEventRow, ParticipatedEventRow } from "@/types/rpc";
 
 function toEvent(
@@ -24,27 +25,18 @@ function toEvent(
   });
 }
 
-async function getCurrentUsername(): Promise<string | null> {
-  const { data, error } = await supabase.rpc("get_my_profile");
-
-  if (error || !data || data.length === 0) {
-    return null;
-  }
-
-  return data[0].username;
-}
-
-export const fetchUserLiveEvents = async () => {
+/**
+ * `username` comes from the caller (the signed-in user's own profile, already
+ * held in auth context) rather than a `get_my_profile` round trip here — that
+ * used to mean `auth.getUser()` -> `get_my_profile` -> this RPC in series,
+ * just to look up the username this screen already has.
+ */
+export const fetchUserLiveEvents = async (username: string) => {
   try {
-    const { data: userAuth } = await supabase.auth.getUser();
-    const viewerId = userAuth.user?.id;
-    const username = await getCurrentUsername();
-
-    if (!username) {
-      throw new Error("Not authenticated");
-    }
-
-    const { data, error } = await supabase.rpc("get_user_created_events", { username });
+    const [viewerId, { data, error }] = await Promise.all([
+      getViewerId(),
+      supabase.rpc("get_user_created_events", { username }),
+    ]);
 
     if (error) {
       throw new Error(error.message);
@@ -62,17 +54,12 @@ export const fetchUserLiveEvents = async () => {
   }
 };
 
-export const fetchUserLiveBets = async () => {
+export const fetchUserLiveBets = async (username: string) => {
   try {
-    const { data: userAuth } = await supabase.auth.getUser();
-    const viewerId = userAuth.user?.id;
-    const username = await getCurrentUsername();
-
-    if (!username) {
-      throw new Error("Not authenticated");
-    }
-
-    const { data, error } = await supabase.rpc("get_user_participated_events", { username });
+    const [viewerId, { data, error }] = await Promise.all([
+      getViewerId(),
+      supabase.rpc("get_user_participated_events", { username }),
+    ]);
 
     if (error) {
       throw new Error(error.message);

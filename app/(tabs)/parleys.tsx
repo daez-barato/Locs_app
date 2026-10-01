@@ -4,64 +4,97 @@ import EventCard from "@/components/eventCard";
 import { useThemeConfig, Theme } from "@/components/ui/use-theme-config";
 import { withAlpha } from "@/theme";
 import { useThemedStyles } from "@/hooks/use-themed-styles";
+import { useAuthContext } from "@/hooks/use-auth-context";
 import { useCoinContext } from "@/hooks/use-coin-context";
 import { FontAwesome } from "@expo/vector-icons";
-import { useRouter } from "expo-router";
-import { useState, useEffect } from "react";
-import { 
-    Text, 
-    View, 
-    FlatList, 
-    StyleSheet, 
-    TouchableOpacity, 
+import { useFocusEffect, useRouter } from "expo-router";
+import { useCallback, useEffect, useRef, useState } from "react";
+import {
+    Text,
+    View,
+    FlatList,
+    StyleSheet,
+    TouchableOpacity,
     RefreshControl,
     ActivityIndicator,
 } from "react-native";
+
+const LOAD_ERROR_MESSAGE = "Couldn't load your parleys. Check your connection and try again.";
 
 export default function Parleys() {
     const theme = useThemeConfig();
     const styles = useThemedStyles(createStyles);
     const router = useRouter()
     const { refreshCoins } = useCoinContext();
+    const { user } = useAuthContext();
     const [activeTab, setActiveTab] = useState<'participating' | 'created'>('participating');
     const [participatingEvents, setParticipatingEvents] = useState<Event[]>([]);
     const [createdEvents, setCreatedEvents] = useState<Event[]>([]);
     const [isRefreshing, setIsRefreshing] = useState(false);
     const [isLoading, setIsLoading] = useState(true);
     const [errorMessage, setErrorMessage] = useState<string | null>(null);
+    // The tab stays mounted, so useFocusEffect below is what picks up a bet
+    // placed elsewhere; this tracks whether the initial load already
+    // succeeded once, so a later failed background reload doesn't blank the
+    // screen and a refocus right after mount doesn't double-load.
+    const hasLoaded = useRef(false);
 
-    const fetchUserEvents = async () => {
+    const fetchUserEvents = useCallback(async (mode: "initial" | "refresh" | "silent") => {
+        if (mode === "initial") setIsLoading(true);
+        if (mode === "refresh") setIsRefreshing(true);
+
+        const username = user?.username;
+
+        if (!username) {
+            // Not signed in yet (or the profile hasn't loaded) — show the
+            // existing error state rather than calling the RPCs with no username.
+            if (!hasLoaded.current) setErrorMessage(LOAD_ERROR_MESSAGE);
+            setIsLoading(false);
+            setIsRefreshing(false);
+            return;
+        }
+
         try {
-            const participating = await fetchUserLiveBets();
-            const created = await fetchUserLiveEvents(); 
-            
-            if (!Array.isArray(participating) || !Array.isArray(created)) {
-                console.error('Invalid data format received from API');
-                return;
-            }
+            const [participating, created] = await Promise.all([
+                fetchUserLiveBets(username),
+                fetchUserLiveEvents(username),
+            ]);
 
             setParticipatingEvents(participating);
             setCreatedEvents(created);
             setErrorMessage(null);
+            hasLoaded.current = true;
         } catch (error) {
             console.error('Error fetching user events:', error);
-            setErrorMessage("Couldn't load your parleys. Check your connection and try again.");
+            // A failed background reload keeps what's on screen; only an
+            // empty screen (nothing loaded yet) gets the error state.
+            if (!hasLoaded.current) setErrorMessage(LOAD_ERROR_MESSAGE);
         }
-    };
+
+        setIsLoading(false);
+        setIsRefreshing(false);
+    }, [user?.username]);
 
     useEffect(() => {
-        const loadData = async () => {
-            setIsLoading(true);
-            await fetchUserEvents();
-            setIsLoading(false);
+        const load = async () => {
+            await fetchUserEvents("initial");
         };
-        loadData();
-    }, []);
+        load();
+    }, [fetchUserEvents]);
+
+    // Reload silently whenever the tab regains focus — e.g. after placing a
+    // bet on an event opened from elsewhere — but not on the very first
+    // focus, which the initial load above already covers.
+    useFocusEffect(
+        useCallback(() => {
+            if (hasLoaded.current) {
+                fetchUserEvents("silent");
+            }
+        }, [fetchUserEvents])
+    );
 
     const onRefresh = async () => {
-        setIsRefreshing(true);
-        await Promise.all([fetchUserEvents(), refreshCoins()]);
-        setIsRefreshing(false);
+        await Promise.all([fetchUserEvents("refresh"), refreshCoins()]);
     };
 
     const currentEvents = activeTab === 'participating' ? participatingEvents : createdEvents;
