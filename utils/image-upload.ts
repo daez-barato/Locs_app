@@ -1,32 +1,22 @@
-import { ImageManipulator, SaveFormat } from "expo-image-manipulator";
+import { ImageManipulator, ImageRef, SaveFormat } from "expo-image-manipulator";
 import { supabase } from "@/lib/supabase";
 
-// Thumbnails render at most card width on a phone, so a full-resolution photo
-// (often 4000px and several MB) was uploaded only to be scaled down on every
-// device that showed it. Everything is shrunk to this width and re-encoded as
-// JPEG first, which keeps uploads around 100–200 KB.
-const MAX_IMAGE_WIDTH = 1280;
-const JPEG_QUALITY = 0.7;
-
-// Keep these in sync with the buckets' own limits in Supabase Storage, so an
-// oversized pick fails here with a readable message instead of a raw 413 from
-// the server after the user has already waited for the upload.
+// Keep these in sync with the buckets' own limits in Supabase Storage. Event
+// covers only accept WebP up to 1 MiB: a cover renders at most screen width,
+// and a 1280px WebP photo is a few hundred KB, so the limit is headroom rather
+// than a squeeze.
 export const IMAGE_LIMITS = {
-  "event-thumbnail": 8 * 1024 * 1024,
+  "event-thumbnail": 1024 * 1024,
   avatar: 5 * 1024 * 1024,
 } as const;
 
-const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/webp"] as const;
-
-const EXT_BY_TYPE: Record<string, string> = {
-  "image/jpeg": "jpg",
-  "image/png": "png",
-  "image/webp": "webp",
-};
-
-function formatMb(bytes: number): string {
-  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
-}
+// Tried in order until one fits the bucket's limit; nearly every photo fits
+// the first. Widths are a ceiling, never an upscale.
+const WEBP_ENCODE_ATTEMPTS = [
+  { width: 1280, quality: 0.75 },
+  { width: 1280, quality: 0.55 },
+  { width: 960, quality: 0.5 },
+] as const;
 
 /**
  * Turns event-thumbnail storage paths into displayable URLs.
@@ -72,68 +62,75 @@ export async function signThumbnails<T extends Record<string, any>>(
 type Bucket = keyof typeof IMAGE_LIMITS;
 
 /**
- * Downscales a picked image to MAX_IMAGE_WIDTH (never upscales) and re-encodes
- * it as JPEG, returning the URI of the smaller file. Falls back to the original
- * URI if the image can't be processed, so a manipulator failure costs size, not
- * the upload.
+ * Re-encodes a picked image as WebP that fits the bucket's limit, returning the
+ * encoded file and its bytes. Throws a readable error when the image can't be
+ * processed, or when even the smallest attempt is over the limit — the bucket
+ * only takes WebP, so uploading the original instead would fail anyway.
  */
-export async function shrinkImage(uri: string): Promise<string> {
+export async function shrinkImage(
+  uri: string,
+  bucket: Bucket = "event-thumbnail"
+): Promise<{ uri: string; bytes: ArrayBuffer }> {
+  const unprocessable = (error: unknown) => {
+    console.error("Error encoding image:", error);
+    return new Error("Couldn't process that image. Try a different photo.");
+  };
+
+  let original: ImageRef;
   try {
-    const original = await ImageManipulator.manipulate(uri).renderAsync();
-    const context = ImageManipulator.manipulate(original);
-    if (original.width > MAX_IMAGE_WIDTH) {
-      context.resize({ width: MAX_IMAGE_WIDTH });
-    }
-    const rendered = await context.renderAsync();
-    const saved = await rendered.saveAsync({ compress: JPEG_QUALITY, format: SaveFormat.JPEG });
-    return saved.uri;
+    original = await ImageManipulator.manipulate(uri).renderAsync();
   } catch (error) {
-    console.error("Error shrinking image, uploading the original:", error);
-    return uri;
+    throw unprocessable(error);
   }
+
+  for (const attempt of WEBP_ENCODE_ATTEMPTS) {
+    let encodedUri: string;
+    try {
+      const context = ImageManipulator.manipulate(original);
+      if (original.width > attempt.width) {
+        context.resize({ width: attempt.width });
+      }
+      const rendered = await context.renderAsync();
+      const saved = await rendered.saveAsync({ compress: attempt.quality, format: SaveFormat.WEBP });
+      encodedUri = saved.uri;
+    } catch (error) {
+      throw unprocessable(error);
+    }
+
+    // Read via arrayBuffer rather than blob: React Native's Blob doesn't carry
+    // the bytes in a way supabase-js can upload, which silently produced empty
+    // objects. It also gives the exact size to check against the limit.
+    const response = await fetch(encodedUri);
+    if (!response.ok) {
+      throw new Error("Could not read the selected image.");
+    }
+    const bytes = await response.arrayBuffer();
+    if (bytes.byteLength <= IMAGE_LIMITS[bucket]) {
+      return { uri: encodedUri, bytes };
+    }
+  }
+
+  throw new Error("That image is too large to upload, even compressed. Try a different photo.");
 }
 
-/**
- * Shrinks and uploads a picked image, returning its storage path.
- *
- * Reads via arrayBuffer rather than blob: React Native's Blob doesn't carry the
- * underlying bytes in a way supabase-js can upload, which silently produces
- * empty objects. arrayBuffer also gives an exact byte length to check first.
- */
+/** Encodes and uploads a picked image, returning its storage path. */
 export async function uploadImage(
   bucket: Bucket,
   uri: string,
   userId: string,
   fileName?: string
 ): Promise<string> {
-  const response = await fetch(await shrinkImage(uri));
+  const { bytes } = await shrinkImage(uri, bucket);
 
-  if (!response.ok) {
-    throw new Error("Could not read the selected image.");
-  }
-
-  const contentType = response.headers.get("content-type") || "image/jpeg";
-  const type = ALLOWED_TYPES.includes(contentType as any) ? contentType : "image/jpeg";
-
-  const arrayBuffer = await response.arrayBuffer();
-  const limit = IMAGE_LIMITS[bucket];
-
-  if (arrayBuffer.byteLength === 0) {
+  if (bytes.byteLength === 0) {
     throw new Error("The selected image appears to be empty.");
   }
 
-  if (arrayBuffer.byteLength > limit) {
-    throw new Error(
-      `That image is ${formatMb(arrayBuffer.byteLength)}. Please choose one under ${formatMb(limit)}.`
-    );
-  }
-
-  const ext = EXT_BY_TYPE[type] || "jpg";
-  const path = `${userId}/${fileName ?? Date.now()}.${ext}`;
+  const path = `${userId}/${fileName ?? Date.now()}.webp`;
 
   const { error } = await supabase.storage
     .from(bucket)
-    .upload(path, arrayBuffer, { contentType: type, upsert: true });
+    .upload(path, bytes, { contentType: "image/webp", upsert: true });
 
   if (error) {
     throw new Error(error.message);
